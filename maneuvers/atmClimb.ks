@@ -3,8 +3,8 @@
 declare global kAtmClimbParams to lexicon().
 
 set kAtmClimbParams:kTurn to 10.
-set kAtmClimbParams:kClimbAp to 80000.
-set kAtmClimbParams:kBurnHeight to 75000.
+set kAtmClimbParams:kClimbAp to 85000.
+set kAtmClimbParams:kBurnHeight to 80000.
 set kAtmClimbParams:kClimbPe to 71000.
 set kAtmClimbParams:kLastStage to 0.
 
@@ -82,7 +82,7 @@ function warpUp {
 
 function circularize {
     set steer to acHeading(0).
-    if vang(ship:facing, acHeading(0)) > 10 {
+    if vang(ship:facing:vector, acHeading(0):vector) > 10 {
         set kuniverse:timewarp:rate to 1.
         set throt to 0.
     } else {

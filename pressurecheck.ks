@@ -6,7 +6,7 @@ print "Ship is now unpacked.".
 
 // part setup
 set barometers to ship:partsdubbedpattern("science jr").
-if not (barometers:length = 4) {
+if barometers:length <> 4 {
   print "ERROR: Wrong barometer count found".
 }.
 

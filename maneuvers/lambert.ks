@@ -1,32 +1,20 @@
 @LAZYGLOBAL OFF.
 
-for i in range(1, 30) {
-    clearscreen.
-    clearVecDraws().
-    local startTime to time + i * 60.
-    local runTime to 40 * 60 * 60.
-    local success to lambert(ship, mun, startTime, runTime).
-    if success {
-        local endTime to startTime + runTime.
-        //  local arrow to vecdraw(kerbin:position, positionAt(mun, endTime), 
-            //  white, "tgt", 1.0, true).
-        // local arrow2 to vecdraw(ship:position, positionAt(ship, endTime),
-            // blue, "ship", 1.0, true).
-        add node(endTime, 0, 0, 0).
-        break.
-    }
-}
 
 function lambert {
     parameter obtable1.
     parameter obtable2. 
     parameter startTime.
     parameter flightDuration.
+    parameter allowLong.
+
+    local results to lexicon().
+    set results["ok"] to false.
 
     local obt1 to obtable1:obt.
     if obt1:body <> obtable2:obt:body {
         print "Orbits must have same body.".
-        return.
+        return results.
     }
     local focus to obt1:body.
     local endTime to startTime + flightDuration.
@@ -34,8 +22,8 @@ function lambert {
     local pi to constant:pi.
     local p1 to positionAt(obtable1, startTime) - focus:position.
     local p2 to positionAt(obtable2, endTime) - focus:position.
-    print "P1 = " + p1:mag.
-    print "P2 = " + p2:mag.
+    // print "P1 = " + p1:mag.
+    // print "P2 = " + p2:mag.
 
     local cvec to p2 - p1.
     local r1 to p1:mag.
@@ -50,32 +38,25 @@ function lambert {
     local isShort to dTheta <= pi.
     local isFar to r2 > r1.
 
-    print "RadRat = " + radRat.
-    print "Theta = " + dTheta.
-    print "Nref = " + nRef.
-    print "TauS = " + tauS.
-
-    if isShort {
-        if isFar { print "Case = 1". }
-        else { print "Case = 2". }
-    } else {
-        if isFar { print "Case = 3". }
-        else {print "Case = 4". }
-    }
+    // print "RadRat = " + radRat.
+    // print "Theta = " + dTheta.
+    // print "Nref = " + nRef.
+    // print "TauS = " + tauS.
 
     local ef to (r1 - r2) / cvec:mag.
-    print "Ef = " + ef.
+    // print "Ef = " + ef.
     local ep to sqrt(1 - ef^2).
     local eh to ep.
 
-    if not isShort { return false. }
+    if not (isShort or allowLong) { 
+        return results. }
     
     if not isShort {
         local emax to -1 / cosR(dTheta / 2).
         set eh to sqrt(emax^2 - ef^2).
         set eh to min(ep, eh) .
     }
-    print "E limits = " + -1 * eh + " < eF < "+ ep.
+    // print "E limits = " + -1 * eh + " < eF < "+ ep.
 
     local toX to { parameter et_. return et_. }.
     local fromX to { parameter x_. return x_. }.
@@ -104,15 +85,15 @@ function lambert {
         set et to fromX(x).
         local ecc to sqrt(ef ^2 + et ^2).
         if ecc * ecc > .999 {
-            return false.
+            return results.
         }
-        print "Try et = " + et + ", " + x.
+        // print "Try et = " + et + ", " + x.
  
         local tau to dimensionlessKepler(radRat, cDimless, cAng, dTheta, ef, et).
        
         local y to ln(tau).
         if abs(y - yS) < epsilon {
-            print "Found good orbit".
+            // print "Found good orbit".
             break.
         }
 
@@ -120,22 +101,15 @@ function lambert {
         local x_p to x + dX.
         local et_p to fromX(x_p).
 
-        if ecc * ecc > .999 {
-            return false.
-        }
         local tau_p to dimensionlessKepler(radRat, cDimless, cAng, dTheta, ef, et_p).
         local y_p to ln(tau_p).
         local dY_dX to (y_p - y) / dX.
-        if mod(k, 4) = 0 {
-            print " Tau_" + k + " = " + tau.
-            print " dy/dx = " + dY_dX.
-        }
 
         // nr iteration
         set x to x + (yS - y) / dY_dX.
 
-        if k = 12 {
-            return false.
+        if k = kLimit {
+            return results.
         }
     }
 
@@ -143,7 +117,7 @@ function lambert {
     local ih to -1 * vCrs(p1, p2):normalized.
     local ip to -1 * vCrs (ih, ic).
     local evec to et * ip + ef * ic.
-    print ih.
+    // print ih.
     
     // build orbit
     local inc to vang(globalUp, ih).
@@ -154,15 +128,15 @@ function lambert {
     //vecdraw(focus:position + p1, ic * 1000000, rgb(0, 0, 1), "ic", 1.0, true).
     //print "Ih = " + ih.
     //vecdraw(focus:position + p1, ih * 1000000, rgb(0, 0, 1), "ih", 1.0, true).
-    print "Inc = " + inc.
-    print "Ecc = " + ecc.
+    // print "Inc = " + inc.
+    // print "Ecc = " + ecc.
     local funMajor to (r1 + r2) / 2.
     local funRectum to funMajor * (1 - ef ^2).
     local rectum to funRectum - sinR(dTheta) * et * (r1 * r2) / cvec:mag.
     local semiMajor to rectum / (1 - ecc ^ 2).
-    print "SemiMajor = " + semiMajor.
+    // print "SemiMajor = " + semiMajor.
     local periodS to 2 * pi * sqrt(semiMajor ^ 3 / obt1:body:mu).
-    print "Period = " + timespan(periodS):full.
+    // print "Period = " + timespan(periodS):full.
     //local nodeDir to -1 * vCrs(ih, globalUp).
     //local longANode to vectorAngleAround(solarPrimeVector, globalUp, nodeDir).
     //print "LongANode = " + longANode.
@@ -170,14 +144,14 @@ function lambert {
     //local argPe to vectorAngleAround(nodeDir, ih, evec).
     //print "ArgPe = " + argPe.
     local tangV to sqrt(body:mu * (2 / r1 - 1 / semiMajor)).
-    print "V = " + tangV.
+    // print "V = " + tangV.
     local transTanly to vectorAngleAround(evec, ih, p1) * constant:DegToRad.
-    print "Transit True Anomaly = " + transTanly.
+    // print "Transit True Anomaly = " + transTanly.
     local flightA to arcTan2R(ecc * sinR(transTanly), 1 + ecc * cosR(transTanly)).
     //local flightA to arcTanR(ecc * sinR(trueInTransit) /  
     //    1 + ecc * cosR(trueInTransit)).
 
-    print "Flight Angle = " + flightA.
+    // print "Flight Angle = " + flightA.
 
     local transCircle to vCrs(p1, ih):normalized.
     //print "Circular trans = " + transCircle.
@@ -194,9 +168,11 @@ function lambert {
     local burnVec to transVec - startVec.
     local burnPro to vdot(burnVec, startPro).
     local burnNorm to vdot(burnVec, startNorm).
-    local burnRadial to vdot(burnVec, startRad).
-    add node(startTime, burnRadial, burnNorm, burnPro).
-    return true.
+    local burnRad to vdot(burnVec, startRad).
+    set results["ok"] to true.
+    set results["burnVec"] to burnVec.
+    set results["burnNode"] to node(startTime, burnRad, burnNorm, burnPro).
+    return results.
 }
 
 function dimensionlessKepler {

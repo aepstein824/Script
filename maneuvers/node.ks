@@ -2,8 +2,6 @@
 
 declare global kNode to lexicon().
 
-nodeExecute().
-
 function nodeExecute {
     local nd to nextnode.
     print "Node in: " + round(nd:eta) 
@@ -16,23 +14,23 @@ function nodeExecute {
     local ve to flowIsp[1] * 9.81.
     local burnRatio to constant:e ^ (-1 * dv / ve).
     local rocketEstimate to (1 - burnRatio)  * ship:mass / flow.
-    print "rocket estimate " + rocketEstimate.
 
     local warpTime to nd:eta - rocketEstimate / 2 - 60.
-    kuniverse:timewarp:warpto(time:seconds() + warpTime).
-    wait warpTime.
-
+    waitWarp(time:seconds + warpTime).
     local done to false.
     local nodeDv0 to nd:deltav.
     lock steering to nd:deltav.
-    wait until vang(nodeDv0, ship:facing:vector) < 0.25.
+    until vang(nodeDv0, ship:facing:vector) < 3 { wait 0. }
     set kuniverse:timewarp:rate to 5.
-    wait until nd:eta <= rocketEstimate / 2.
+    wait until nd:eta <= rocketEstimate / 2 + 1.
     kuniverse:timewarp:cancelwarp().
+    wait until nd:eta <= rocketEstimate / 2.
 
     until done {
         local maxAcceleration to ship:maxthrust/ship:mass.
-        lock throttle to min(nd:deltav:mag / maxAcceleration, 1).
+        if maxAcceleration > 0 {
+            lock throttle to min(nd:deltav:mag / maxAcceleration, 1).
+        }
 
         if nd:deltav:mag < 0.3 or vdot(nodeDv0, nd:deltav) < 0  {
             set done to true.
@@ -77,6 +75,13 @@ function getFlowIsp {
     return List(totalFuelFlow, totalIsp / totalFuelFlow).
 }
 
+function waitWarp {
+    parameter endTime.
+    kuniverse:timewarp:warpto(endTime).
+    wait until time:seconds > endTime.
+    wait until ship:unpacked.
+}
+
 function changePe {
     parameter destPe.
     local ra to ship:obt:apoapsis + ship:body:radius.
@@ -93,8 +98,8 @@ function changeAp {
     local rp to ship:obt:periapsis + ship:body:radius.
     local rd to destAp + ship:body:radius.
     local va to sqrt(2 * ship:body:mu * ra / rp / (ra + rp)).
-    local vd to sqrt(2 * ship:body:mu * rd / rp / (ra + rd)).
-    add node(ship:obt:eta:apoapsis + time, 0, 0, vd - va).
+    local vd to sqrt(2 * ship:body:mu * rd / rp / (rp + rd)).
+    add node(ship:obt:eta:periapsis + time, 0, 0, vd - va).
 }
 
 function circleAtAp {

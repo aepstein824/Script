@@ -5,7 +5,7 @@ declare global kAtmLand to lexicon().
 set kAtmLand:kEntryPe to 45000.
 set kAtmLand:kBurnAlt to 50000.
 set kAtmLand:kProAlt to 40000.
-set kAtmLand:kReturnLon to 120.
+set kAtmLand:kReturnLon to 170.
 set kAtmLand:kWinged to false.
 
 function atmLandInit {
@@ -14,7 +14,7 @@ function atmLandInit {
 }
 
 function atmLandSuccess {
-    return ship:status = "LANDED".
+    return ship:status = "LANDED" or ship:status = "SPLASHED".
 }
 
 function atmLandLoop {
@@ -52,13 +52,12 @@ function atmLandStage {
 function retroBurn {
     if ship:longitude < kAtmLand:kReturnLon
         or ship:longitude > (kAtmLand:kReturnLon + 5) {
-            print ship:longitude.
         return.
     }
 
     set kuniverse:timewarp:rate to 1.
     lock steering to ship:retrograde.
-    if vang(ship:facing, ship:retrograde) > 25 {
+    if vang(ship:facing:vector, ship:retrograde:vector) > 25 {
         lock throttle to 0.
     } else {
         lock throttle to 1.
