@@ -45,9 +45,7 @@ function launchToOrbit {
     until atmClimbSuccess() {
         atmClimbLoop().
     }
-    lock throttle to 0.
-    kuniverse:timewarp:cancelwarp().
-    set kuniverse:timewarp:mode to "RAILS".
+    atmClimbCleanup().
 }
 
 function planMunFlyby {

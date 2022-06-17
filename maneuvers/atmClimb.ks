@@ -7,6 +7,7 @@ set kAtmClimbParams:kClimbAp to 85000.
 set kAtmClimbParams:kBurnHeight to 80000.
 set kAtmClimbParams:kClimbPe to 71000.
 set kAtmClimbParams:kLastStage to 0.
+set kAtmClimbParams:kThrottleTurn to 0.8.
 
 global steer to ship:facing.
 global throt to 0.
@@ -25,7 +26,7 @@ function atmClimbLoop {
 
     if surfaceV <  60 {
         verticalClimb().
-    } else if surfaceV < 120 {
+    } else if surfaceV < 150 {
         set steer to acHeading(90 - kAtmClimbParams:kTurn).
     } else if ship:apoapsis < kAtmClimbParams:kClimbAp {
         gravityTurn().
@@ -38,6 +39,11 @@ function atmClimbLoop {
     handleStage().
 
     wait 0.
+}
+
+function atmClimbCleanup {
+    lock throttle to 0.
+    kuniverse:timewarp:cancelwarp.
 }
 
 function handleStage {
@@ -70,13 +76,12 @@ function verticalClimb {
 
 function gravityTurn {
     set steer to ship:srfPrograde.
-    set throt to 1.
+    set throt to kAtmClimbParams:kThrottleTurn.
 }
 
 function warpUp {
     set steer to ship:srfPrograde.
     set throt to 0.
-    set kuniverse:timewarp:mode to "PHYSICS".
     set kuniverse:timewarp:rate to 2.
 }
 
@@ -86,7 +91,6 @@ function circularize {
         set kuniverse:timewarp:rate to 1.
         set throt to 0.
     } else {
-    set kuniverse:timewarp:mode to "PHYSICS".
         set kuniverse:timewarp:rate to 2.
         set throt to 1.
     }
