@@ -3,6 +3,7 @@
 declare global kNode to lexicon().
 
 function nodeExecute {
+    wait 0.
     local nd to nextnode.
     print "Node in: " + round(nd:eta) 
         + ", DeltaV: " + round(nd:deltav:mag).
@@ -22,7 +23,7 @@ function nodeExecute {
     lock steering to nd:deltav.
     until vang(nodeDv0, ship:facing:vector) < 3 { wait 0. }
     set kuniverse:timewarp:rate to 5.
-    wait until nd:eta <= rocketEstimate / 2 + 1.
+    wait until nd:eta <= rocketEstimate / 2 + 3.
     kuniverse:timewarp:cancelwarp().
     wait until nd:eta <= rocketEstimate / 2.
 

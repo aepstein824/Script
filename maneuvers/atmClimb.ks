@@ -7,7 +7,8 @@ set kAtmClimbParams:kClimbAp to 85000.
 set kAtmClimbParams:kBurnHeight to 80000.
 set kAtmClimbParams:kClimbPe to 71000.
 set kAtmClimbParams:kLastStage to 0.
-set kAtmClimbParams:kThrottleTurn to 0.8.
+set kAtmClimbParams:kClimbA to 1.8.
+set kAtmClimbParams:kTLimAlt to 5000.
 
 global steer to ship:facing.
 global throt to 0.
@@ -28,6 +29,7 @@ function atmClimbLoop {
         verticalClimb().
     } else if surfaceV < 150 {
         set steer to acHeading(90 - kAtmClimbParams:kTurn).
+        set throt to slowThrottle().
     } else if ship:apoapsis < kAtmClimbParams:kClimbAp {
         gravityTurn().
     } else if ship:altitude < kAtmClimbParams:kBurnHeight {
@@ -44,6 +46,24 @@ function atmClimbLoop {
 function atmClimbCleanup {
     lock throttle to 0.
     kuniverse:timewarp:cancelwarp.
+}
+
+function slowThrottle {
+    local goal to 9.81 * ship:mass * kAtmClimbParams:kClimbA.
+    local ogGoal to goal.
+    local engs to list().
+    list engines in engs. 
+    local throttleThrust to ship:maxThrust.
+    for e in engs {
+        if e:throttlelock {
+            set goal to goal - e:maxThrust.
+            set throttleThrust to throttleThrust - e:maxThrust.
+        }
+    }
+    if (throttleThrust <= 0) {
+        return 0.
+    }
+    return goal / throttleThrust.
 }
 
 function handleStage {
@@ -71,12 +91,17 @@ function solidCheck {
 
 function verticalClimb {
     set steer to acHeading(90).
-    set throt to 1.
+    set throt to slowThrottle()..
 }
 
 function gravityTurn {
     set steer to ship:srfPrograde.
-    set throt to kAtmClimbParams:kThrottleTurn.
+    if (ship:altitude < kAtmClimbParams:kTLimAlt) {
+        set throt to slowThrottle().
+    }
+    else {
+        set throt to 1.
+    }
 }
 
 function warpUp {

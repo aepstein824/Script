@@ -9,7 +9,7 @@ local kKerbPark to 75000.
 
 wait until ship:unpacked.
 
-// kuniverse:quicksaveto("mun_launch").
+kuniverse:quicksaveto("mun_launch").
 print "Launch to Orbit!".
 launchToOrbit().
 ensureHibernate().
@@ -24,18 +24,23 @@ nodeExecute().
 waitWarp(time:seconds + orbit:nextpatcheta + 60).
 print "Missing the Mun".
 refinePe(kMunPeLow, kMunPeHigh).
-print "Perform High Science".
-wait 1.
-doScience().
-waitWarp(time:seconds + orbit:eta:periapsis).
-dontEscape().
-print "Perform Low Science".
-wait 5.
-doScience().
-waitWarp(time:seconds + orbit:nextpatcheta + 60).
-print "Prepairing for Reentry".
-circleAtKerbin().
-landKsc().
+print "Circling Mun".
+circleAtPe().
+nodeExecute().
+
+
+// print "Perform High Science".
+// wait 1.
+// doScience().
+// waitWarp(time:seconds + orbit:eta:periapsis).
+// dontEscape().
+// print "Perform Low Science".
+// wait 5.
+// doScience().
+// waitWarp(time:seconds + orbit:nextpatcheta + 60).
+// print "Prepairing for Reentry".
+// circleAtKerbin().
+// landKsc().
 
 
 function launchToOrbit {
@@ -50,17 +55,20 @@ function launchToOrbit {
 
 function planMunFlyby {
     local best to Lexicon().
-    set best["burnVec"] to V(10000,0,0).
+    set best:totalV to 1000000.
     for i in range(1, 15) {
-        for j in list(6, 8, 10) {
+        for j in list(7, 8, 9) {
             local startTime to time + i * 2 * 60.
             local flightDuration to j * 60 * 60.
-            local results to lambert(ship, mun, startTime, 
-                flightDuration, false).
+            local results to lambert(ship, mun, V(-2 * mun:radius, 0, 0),
+                startTime, flightDuration, false).
 
-            if results["ok"] {
-                // print "Found orbit with dV " + results["burnVec"]:mag.
-                if results["burnVec"]:mag < best["burnVec"]:mag {
+            if results:ok {
+                set results:totalV to results:burnVec:mag. 
+                // set results:totalV to results:totalV + results:matchVec:mag.
+                print "Found orbit with dV " + results["burnVec"]:mag + " total " 
+                    + results:totalV.
+                if results:totalV < best:totalV {
                     set best to results.
                 }
             }
@@ -109,6 +117,7 @@ function refinePe {
     }
     lock throttle to 0.
     remove nextNode.
+    wait 1.
     return.
 }
 

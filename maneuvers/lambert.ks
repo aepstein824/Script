@@ -4,6 +4,7 @@
 function lambert {
     parameter obtable1.
     parameter obtable2. 
+    parameter offset. // r n p
     parameter startTime.
     parameter flightDuration.
     parameter allowLong.
@@ -22,6 +23,11 @@ function lambert {
     local pi to constant:pi.
     local p1 to positionAt(obtable1, startTime) - focus:position.
     local p2 to positionAt(obtable2, endTime) - focus:position.
+
+    local pro2 to velocityAt(obtable2, endTime):orbit:normalized.
+    local norm2 to vCrs(pro2, p2):normalized.
+    local rad2 to vCrs(norm2, pro2):normalized.
+    set p2 to p2 + offset:x * rad2 + offset:y * norm2 + offset:z * pro2.
     // print "P1 = " + p1:mag.
     // print "P2 = " + p2:mag.
 
@@ -36,7 +42,6 @@ function lambert {
     local nRef to sqrt(focus:mu / (r1 ^ 3)).
     local tauS to flightDuration * nRef.
     local isShort to dTheta <= pi.
-    local isFar to r2 > r1.
 
     // print "RadRat = " + radRat.
     // print "Theta = " + dTheta.
@@ -49,7 +54,8 @@ function lambert {
     local eh to ep.
 
     if not (isShort or allowLong) { 
-        return results. }
+        return results. 
+    }
     
     if not isShort {
         local emax to -1 / cosR(dTheta / 2).
@@ -143,21 +149,25 @@ function lambert {
     //vecdraw(focus:position, -2 * semiMajor * evec , rgb(0, 1, 1), "ev", 1.0, true).
     //local argPe to vectorAngleAround(nodeDir, ih, evec).
     //print "ArgPe = " + argPe.
-    local tangV to sqrt(body:mu * (2 / r1 - 1 / semiMajor)).
     // print "V = " + tangV.
-    local transTanly to vectorAngleAround(evec, ih, p1) * constant:DegToRad.
-    // print "Transit True Anomaly = " + transTanly.
-    local flightA to arcTan2R(ecc * sinR(transTanly), 1 + ecc * cosR(transTanly)).
-    //local flightA to arcTanR(ecc * sinR(trueInTransit) /  
-    //    1 + ecc * cosR(trueInTransit)).
+    local function transVAtPos {
+        parameter pos_.
+        local tangV to sqrt(body:mu * (2 / pos_:mag - 1 / semiMajor)).
+        local transTanly to vectorAngleAroundR(evec, ih, pos_).
+        // print "Transit True Anomaly = " + transTanly.
+        local flightA to arcTan2R(ecc * sinR(transTanly), 
+            1 + ecc * cosR(transTanly)).
+        // print "Flight Angle = " + flightA.
 
-    // print "Flight Angle = " + flightA.
+        local transCircle to vCrs(pos_, ih):normalized.
+        //print "Circular trans = " + transCircle.
+        local transOut to pos_:normalized.
+        local transV to tangV * (transCircle * cosR(flightA)
+            + transOut * sinR(flightA)).
+        return transV.
 
-    local transCircle to vCrs(p1, ih):normalized.
-    //print "Circular trans = " + transCircle.
-    local transOut to p1:normalized.
-    local transVec to tangV * (transCircle * cosR(flightA)
-        + transOut * sinR(flightA)).
+    }
+    local ejectVec to transVAtPos(p1).
     local startVec to velocityAt(obtable1, startTime):orbit.
     //print "Out trans = " + transOut.
     //print "Trans vec = " + transVec.
@@ -165,13 +175,16 @@ function lambert {
     local startPro to startVec:normalized.
     local startRad to (p1 - vDot(p1, startPro) * startPro):normalized.
     local startNorm to vCrs(startPro, startRad).
-    local burnVec to transVec - startVec.
+    local burnVec to ejectVec - startVec.
     local burnPro to vdot(burnVec, startPro).
     local burnNorm to vdot(burnVec, startNorm).
     local burnRad to vdot(burnVec, startRad).
     set results["ok"] to true.
     set results["burnVec"] to burnVec.
     set results["burnNode"] to node(startTime, burnRad, burnNorm, burnPro).
+
+    set results["matchVec"] to velocityAt(obtable2, endTime):orbit 
+        - transVAtPos(p2).
     return results.
 }
 
