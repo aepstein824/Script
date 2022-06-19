@@ -2,16 +2,24 @@
 
 runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/lambert.ks").
+runOncePath("0:common/orbital.ks").
+runOncePath("0:common/math.ks").
+
+
 
 global kRndvParams to Lexicon().
 set kRndvParams:floatDist to 200.
 set kRndvParams:maxSpeed to 100.
 set kRndvParams:thrustAng to 5.
 
+clearscreen.
+
+
 //planIntercept().
 // nodeExecute().
 // catchInCircle().
-ballistic().
+// ballistic().
+
 
 function planIntercept {
     local best to Lexicon().
@@ -53,15 +61,6 @@ function catchInCircle {
     set kuniverse:timewarp:rate to 50.
     wait until planetAngle() < 3.
     kuniverse:timewarp:cancelwarp().
-}
-
-function invLerp {
-    parameter x, lower, upper.
-    local diff to upper - lower.
-    if diff = 0 {
-        return 1.
-    }
-    return min((x - lower) / diff, 1).
 }
 
 function ballistic {

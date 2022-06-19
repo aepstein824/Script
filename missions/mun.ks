@@ -1,7 +1,11 @@
 @LAZYGLOBAL OFF.
+
 clearscreen.
-runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/lambert.ks").
+runOncePath("0:maneuvers/node.ks").
+runOncePath("0:maneuvers/orbit.ks").
+runOncePath("0:phases/rndv.ks").
+runOncePath("0:phases/waypoints.ks").
 
 local kMunPeLow to 12000.
 local kMunPeHigh to 40000.
@@ -25,22 +29,16 @@ waitWarp(time:seconds + orbit:nextpatcheta + 60).
 print "Missing the Mun".
 refinePe(kMunPeLow, kMunPeHigh).
 print "Circling Mun".
-circleAtPe().
+changeApAtPe(kMunPeLow).
 nodeExecute().
-
-
-// print "Perform High Science".
-// wait 1.
-// doScience().
-// waitWarp(time:seconds + orbit:eta:periapsis).
-// dontEscape().
-// print "Perform Low Science".
-// wait 5.
-// doScience().
-// waitWarp(time:seconds + orbit:nextpatcheta + 60).
-// print "Prepairing for Reentry".
-// circleAtKerbin().
-// landKsc().
+changeApAtPe(kMunPeLow).
+nodeExecute().
+doWaypoints().
+escapeRetro().
+nodeExecute().
+waitWarp(time:seconds + orbit:nextpatcheta + 60).
+circleAtKerbin().
+landKsc().
 
 
 function launchToOrbit {
@@ -134,32 +132,6 @@ function dontEscape {
     }
 }
 
-function doScience {
-    local barometer to ship:partsdubbed("sensorBarometer")[0].
-    local thermometer to ship:partsdubbed("sensorThermometer")[0].
-    local goos to ship:partsdubbed("gooExperiment").
-    local goo to goos[0].
-    if goo:getmodule("ModuleScienceExperiment"):inoperable() {
-        set goo to goos[1].
-    }
-
-    barometer:getmodule("ModuleScienceExperiment"):deploy().
-    thermometer:getmodule("ModuleScienceExperiment"):deploy().
-    goo:getmodule("ModuleScienceExperiment"):deploy().
-
-    wait 5.
-
-    local eruPart to ship:partsdubbedpattern("Experiment Return")[0].
-    local eru to eruPart:getmodule("ModuleScienceContainer").
-    until eru:hasevent("container: collect all") {
-        wait 0.
-    }
-    eru:doevent("container: collect all").
-
-    
-    wait 1.
-}
-
 function circleAtKerbin {
     if obt:transition <> "FINAL" {
         print "Avoiding escape!".
@@ -170,12 +142,19 @@ function circleAtKerbin {
         lock throttle to 0.
     }
     if obt:eta:periapsis < obt:eta:apoapsis {
-        changeAp(kKerbPark).
+        changeApAtPe(kKerbPark).
     } else {
-        changePe(kKerbPark).
+        changePeAtAp(kKerbPark).
     }
     nodeExecute().
-    circleAtPe().
+    changeApAtPe(kKerbPark).
+    local dvBudget to ship:deltav:current - 200.
+    print dvBudget.
+    if nextnode:prograde < 0 {
+        set nextnode:prograde to max(nextnode:prograde, -dvBudget).
+    } else {
+        set nextnode:prograde to min(nextnode:prograde, dvBudget).
+    }
     nodeExecute().
 }
 

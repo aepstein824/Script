@@ -50,7 +50,6 @@ function atmClimbCleanup {
 
 function slowThrottle {
     local goal to 9.81 * ship:mass * kAtmClimbParams:kClimbA.
-    local ogGoal to goal.
     local engs to list().
     list engines in engs. 
     local throttleThrust to ship:maxThrust.

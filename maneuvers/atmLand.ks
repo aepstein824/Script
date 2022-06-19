@@ -22,7 +22,12 @@ function atmLandLoop {
         retroBurn().
     } else if ship:altitude > 70000 {
         lock throttle to 0.
-        set kuniverse:timewarp:rate to 50.
+        if kuniverse:timewarp:mode <> "RAILS" {
+            kuniverse:timewarp:cancelwarp().
+            wait 1.
+        }
+        set kuniverse:timewarp:mode to "RAILS".
+        set kuniverse:timewarp:rate to 100.
     } else if ship:altitude > kAtmLand:kBurnAlt {
         lock steering to ship:srfretrograde.
         set kuniverse:timewarp:rate to 2.

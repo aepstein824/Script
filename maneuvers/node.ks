@@ -1,6 +1,8 @@
 @LAZYGLOBAL OFF.
 
-declare global kNode to lexicon().
+runOncePath("0:common/math.ks").
+runOncePath("0:common/operations.ks").
+runOncePath("0:common/orbital.ks").
 
 function nodeExecute {
     wait 0.
@@ -29,11 +31,15 @@ function nodeExecute {
 
     until done {
         local maxAcceleration to ship:maxthrust/ship:mass.
+        local minS to .1 * .05.
         if maxAcceleration > 0 {
             lock throttle to min(nd:deltav:mag / maxAcceleration, 1).
-        }
-
-        if nd:deltav:mag < 0.3 or vdot(nodeDv0, nd:deltav) < 0  {
+            if nd:deltav:mag / maxAcceleration < minS {
+                set done to true.
+            }
+        } 
+        
+        if nd:deltav:mag < 0.05 or vdot(nodeDv0, nd:deltav) < 0 {
             set done to true.
         }
 
@@ -41,10 +47,12 @@ function nodeExecute {
         wait 0.
     }
 
+    lock throttle to 0.
+    wait 0.1.
     unlock steering.
     unlock throttle.
-    wait 0.
     remove nd.
+    wait 0.1.
 }
 
 function nodeStage {
@@ -76,136 +84,3 @@ function getFlowIsp {
     return List(totalFuelFlow, totalIsp / totalFuelFlow).
 }
 
-function waitWarp {
-    parameter endTime.
-    kuniverse:timewarp:warpto(endTime).
-    wait until time:seconds > endTime.
-    wait until ship:unpacked.
-}
-
-function changePe {
-    parameter destPe.
-    local ra to ship:obt:apoapsis + ship:body:radius.
-    local rp to ship:obt:periapsis + ship:body:radius.
-    local rd to destPe + ship:body:radius.
-    local va to sqrt(2 * ship:body:mu * rp / ra / (ra + rp)).
-    local vd to sqrt(2 * ship:body:mu * rd / ra / (ra + rd)).
-    add node(ship:obt:eta:apoapsis + time, 0, 0, vd - va).
-}
-
-function changeAp {
-    parameter destAp.
-    local ra to ship:obt:apoapsis + ship:body:radius.
-    local rp to ship:obt:periapsis + ship:body:radius.
-    local rd to destAp + ship:body:radius.
-    local va to sqrt(2 * ship:body:mu * ra / rp / (ra + rp)).
-    local vd to sqrt(2 * ship:body:mu * rd / rp / (rp + rd)).
-    add node(ship:obt:eta:periapsis + time, 0, 0, vd - va).
-}
-
-function circleAtAp {
-    changePe(ship:obt:apoapsis).
-}
-
-function circleAtPe {
-    changeAp(ship:obt:periapsis).
-}
-
-function fromCircleApAtTime {
-    parameter apDest.
-    parameter nodeTime.
-
-    local rp to ship:obt:periapsis + ship:body:radius.
-    local rd to apDest + ship:body:radius.
-
-    local vDest to sqrt(2 * ship:body:mu * rd / rp / (rP + rd)).
-    local vc to sqrt(ship:body:mu / rp).
-    add node(nodeTime, 0, 0, vDest  - vc).
-}
-
-function tanlyToEanly {
-    parameter argOrbit.
-    parameter tanly.
-    local e to argOrbit:eccentricity.
-
-    local quad1 to arcCos((e + cos(tanly)) / (1 + e * cos(tanly))).
-    if tanly > 180 {
-        return 360 - quad1.
-    }
-    return quad1.
-}
-
-function eanlyToManly {
-    parameter argOrbit.
-    parameter eanly.
-    local e to argOrbit:eccentricity.
-    
-    return eanly - e * sin(eanly) * constant:radtodeg.
-}
-
-function manlyToEanly {
-    parameter argOrbit.
-    parameter manly.
-    local e to argOrbit:eccentricity.
-
-    local e0 to manly.
-    local ei to e0.
-    from {local i is 0.} until i = 10 step {set i to i + 1.} do {
-        local fi to ei - e * sin(ei) * constant:radtodeg - manly.
-        local di to 1 - e * cos(ei).
-        print fi + " -- " + di.
-        set ei to ei - (fi / di).
-    }
-
-    return ei.
-}
-
-function eanlyToTanly {
-    parameter argOrbit.
-    parameter eanly.
-    local e to argOrbit:eccentricity.
-
-    local quad1 to arccos((cos(eanly) - e) / (1 - e * cos(eanly))).
-    if eanly > quad1 {
-        return 360 - quad1.
-    }
-    return quad1.
-}
-
-function fromEllipseApAtTime {
-    parameter apDest.
-    parameter nodeTime.
-
-    local tanlyNow to obt:trueanomaly.
-    local eanlyNow to tanlyToEanly(obt, tanlyNow).
-    local manlyNow to eanlyToManly(obt, eanlyNow).
-
-    print "T = " + tanlyNow + ", E = " + eanlyNow + ", M = " + manlyNow.
-
-    local dt to nodeTime - time:seconds.
-    local avgAngularV to 360 / obt:period.
-
-    local manlyThen to mod(manlyNow + avgAngularV * dt, 360).
-    local eanlyThen to manlyToEanly(obt, manlyThen).
-    local tanlyThen to eanlyToTanly(obt, eanlyThen).
-
-    print "T = " + tanlyThen + ", E = " + eanlyThen + ", M = " + manlyThen.
-
-    add node(nodeTime, 0, 0, 0).
-}
-
-function calculateOrbitalElements {
-    parameter o.
-    parameter t.
-    
-    local avgAngularV to sqrt(o:body:mu / (o:semimajoraxis ^ 3)).
-    local meanAnamoly to avgAngularV * (o:period - o:eta:periapsis).
-    print "N = " + avgAngularV + ", Mrad = " + meanAnamoly.
-    local e to o:eccentricity.
-    print "e = " + e.
-    local tanly to meanAnamoly + 2 * e * sin(meanAnamoly) 
-        + 1.25 * (e^2) * sin(2* meanAnamoly).
-    print "True Anamoly = " + tanly.
-    local eccentricAnamoly to arccos((e + cos(tanly))/ (1 + e * cos(tanly))).
-    print "E = " + eccentricAnamoly.
-}

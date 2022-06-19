@@ -1,5 +1,7 @@
 @LAZYGLOBAL OFF.
 
+runOncePath("0:common/orbital.ks").
+runOncePath("0:common/math.ks").
 
 function lambert {
     parameter obtable1.
@@ -64,15 +66,15 @@ function lambert {
     }
     // print "E limits = " + -1 * eh + " < eF < "+ ep.
 
-    local toX to { parameter et_. return et_. }.
+    // local toX to { parameter et_. return et_. }.
     local fromX to { parameter x_. return x_. }.
 
-    set toX to {
-        parameter et_.
-        local coeff to ep * eh / (ep + eh).
-        local limits to (et_ + eh) / (ep - eh). 
-        return coeff * ln(limits * ep / eh).
-    }.
+    // set toX to {
+    //     parameter et_.
+    //     local coeff to ep * eh / (ep + eh).
+    //     local limits to (et_ + eh) / (ep - eh). 
+    //     return coeff * ln(limits * ep / eh).
+    // }.
     set fromX to {
         parameter x_.
         local bigX to constant:e ^ (x_ * (1 / eh + 1 / ep)).
@@ -126,7 +128,6 @@ function lambert {
     // print ih.
     
     // build orbit
-    local inc to vang(globalUp, ih).
     local ecc to evec:mag.
     //print "Ip = " + ip.
     //vecdraw(focus:position + p1, ip * 1000000, rgb(0, 0, 1), "ip", 1.0, true).
@@ -141,7 +142,7 @@ function lambert {
     local rectum to funRectum - sinR(dTheta) * et * (r1 * r2) / cvec:mag.
     local semiMajor to rectum / (1 - ecc ^ 2).
     // print "SemiMajor = " + semiMajor.
-    local periodS to 2 * pi * sqrt(semiMajor ^ 3 / obt1:body:mu).
+    //local periodS to 2 * pi * sqrt(semiMajor ^ 3 / obt1:body:mu).
     // print "Period = " + timespan(periodS):full.
     //local nodeDir to -1 * vCrs(ih, globalUp).
     //local longANode to vectorAngleAround(solarPrimeVector, globalUp, nodeDir).
@@ -230,108 +231,8 @@ function dimensionlessKepler {
     return t.
 }
 
-function sinR {
-    parameter x.
-    return sin(x * constant:RadToDeg).
-}
-
-function cosR {
-    parameter x.
-    return cos(x * constant:RadToDeg).
-}
-
-function tanR {
-    parameter x.
-    return tan(x * constant:RadToDeg).
-}
-
-function arcCosR {
-    parameter x.
-    return arcCos(x) * constant:DegToRad.
-}
-
-function arcTanR {
-    parameter x.
-    return arctan(x) * constant:DegToRad.
-}
-
-function arcTan2R {
-    parameter x, y.
-    return arcTan2(x, y) * constant:DegToRad.
-}
-
-function vectorAngleR {
-    parameter x, y.
-    return vang(x, y) * constant:DegToRad.
-}
-
-function vectorAngleAround {
-    parameter base, upRef, x.
-    local ang to vang(base, x).
-    if vDot(x, vCrs(base, upRef)) < 0 {
-        return 360 - ang.
-    }
-    return ang.
-}
-
-function vectorAngleAroundR {
-    parameter base, upRef, x.
-    local ang to vectorAngleR(base, x).
-    if vDot(x, vCrs(base, upRef)) < 0 {
-        return 2 * constant:pi - ang.
-    }
-    return ang.
-}
 
 
-function tanlyToEanlyR {
-    parameter argOrbit.
-    parameter tanly.
-    local e to argOrbit:eccentricity.
-
-    local quad1 to arcCos((e + cos(tanly)) / (1 + e * cos(tanly))).
-    if tanly > 180 {
-        return 360 - quad1.
-    }
-    return quad1.
-}
-
-function eanlyToManlyR {
-    parameter argOrbit.
-    parameter eanly.
-    local e to argOrbit:eccentricity.
-    
-    return eanly - e * sin(eanly) * constant:radtodeg.
-}
-
-function manlyToEanlyR {
-    parameter argOrbit.
-    parameter manly.
-    local e to argOrbit:eccentricity.
-
-    local e0 to manly.
-    local ei to e0.
-    from {local i is 0.} until i = 10 step {set i to i + 1.} do {
-        local fi to ei - e * sin(ei) * constant:radtodeg - manly.
-        local di to 1 - e * cos(ei).
-        print fi + " -- " + di.
-        set ei to ei - (fi / di).
-    }
-
-    return ei.
-}
-
-function eanlyToTanlyR {
-    parameter argOrbit.
-    parameter eanly.
-    local e to argOrbit:eccentricity.
-
-    local quad1 to arccos((cos(eanly) - e) / (1 - e * cos(eanly))).
-    if eanly > quad1 {
-        return 360 - quad1.
-    }
-    return quad1.
-}
 
 
 // if hyper are allowed
