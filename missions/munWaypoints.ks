@@ -34,6 +34,7 @@ nodeExecute().
 changeApAtPe(kMunPeLow).
 nodeExecute().
 doWaypoints().
+wait 2.
 escapeRetro().
 nodeExecute().
 waitWarp(time:seconds + orbit:nextpatcheta + 60).

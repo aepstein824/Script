@@ -10,28 +10,47 @@ runOncePath("0:maneuvers/orbit.ks").
 
 
 function doWaypoints {
+    local minInc to 360.
+    local minW to false.
     for w in allWaypoints() {
         if w:body = body {
+            local sNorm to shipNorm().
             local p1 to w:position - body:position.
-            local over to vCrs(p1, v(0,1,0)).
-            local norm to vCrs(over, p1).
-
-            matchPlanesAndSemi(norm, kWarpHeights[body]).
-            nodeExecute().
-
-            planCutAtWaypoint(w).
-            nodeExecute().
-
-            waitWarp(time:seconds + nextNode:eta - 60).
-            lock steering to nextNode:deltav.
-            waitWarpPhsx(time:seconds + nextNode:eta - 10).
-            wait until vDot(w:position - ship:position, ship:prograde:vector) < 0.
-            doScience().
-            nodeExecute().
-
-            circleNextExec(11000).
+            local over to vCrs(p1, sNorm).
+            local wNorm to vCrs(over, p1).
+            local ang to vAng(wNorm, sNorm).
+            if ang < minInc {
+                set minInc to ang.
+                set minW to w.
+            }
         }
     }
+    if minW <> false {
+        doWaypoint(minW).
+    }
+}
+
+function doWaypoint {
+    parameter w.
+
+    local sNorm to shipNorm().
+    local p1 to w:position - body:position.
+    local over to vCrs(p1, sNorm).
+    local wNorm to vCrs(over, p1):normalized.
+    matchPlanesAndSemi(wNorm, kWarpHeights[body]).
+    nodeExecute().
+
+    planCutAtWaypoint(w).
+    nodeExecute().
+
+    waitWarp(time:seconds + nextNode:eta - 60).
+    lock steering to nextNode:deltav.
+    waitWarpPhsx(time:seconds + nextNode:eta - 10).
+    wait until vDot(w:position - ship:position, ship:prograde:vector) < 0.
+    doScience().
+    nodeExecute().
+
+    circleNextExec(kWarpHeights[body]).
 }
 
 function planCutAtWaypoint {
