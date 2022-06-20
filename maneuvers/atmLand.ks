@@ -1,11 +1,15 @@
 @LAZYGLOBAL OFF.
 
+runOncePath("0:maneuvers/node.ks").
+runOncePath("0:maneuvers/orbit.ks").
+runOncePath("0:common/ship.ks").
+
 declare global kAtmLand to lexicon().
 
 set kAtmLand:kEntryPe to 45000.
 set kAtmLand:kBurnAlt to 50000.
 set kAtmLand:kProAlt to 40000.
-set kAtmLand:kReturnLon to 170.
+set kAtmLand:kReturnTanly to 100.
 set kAtmLand:kWinged to false.
 
 function atmLandInit {
@@ -18,9 +22,7 @@ function atmLandSuccess {
 }
 
 function atmLandLoop {
-    if ship:periapsis > kAtmLand:kEntryPe {
-        retroBurn().
-    } else if ship:altitude > 70000 {
+    if ship:altitude > 70000 {
         lock throttle to 0.
         if kuniverse:timewarp:mode <> "RAILS" {
             kuniverse:timewarp:cancelwarp().
@@ -54,17 +56,34 @@ function atmLandStage {
     }
 }
 
-function retroBurn {
-    if ship:longitude < kAtmLand:kReturnLon
-        or ship:longitude > (kAtmLand:kReturnLon + 5) {
-        return.
+function planLandingBurn {
+    local sNorm to shipNorm().
+
+    local wpoints to allWaypoints().
+    local ksc to wpoints[wpoints:length - 1].
+    for w in allWaypoints() {
+        if w:name = ksc {
+            set ksc to w.
+        }
     }
 
-    set kuniverse:timewarp:rate to 1.
-    lock steering to ship:retrograde.
-    if vang(ship:facing:vector, ship:retrograde:vector) > 25 {
-        lock throttle to 0.
-    } else {
-        lock throttle to 1.
-    }
+    // doesn't work, need to account for eccentricity and spin
+    local orbW to removeComp(ksc:position - body:position, sNorm).
+    local pePos to shipPAtPe().
+    local wTanly to vectorAngleAround(pePos, sNorm, orbW).
+    local burnTanly to mod(wTanly - kAtmLand:kReturnTanly + 360, 360).
+    local burnTime to timeBetweenTanlies(obt:trueanomaly, burnTanly, obt) + time.
+    local burnPos to shipPAt(burnTime).
+    local rb to burnPos:mag.
+    local rp to body:radius + kAtmLand:kEntryPe.
+    local vb to sqrt(2 * ship:body:mu * rb / rp / (rp + rb)).
+    print "vb = " + vb.
+    local burnStart to shipVAt(burnTime).
+    local burnMag to vb - burnStart:mag.
+    add node(burnTime, 0, 0, -1 * burnMag).
+}
+
+function landingBurn {
+    changePeAtAp(kAtmLand:kEntryPe).
+    nodeExecute().
 }

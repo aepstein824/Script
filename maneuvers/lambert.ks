@@ -166,8 +166,8 @@ function lambert {
         local transV to tangV * (transCircle * cosR(flightA)
             + transOut * sinR(flightA)).
         return transV.
-
     }
+
     local ejectVec to transVAtPos(p1).
     local startVec to velocityAt(obtable1, startTime):orbit.
     //print "Out trans = " + transOut.

@@ -6,6 +6,7 @@ runOncePath("0:common/ship.ks").
 runOncePath("0:maneuvers/node.ks").
 
 function matchPlanes {
+    // combine with matchplanesandsemi
     parameter targetNorm.
     local shipPePos to positionAt(ship, time + obt:eta:periapsis) - body:position.
     local norm to shipNorm().
@@ -41,13 +42,20 @@ function escapeRetro {
 
 function matchPlanesAndSemi {
     parameter targetNorm, targetOp.
-    local shipPePos to positionAt(ship, time + obt:eta:periapsis) - body:position.
     local norm to shipNorm().
     local crs to vCrs(targetNorm, norm):normalized.
+    // take sooner one
+    if vdot(ship:prograde:vector, crs) < 0 {
+        set crs to -1 * crs.
+    }
 
+    local shipPePos to positionAt(ship, time + obt:eta:periapsis) - body:position.
     local delayFromPe to timeBetweenTanlies(0, 
         vectorAngleAround(shipPePos, norm, crs), obt).
     local burnTime to time + obt:eta:periapsis + delayFromPe.
+    if burnTime - time > obt:period {
+        set burnTime to burnTime - obt:period.
+    }
 
     local burnStart to velocityAt(ship, burnTime):orbit.
     local burnPos to positionAt(ship, burnTime) - body:position.
@@ -88,11 +96,16 @@ function circleNextExec {
     if obt:eta:apoapsis < obt:eta:periapsis {
         changePeAtAp(height).
         nodeExecute().
-        changeApAtPe(height).
-        nodeExecute().
     } else {
         changeApAtPe(height).
         nodeExecute().
+    }
+
+    // detect cross over
+    if abs(obt:apoapsis - height) > abs(obt:periapsis - height) {
+        changeApAtPe(height).
+        nodeExecute().
+    } else {
         changePeAtAp(height).
         nodeExecute().
     }

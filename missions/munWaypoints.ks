@@ -1,6 +1,8 @@
 @LAZYGLOBAL OFF.
 
 clearscreen.
+runOncePath("0:maneuvers/atmClimb.ks").
+runOncePath("0:maneuvers/atmLand.ks").
 runOncePath("0:maneuvers/lambert.ks").
 runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/orbit.ks").
@@ -16,34 +18,35 @@ wait until ship:unpacked.
 kuniverse:quicksaveto("mun_launch").
 print "Launch to Orbit!".
 launchToOrbit().
+wait 1.
 ensureHibernate().
-print "Planning Mun Flyby".
+print "Going to Mun".
 planMunFlyby().
-print "Heading off to Mun".
 nodeExecute().
 waitWarp(time:seconds + 10 * 60).
-print "Correcting Course".
-planMunFlyby().
-nodeExecute().
+wait 5.
+if not orbit:hasnextpatch() {
+    print "Correcting Course".
+    planMunFlyby().
+    nodeExecute().
+}
 waitWarp(time:seconds + orbit:nextpatcheta + 60).
 print "Missing the Mun".
 refinePe(kMunPeLow, kMunPeHigh).
 print "Circling Mun".
-changeApAtPe(kMunPeLow).
-nodeExecute().
-changeApAtPe(kMunPeLow).
-nodeExecute().
+circleNextExec(kMunPeLow).
+print "Do Waypoints".
 doWaypoints().
-wait 2.
-escapeRetro().
-nodeExecute().
-waitWarp(time:seconds + orbit:nextpatcheta + 60).
-circleAtKerbin().
-landKsc().
+// wait 2.
+// print "Leaving Mun".
+// escapeRetro().
+// nodeExecute().
+// waitWarp(time:seconds + orbit:nextpatcheta + 60).
+// circleAtKerbin().
+// landKsc().
 
 
 function launchToOrbit {
-    runOncePath("0:maneuvers/atmClimb.ks").
     set kAtmClimbParams:kLastStage to 2.
     atmClimbInit().
     until atmClimbSuccess() {
@@ -55,7 +58,7 @@ function launchToOrbit {
 function planMunFlyby {
     local best to Lexicon().
     set best:totalV to 1000000.
-    for i in range(1, 15) {
+    for i in range(10, 25) {
         for j in list(7, 8, 9) {
             local startTime to time + i * 2 * 60.
             local flightDuration to j * 60 * 60.
@@ -141,6 +144,7 @@ function circleAtKerbin {
         lock throttle to 1.
         wait until obt:transition = "FINAL".
         lock throttle to 0.
+        wait 5.
     }
     if obt:eta:periapsis < obt:eta:apoapsis {
         changeApAtPe(kKerbPark).
@@ -160,8 +164,7 @@ function circleAtKerbin {
 }
 
 function landKsc {
-    runPath("0:maneuvers/atmLand.ks").
-
+    landingBurn().
     atmLandInit().
     until atmLandSuccess() {
         atmLandLoop().

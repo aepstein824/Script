@@ -61,6 +61,12 @@ function vectorAngleAroundR {
     return ang.
 }
 
+function rotateVecAround {
+    parameter vec, upRef, x.
+    local across to vCrs(vec, upRef).
+    return vec * cos(x) + across * sin(x).
+}
+
 function invLerp {
     parameter x, lower, upper.
     local diff to upper - lower.

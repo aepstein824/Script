@@ -16,10 +16,7 @@ function doScience {
 
     local eruPart to ship:partsdubbedpattern("Experiment Return")[0].
     local eru to eruPart:getmodule("ModuleScienceContainer").
-    until eru:hasevent("container: collect all") {
-        wait 0.
-    }
-    eru:doevent("container: collect all").
+    eru:doaction("collect all", true).
     
     wait 1.
 
@@ -49,6 +46,7 @@ function scienceModules {
 
 function waitWarp {
     parameter endTime.
+    set kuniverse:timewarp:mode to "RAILS".
     kuniverse:timewarp:warpto(endTime).
     wait until time:seconds > endTime.
     wait until ship:unpacked.
