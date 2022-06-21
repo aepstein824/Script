@@ -110,3 +110,15 @@ function circleNextExec {
         nodeExecute().
     }
 }
+
+function dontEscape {
+    print obt:nextpatch():transition + " " + obt:nextpatch:apoapsis.
+    if obt:nextpatch():transition <> "FINAL" {
+            print "ESCAPING?!".
+            add node(time + 60, 0, 0, -50).
+            wait 0.
+            nodeExecute().
+    } else {
+        print "Just fine actually " + obt:nextpatch():transition <> "FINAL".
+    }
+}

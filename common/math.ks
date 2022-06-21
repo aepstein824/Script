@@ -80,3 +80,21 @@ function removeComp {
     parameter x, orth.
     return x - vDot(x, orth) * orth.
 }
+
+function clamp {
+    parameter x, low, high.
+    return max(min(x, high), low).
+}
+
+function quadraticFormula {
+    parameter a, b, c, sign.
+
+    return (-b + sign * sqrt(b^2 - 4 * a * c)) / 2 / a.
+}
+
+function qfMax {
+    parameter a, b, c.
+    local p to quadraticFormula(a, b, c, 1).
+    local m to quadraticFormula(a, b, c, -1).
+    return max(p, m).
+}

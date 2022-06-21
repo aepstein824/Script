@@ -1,9 +1,12 @@
+@LAZYGLOBAL OFF.
 
 global sciencePartNames to list(
     "sensorBarometer",
     "sensorThermometer",
-    "gooExperiment"
+    "goo",
+    "science.module"
 ).
+doScience().
 
 function doScience {
     local mods to scienceModules.
@@ -14,22 +17,42 @@ function doScience {
 
     wait 5.
 
-    local eruPart to ship:partsdubbedpattern("Experiment Return")[0].
+    local eruPattern to "ScienceBox|Experiment Return".
+    local eruPart to ship:partsdubbedpattern(eruPattern)[0].
     local eru to eruPart:getmodule("ModuleScienceContainer").
     eru:doaction("collect all", true).
     
     wait 1.
 
     for m in mods:values {
-        // duplicates
-        m[0]:dump().
+        cleanModule(m[0]).
     }
+}
+
+function cleanModule {
+    parameter m.
+
+    // duplicates
+    m:dump().
+    // local p to m:part.
+    // local doorModName to "ModuleAnimateGeneric".
+    // if p:hasmodule(doorModName) {
+    //     local doorMod to p:getmodule(doorModName).
+    //     local doorActionName to "toggle doors".
+    //     if doorMod:hasaction(doorActionName) {
+    //         doorMod:doAction(doorActionName, true).
+    //     }
+    //     local coverActionName to "toggle cover".
+    //     if doorMod:hasaction(coverActionName) {
+    //         doorMod:doAction(coverActionName, true).
+    //     }
+    // }
 }
 
 function scienceModules {
     local scienceMods to Lexicon().
     for pname in sciencePartNames {
-        local parts to ship:partsdubbed(pname). 
+        local parts to ship:partsdubbedpattern(pname). 
         local mods to List().
         for p in parts {
             local sciMod to p:getmodule("ModuleScienceExperiment").

@@ -3,6 +3,7 @@
 runOncePath("0:common/math.ks").
 runOncePath("0:common/operations.ks").
 runOncePath("0:common/orbital.ks").
+runOncePath("0:common/ship.ks").
 
 function nodeExecute {
     wait 0.
@@ -11,12 +12,7 @@ function nodeExecute {
         + ", DeltaV: " + round(nd:deltav:mag).
     local dv to nd:deltav:mag.
 
-
-    local flowIsp to getFlowIsp().
-    local flow to flowIsp[0].
-    local ve to flowIsp[1] * 9.81.
-    local burnRatio to constant:e ^ (-1 * dv / ve).
-    local rocketEstimate to (1 - burnRatio)  * ship:mass / flow.
+    local rocketEstimate to shipTimeToDV(dv).
 
     local warpTime to nd:eta - rocketEstimate / 2 - 60.
     waitWarp(time:seconds + warpTime).
@@ -65,22 +61,3 @@ function nodeStage {
     }
 }
         
-function getFlowIsp {
-    local totalFuelFlow to 0.
-    local totalIsp to 0.
-    local engineList to List().
-    list engines in engineList.
-    for engine in engineList {
-        if engine:ignition {
-            local massFlow to 0.
-            for r in engine:consumedResources:values {
-                set massFlow to massFlow 
-                    + r:maxfuelflow * r:density.
-            }
-            set totalFuelFlow to totalFuelFlow + massFlow.
-            set totalIsp to totalIsp + engine:isp * massFlow.
-        }
-    }
-    return List(totalFuelFlow, totalIsp / totalFuelFlow).
-}
-

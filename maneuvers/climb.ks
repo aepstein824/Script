@@ -1,40 +1,42 @@
 @LAZYGLOBAL OFF.
 
-declare global kAtmClimbParams to lexicon().
+declare global kClimb to lexicon().
 
-set kAtmClimbParams:kTurn to 10.
-set kAtmClimbParams:kClimbAp to 85000.
-set kAtmClimbParams:kBurnHeight to 80000.
-set kAtmClimbParams:kClimbPe to 71000.
-set kAtmClimbParams:kLastStage to 0.
-set kAtmClimbParams:kClimbA to 1.8.
-set kAtmClimbParams:kTLimAlt to 5000.
+set kClimb:Turn to 10.
+set kClimb:VertV to 60.
+set kClimb:SteerV to 150.
+set kClimb:ClimbAp to 85000.
+set kClimb:BurnHeight to 80000.
+set kClimb:ClimbPe to 71000.
+set kClimb:LastStage to 0.
+set kClimb:ClimbA to 1.8.
+set kClimb:TLimAlt to 5000.
 
 global steer to ship:facing.
 global throt to 0.
 
-function atmClimbSuccess  {
-    return ship:obt:periapsis > kAtmClimbParams:kClimbPe.
+function climbSuccess  {
+    return ship:obt:periapsis > kClimb:ClimbPe.
 }
 
-function atmClimbInit {
+function climbInit {
     lock steering to steer.
     lock throttle to throt.
 }
 
-function atmClimbLoop {
+function climbLoop {
     local surfaceV to ship:velocity:surface:mag.
 
-    if surfaceV <  60 {
+    if surfaceV <  kClimb:VertV {
         verticalClimb().
-    } else if surfaceV < 150 {
-        set steer to acHeading(90 - kAtmClimbParams:kTurn).
+    } else if surfaceV < kClimb:SteerV {
+        set steer to acHeading(90 - kClimb:Turn).
         set throt to slowThrottle().
-    } else if ship:apoapsis < kAtmClimbParams:kClimbAp {
+    } else if ship:apoapsis < kClimb:ClimbAp {
         gravityTurn().
-    } else if ship:altitude < kAtmClimbParams:kBurnHeight {
+    } else if ship:altitude < kClimb:BurnHeight {
         warpUp().
-    } else if not atmClimbSuccess() {
+    } else if not climbSuccess() {
         circularize().
     }
 
@@ -43,13 +45,13 @@ function atmClimbLoop {
     wait 0.
 }
 
-function atmClimbCleanup {
+function climbCleanup {
     lock throttle to 0.
     kuniverse:timewarp:cancelwarp.
 }
 
 function slowThrottle {
-    local goal to 9.81 * ship:mass * kAtmClimbParams:kClimbA.
+    local goal to 9.81 * ship:mass * kClimb:ClimbA.
     local engs to list().
     list engines in engs. 
     local throttleThrust to ship:maxThrust.
@@ -68,7 +70,7 @@ function slowThrottle {
 function handleStage {
     declare local shouldStage to ((maxThrust = 0 or solidCheck) 
         and stage:ready
-        and stage:number >= kAtmClimbParams:kLastStage).
+        and stage:number >= kClimb:LastStage).
 
     if shouldStage {
         print "Staging " + stage:number.
@@ -95,7 +97,7 @@ function verticalClimb {
 
 function gravityTurn {
     set steer to ship:srfPrograde.
-    if (ship:altitude < kAtmClimbParams:kTLimAlt) {
+    if (ship:altitude < kClimb:TLimAlt) {
         set throt to slowThrottle().
     }
     else {
