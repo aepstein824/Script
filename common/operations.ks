@@ -4,9 +4,10 @@ global sciencePartNames to list(
     "sensorBarometer",
     "sensorThermometer",
     "goo",
-    "science.module"
+    "science.module",
+    "sensorAccelerometer"
 ).
-doScience().
+// doScience().
 
 function doScience {
     local mods to scienceModules.
@@ -89,4 +90,13 @@ function keyOrDefault {
         set lex:k to def.
     }
     return lex:k.
+}
+
+function stageTo {
+    parameter limit.
+    until ship:stagenum <= limit {
+        wait 0.5.
+        stage.
+        wait 0.5.
+    }
 }

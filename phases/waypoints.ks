@@ -34,13 +34,11 @@ function doWaypoints {
     }
 }
 
-function doWaypoint {
-    parameter w.
-
-    print "Going for " + w:name.
+function matchGeoPlane {
+    parameter wGeo.
 
     local sNorm to shipNorm().
-    local wPos to w:position - body:position.
+    local wPos to wGeo:position - body:position.
     local over to vCrs(wPos, sNorm).
     local wNorm to vCrs(over, wPos):normalized.
     local orbW to removeComp(wPos, sNorm).
@@ -55,6 +53,14 @@ function doWaypoint {
 
     matchPlanesAndSemi(wNorm, kWarpHeights[body]).
     nodeExecute().
+}
+
+function doWaypoint {
+    parameter w.
+
+    print "Going for " + w:name.
+
+    matchGeoPlane(w:geoposition).
 
     planCutAtWaypoint(w).
     nodeExecute().

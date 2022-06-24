@@ -5,7 +5,7 @@ runPath("0:maneuvers/atmLand.ks").
 local kKerbPark to 75000.
 
 function circleAtKerbin {
-    if obt:transition <> "FINAL" {
+    if obt:transition = "ESCAPE" {
         print "Avoiding escape!".
         lock steering to ship:retrograde.
         wait 1.
@@ -19,6 +19,7 @@ function circleAtKerbin {
     } else {
         changePeAtAp(kKerbPark).
     }
+    wait 1.
     nodeExecute().
     changeApAtPe(kKerbPark).
     local dvBudget to ship:deltav:current - 200.
@@ -33,8 +34,10 @@ function circleAtKerbin {
 
 function landKsc {
     landingBurn().
+    print ship:geoposition.
     atmLandInit().
     until atmLandSuccess() {
         atmLandLoop().
     }
+    print ship:geoposition.
 }

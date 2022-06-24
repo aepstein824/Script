@@ -7,10 +7,10 @@ runOncePath("0:common/ship.ks").
 declare global kAtmLand to lexicon().
 
 set kAtmLand:kEntryPe to 45000.
-set kAtmLand:kBurnAlt to 50000.
-set kAtmLand:kProAlt to 40000.
+set kAtmLand:kBurnAlt to 53000.
 set kAtmLand:kReturnTanly to 100.
 set kAtmLand:kWinged to false.
+set kAtmLand:kSurrenderQ to .02.
 
 function atmLandInit {
     set kuniverse:timewarp:mode to "RAILS".
@@ -33,15 +33,16 @@ function atmLandLoop {
     } else if ship:altitude > kAtmLand:kBurnAlt {
         lock steering to ship:srfretrograde.
         set kuniverse:timewarp:rate to 2.
-    } else if ship:altitude > kAtmLand:kProAlt {
+    } else if ship:q < kAtmLand:kSurrenderQ {
         if maxThrust = 0 and kAtmLand:kWinged {
-            lock steering to heading(90, 10, -90).
-        } else {
-            lock throttle to 1.
-            lock steering to ship:srfretrograde.
+            lock throttle to 0.
+            lock steering to heading(90, 45, 0).
         }
-    } 
-
+        lock throttle to 1.
+        lock steering to ship:srfretrograde.
+    } else  {
+        lock steering to ship:srfretrograde.
+    }
     atmLandStage().
     wait 0.
 }

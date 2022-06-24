@@ -6,14 +6,13 @@ set kClimb:Turn to 10.
 set kClimb:VertV to 60.
 set kClimb:SteerV to 150.
 set kClimb:ClimbAp to 85000.
-set kClimb:BurnHeight to 80000.
 set kClimb:ClimbPe to 71000.
 set kClimb:LastStage to 0.
-set kClimb:ClimbA to 1.8.
+set kClimb:ClimbA to 1.5.
 set kClimb:TLimAlt to 5000.
 
-global steer to ship:facing.
-global throt to 0.
+local steer to ship:facing.
+local throt to 0.
 
 function climbSuccess  {
     return ship:obt:periapsis > kClimb:ClimbPe.
@@ -34,9 +33,9 @@ function climbLoop {
         set throt to slowThrottle().
     } else if ship:apoapsis < kClimb:ClimbAp {
         gravityTurn().
-    } else if ship:altitude < kClimb:BurnHeight {
+    } else if not climbShouldCircleBurn() {
         warpUp().
-    } else if not climbSuccess() {
+    } else {
         circularize().
     }
 
@@ -120,6 +119,16 @@ function circularize {
         set kuniverse:timewarp:rate to 2.
         set throt to 1.
     }
+}
+
+function climbShouldCircleBurn {
+    if obt:eta:apoapsis > obt:eta:periapsis {
+        return true.
+    }
+    local cSpd to sqrt(body:mu / (kClimb:ClimbAp + body:radius)).
+    local apTime to time + obt:eta:apoapsis.
+    local apSpd to shipVAt(apTime):mag.
+    return obt:eta:apoapsis < shipTimeToDV(cSpd - apSpd) / 2.
 }
 
 function acHeading {

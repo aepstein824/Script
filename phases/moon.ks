@@ -18,8 +18,6 @@ function planMunFlyby {
             if results:ok {
                 set results:totalV to results:burnVec:mag. 
                 set results:totalV to results:totalV + results:matchVec:mag.
-                print "Found orbit with dV " + results["burnVec"]:mag + " total " 
-                    + results:totalV.
                 if results:totalV < best:totalV {
                     set best to results.
                 }
@@ -36,6 +34,7 @@ function planMunFlyby {
         } else {
             break.
         }
+        if i < 0 { break. } // unused...
     }
 }
 

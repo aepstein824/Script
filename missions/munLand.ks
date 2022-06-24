@@ -12,50 +12,88 @@ runOncePath("0:phases/launchToOrbit.ks").
 runOncePath("0:phases/moon.ks").
 runOncePath("0:phases/waypoints.ks").
 
-local kMunPeLow to 12000.
-local kMunPeHigh to 40000.
-set kClimb:Turn to 8.
-set kClimb:ClimbAp to 82000.
-set kClimb:burnHeight to 78500.
+local dest to mun.
+local kMunPeLow to kWarpHeights[dest].
+local kMunPeHigh to kMunPeLow * 3.
+local kInterStg to 2.
+local kLanderStg to 2.
+set kClimb:Turn to 5.
+set kClimb:ClimbAp to 75000.
+local phase to 5.
+local auto to true.
 
 wait until ship:unpacked.
 
-kuniverse:quicksaveto("mun_land_probe_launch").
-ensureHibernate().
-print "Launch to Orbit!".
-launchToOrbit().
-wait 1.
-planMunFlyby().
-nodeExecute().
-if not orbit:hasnextpatch() {
-    print "Correcting Course".
-    waitWarp(time:seconds + 10 * 60).
+if phase = 0 or auto {
+    print "Launch to Orbit!".
+    kuniverse:quicksaveto("mun_land_probe_launch").
+    ensureHibernate().
+    launchToOrbit().
+    stageTo(kInterStg).
+}
+if phase = 1 or auto {
+    print "Go to " + dest:name.
     planMunFlyby().
     nodeExecute().
+    if not orbit:hasnextpatch() {
+        print "Correcting Course".
+        waitWarp(time:seconds + 10 * 60).
+        planMunFlyby().
+        nodeExecute().
+    }
 }
-waitWarp(time:seconds + orbit:nextpatcheta + 60).
-print "Missing the Mun".
-refinePe(kMunPeLow, kMunPeHigh).
-print "Circling Mun".
-circleNextExec(kMunPeLow).
-wait 2.
-print "Landing".
-vacLand().
-doScience().
-print "Leaving Mun".
-vacClimb().
-circleNextExec(kMunPeLow).
-escapeRetro().
-nodeExecute().
-waitWarp(time:seconds + orbit:nextpatcheta + 60).
-circleAtKerbin().
-landKsc().
+if phase = 2 or auto {
+    waitWarp(time:seconds + orbit:nextpatcheta + 60).
+    print "Missing the " + dest:name.
+    refinePe(kMunPeLow, kMunPeHigh).
+}
+if phase = 3 or auto {
+    print "Circling " + dest:name.
+    circleNextExec(kMunPeLow).
+}
+if phase = 4 or auto {
+    print "Landing".
+    lights on.
+    vacDescendToward(latlng(-20,-23)).
+    print ship:geoposition.
+    stageTo(kLanderStg).
+    vacLand().
+    doScience().
+    print ship:geoposition.
+}
+if phase = 5 or auto {
+    lights off.
+    print "Leaving " + dest:name.
+    vacClimb().
+    circleNextExec(kMunPeLow).
+    escapeRetro().
+    nodeExecute().
+    waitWarp(time:seconds + orbit:nextpatcheta + 60).
+    circleAtKerbin().
+    landKsc().
+}
+
+function vacDescendToward {
+    parameter wGeo.
+   
+    matchGeoPlane(wGeo).
+
+    local pePos to shipPAtPe().
+    local wTanly to vectorAngleAround(pePos, shipNorm(), 
+        wGeo:position - body:position).
+    local landAngle to 6.5.
+    local landTanly to mod(wTanly - landAngle + 360, 360).
+    print "wTanly = " + wTanly.
+    print "landTanly = " + landTanly.
+    local landTime to timeBetweenTanlies(obt:trueanomaly, landTanly, obt).
+    add node(time:seconds + landTime, 0, 0, -300).
+    nodeExecute().
+}
 
 function vacLand {
-    add node(time:seconds + 60, 0, 0, -300).
-    nodeExecute().
     legs on.
-    suicideBurn(150).
+    suicideBurn(600).
+    suicideBurn(100).
     coast(5).
 }
 
