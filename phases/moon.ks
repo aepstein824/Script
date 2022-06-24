@@ -1,18 +1,18 @@
 @LAZYGLOBAL OFF.
 
+runOncePath("0:common/info.ks").
 runOncePath("0:common/operations.ks").
 runOncePath("0:maneuvers/lambert.ks").
 
-local kMunPeLow to 12000.
-
-function planMunFlyby {
+function planMoonFlyby {
+    parameter dest.
     local best to Lexicon().
     set best:totalV to 1000000.
-    for i in range(10, 25) {
-        for j in list(7, 8, 9) {
+    for i in range(5, 25) {
+        for j in list(50, 56, 62) {
             local startTime to time + i * 2 * 60.
             local flightDuration to j * 60 * 60.
-            local results to lambert(ship, mun, V(-2 * mun:radius, 0, 0),
+            local results to lambert(ship, dest, V(-2 * dest:radius, 0, 0),
                 startTime, flightDuration, false).
 
             if results:ok {
@@ -29,7 +29,7 @@ function planMunFlyby {
     for i in range(30) {
         if (nd:obt:nextpatch():periapsis < 0) {
             set nd:prograde to nd:prograde - 0.5.
-        } else if (nd:obt:nextpatch():periapsis < kMunPeLow) {
+        } else if (nd:obt:nextpatch():periapsis < kWarpHeights[dest]) {
             set nd:prograde to nd:prograde - 0.1.
         } else {
             break.

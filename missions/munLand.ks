@@ -12,15 +12,16 @@ runOncePath("0:phases/launchToOrbit.ks").
 runOncePath("0:phases/moon.ks").
 runOncePath("0:phases/waypoints.ks").
 
-local dest to mun.
+local dest to minmus.
 local kMunPeLow to kWarpHeights[dest].
 local kMunPeHigh to kMunPeLow * 3.
-local kInterStg to 2.
+local kInterStg to 3.
 local kLanderStg to 2.
 set kClimb:Turn to 5.
 set kClimb:ClimbAp to 75000.
 local phase to 5.
-local auto to true.
+local auto to false.
+local lz to latlng(50, -40).
 
 wait until ship:unpacked.
 
@@ -33,12 +34,12 @@ if phase = 0 or auto {
 }
 if phase = 1 or auto {
     print "Go to " + dest:name.
-    planMunFlyby().
+    planMoonFlyby(dest).
     nodeExecute().
     if not orbit:hasnextpatch() {
         print "Correcting Course".
         waitWarp(time:seconds + 10 * 60).
-        planMunFlyby().
+        planMoonFlyby(dest).
         nodeExecute().
     }
 }
@@ -54,7 +55,7 @@ if phase = 3 or auto {
 if phase = 4 or auto {
     print "Landing".
     lights on.
-    vacDescendToward(latlng(-20,-23)).
+    vacDescendToward(lz).
     print ship:geoposition.
     stageTo(kLanderStg).
     vacLand().
@@ -81,12 +82,12 @@ function vacDescendToward {
     local pePos to shipPAtPe().
     local wTanly to vectorAngleAround(pePos, shipNorm(), 
         wGeo:position - body:position).
-    local landAngle to 6.5.
+    local landAngle to 2.5.
     local landTanly to mod(wTanly - landAngle + 360, 360).
     print "wTanly = " + wTanly.
     print "landTanly = " + landTanly.
     local landTime to timeBetweenTanlies(obt:trueanomaly, landTanly, obt).
-    add node(time:seconds + landTime, 0, 0, -300).
+    add node(time:seconds + landTime, 0, 0, -100).
     nodeExecute().
 }
 

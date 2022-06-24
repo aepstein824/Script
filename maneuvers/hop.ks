@@ -3,13 +3,14 @@
 clearscreen.
 runOncePath("0:common/math.ks").
 runOncePath("0:common/orbital.ks").
+runOncePath("0:common/ship.ks").
 
-// verticalLeapTo(100).
+// verticalLeapTo(200).
 // lock steering to heading(-55, 20).
 // lock throttle to 1.
 // wait 3.
 // lock throttle to 0.
-// suicideBurn(100).
+// suicideBurn(150).
 // coast(12).
 
 function groundAlt {
@@ -54,7 +55,6 @@ function verticalLeapTo {
 function suicideBurn {
     parameter safeH.
 
-
     print "Rising".
     wait until vDot(body:position, ship:velocity:surface) > 1.
 
@@ -88,8 +88,10 @@ function suicideBurn {
         local qc to h0 - 0.5 * v0^2 / a.
         local tf to qfMax(qa, qb, qc).
 
-        if tf < 0 {
+        if tf < 1 {
             kuniverse:timewarp:cancelwarp().
+        }
+        if tf < 0 {
             break.
         } 
 
@@ -99,13 +101,19 @@ function suicideBurn {
         wait 0.
     }
 
+    local startV to -1 * ship:velocity:surface.
+    local currentV to startV.
+
     print "Burn!".
-    until vDot(body:position, ship:velocity:surface) < 1 {
-        // local downLimit to invLerp(vBurn:mag, 0, maxA).
-        // lock steering to -vBurn * downLimit + (1 - downLimit)*(up:forevector).
-        lock steering to -1 * ship:velocity:surface.
-        lock throttle to 1.
+    until vDot(startV, currentV) < 0 {
+        set currentV to -1 * ship:velocity:surface.
+        lock steering to 0.3 * startV:normalized() + currentV:normalized().
+        // lock throttle to 1.
+        local timeTo to shipTimeToDV(currentV:mag).
+        lock throttle to max(timeTo, 0.5).
     }
+
+    lock throttle to 0.
 }
 
 function coast {

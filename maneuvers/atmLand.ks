@@ -7,10 +7,10 @@ runOncePath("0:common/ship.ks").
 declare global kAtmLand to lexicon().
 
 set kAtmLand:kEntryPe to 45000.
-set kAtmLand:kBurnAlt to 53000.
+set kAtmLand:kBurnAlt to 55000.
 set kAtmLand:kReturnTanly to 100.
 set kAtmLand:kWinged to false.
-set kAtmLand:kSurrenderQ to .02.
+set kAtmLand:kSurrenderQ to .01.
 
 function atmLandInit {
     set kuniverse:timewarp:mode to "RAILS".

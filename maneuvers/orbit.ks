@@ -33,11 +33,15 @@ function escapeRetro {
     local burnTime to timeBetweenTanlies(obt:trueanomaly, burnTanly, obt) + time.
     local burnPos to shipPAt(burnTime). 
     local burnR to burnPos:mag.
-    local fudge to .965.
+    local fudge to .9.
     local escapeSpd to fudge * sqrt(2 * body:mu / burnR).
     local ds to escapeSpd - shipVAt(burnTime):mag.
 
-    add node(burnTime, 0, 0, ds).
+    local nd to node(burnTime, 0, 0, ds).
+    add nd.
+    until nd:obt:hasnextpatch() {
+        set nd:prograde to nd:prograde + 1.
+    }
 }
 
 function matchPlanesAndSemi {
