@@ -5,9 +5,9 @@ runOncePath("0:common/math.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 
-// verticalLeapTo(100).
+// verticalLeapTo(200).
 // wait until ship:velocity:surface:mag < 2.
-// hop45To(latlng(90, 0):position).
+// hopBestTo(waypoint("ksc"):geoposition:altitudeposition(150)).
 // suicideBurn(150).
 // coast(12).
 
@@ -26,10 +26,37 @@ function hop45To {
     local g to gHere().
     
     local hopDir to (hDir + xVec:normalized):normalized.
-    lock steering to hopDir.
-    lock throttle to 1.
     local spd to sqrt(g * dx ^ 2 / (dx - dh)).
     print spd.
+    lock throttle to 1.
+    lock steering to hopDir.
+    wait until vDot(hopDir, ship:velocity:surface) > spd.
+    lock throttle to 0.
+}
+
+function hopBestTo {
+    parameter pos.
+    local dPos to pos - ship:position.
+    local hDir to -body:position:normalized.
+    local xVec to removeComp(dPos, hDir).
+    local dh to vDot(dPos, hDir).
+    local dx to xVec:mag.
+    local g to gHere().
+    print "x " + dx.
+    print "h " + dh.
+    print "g " + g.
+    local p to (g * dx / 2).
+    local q to (dh / dx).
+    local l0 to (p ^ 2 / (q ^ 2 + 1)) ^ (1/4). 
+    local v0 to p / l0 + q * l0.
+    print "(" + l0 + ", " + v0+ ")".
+    local burnVec to l0 * xVec:normalized + v0 * hDir.
+    
+    local hopDir to burnVec:normalized.
+    local spd to burnVec:mag.
+    print spd.
+    lock throttle to 1.
+    lock steering to hopDir.
     wait until vDot(hopDir, ship:velocity:surface) > spd.
     lock throttle to 0.
 }
@@ -59,14 +86,16 @@ function verticalLeapTo {
     }
 
     print "Leap to " + h.
-
     local g to body:mu / (groundAlt() + body:radius) ^ 2.
-    local v0 to sqrt(2 * (h - groundAlt()) * g).
+
+    local v0 to 1000000000.
+    until ship:velocity:surface:mag > v0 {
+    set v0 to sqrt(2 * (h - groundAlt()) * g).
 
     lock steering to lookDirUp(-body:position, v(0, 1, 0)).
     lock throttle to 1.
+    }
 
-    wait until ship:velocity:surface:mag > v0.
 
     lock throttle to 0.
 
