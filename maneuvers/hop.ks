@@ -5,13 +5,34 @@ runOncePath("0:common/math.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 
-// verticalLeapTo(200).
-// lock steering to heading(-55, 20).
-// lock throttle to 1.
-// wait 3.
-// lock throttle to 0.
+// verticalLeapTo(100).
+// wait until ship:velocity:surface:mag < 2.
+// hop45To(waypoint("ksc"):position).
 // suicideBurn(150).
 // coast(12).
+
+function gHere {
+    local g to body:mu / (groundAlt() + body:radius) ^ 2.
+    return g.
+}
+
+function hop45To {
+    parameter pos.
+    local dPos to pos - ship:position.
+    local hDir to -body:position:normalized.
+    local xVec to removeComp(dPos, hDir).
+    local dh to vDot(dPos, hDir).
+    local dx to xVec:mag.
+    local g to gHere().
+    
+    local hopDir to (hDir + xVec:normalized):normalized.
+    lock steering to hopDir.
+    lock throttle to 1.
+    local spd to sqrt(g * dx ^ 2 / (dx - dh)).
+    print spd.
+    wait until vDot(hopDir, ship:velocity:surface) > spd.
+    lock throttle to 0.
+}
 
 function groundAlt {
     local ground to altitude - geoPosition:terrainheight.
@@ -121,8 +142,11 @@ function coast {
 
     local g to body:mu / (groundAlt() + body:radius) ^ 2.
     local kp to -1 / (ship:maxthrust / ship:mass - g).
-    local ki to -.02.
-    local kd to -.02.
+    // print "kp = " + kp.
+    local ki to -.04.
+    // local ki to 0.
+    local kd to -.002.
+    // local kd to 0.
     local pid to pidloop(kp, ki, kd).
     set pid:setpoint to spd.
     local throt to 0.
@@ -136,6 +160,7 @@ function coast {
         if throt <= 0.01 {
             pid:reset().
         }
+        wait 0.
     }
     lock steering to up.
     lock throttle to 0.
