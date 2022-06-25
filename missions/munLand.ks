@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 
 clearscreen.
+runOncePath("0:common/phasing.ks").
 runOncePath("0:maneuvers/atmLand.ks").
 runOncePath("0:maneuvers/climb.ks").
 runOncePath("0:maneuvers/hop.ks").
@@ -19,20 +20,20 @@ local kInterStg to 3.
 local kLanderStg to 2.
 set kClimb:Turn to 5.
 set kClimb:ClimbAp to 75000.
-local phase to 5.
-local auto to false.
-local lz to latlng(50, -40).
+set kPhases:startInc to 5.
+set kPhases:stopInc to 5.
+local lz to latlng(90, 0).
 
 wait until ship:unpacked.
 
-if phase = 0 or auto {
+if shouldPhase(0) {
     print "Launch to Orbit!".
     kuniverse:quicksaveto("mun_land_probe_launch").
     ensureHibernate().
     launchToOrbit().
     stageTo(kInterStg).
 }
-if phase = 1 or auto {
+if shouldPhase(1) {
     print "Go to " + dest:name.
     planMoonFlyby(dest).
     nodeExecute().
@@ -43,16 +44,16 @@ if phase = 1 or auto {
         nodeExecute().
     }
 }
-if phase = 2 or auto {
+if shouldPhase(2) {
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
     print "Missing the " + dest:name.
     refinePe(kMunPeLow, kMunPeHigh).
 }
-if phase = 3 or auto {
+if shouldPhase(3) {
     print "Circling " + dest:name.
     circleNextExec(kMunPeLow).
 }
-if phase = 4 or auto {
+if shouldPhase(4) {
     print "Landing".
     lights on.
     vacDescendToward(lz).
@@ -62,7 +63,7 @@ if phase = 4 or auto {
     doScience().
     print ship:geoposition.
 }
-if phase = 5 or auto {
+if shouldPhase(5) {
     lights off.
     print "Leaving " + dest:name.
     vacClimb().
@@ -79,15 +80,16 @@ function vacDescendToward {
    
     matchGeoPlane(wGeo).
 
+    local wPos to wGeo:position - body:position.
     local pePos to shipPAtPe().
-    local wTanly to vectorAngleAround(pePos, shipNorm(), 
-        wGeo:position - body:position).
-    local landAngle to 2.5.
+    local wTanly to vectorAngleAround(pePos, shipNorm(), wPos).
+    local landAngle to 20.
     local landTanly to mod(wTanly - landAngle + 360, 360).
     print "wTanly = " + wTanly.
     print "landTanly = " + landTanly.
-    local landTime to timeBetweenTanlies(obt:trueanomaly, landTanly, obt).
-    add node(time:seconds + landTime, 0, 0, -100).
+    local landTime to timeBetweenTanlies(obt:trueanomaly, landTanly, obt) + time:seconds.
+    local res to landingOptimizer(ship, wGeo:position, landTime, 0, true).
+    add res["burnNode"].
     nodeExecute().
 }
 

@@ -7,7 +7,7 @@ runOncePath("0:common/ship.ks").
 
 // verticalLeapTo(100).
 // wait until ship:velocity:surface:mag < 2.
-// hop45To(waypoint("ksc"):position).
+// hop45To(latlng(90, 0):position).
 // suicideBurn(150).
 // coast(12).
 
@@ -76,13 +76,14 @@ function verticalLeapTo {
 function suicideBurn {
     parameter safeH.
 
+    set kuniverse:timewarp:mode to "PHYSICS".
+    set kuniverse:timewarp:rate to 4.
+
     print "Rising".
     wait until vDot(body:position, ship:velocity:surface) > 1.
 
     print "Falling".
     until false {
-        set kuniverse:timewarp:mode to "PHYSICS".
-        set kuniverse:timewarp:rate to 4.
         local terrainH to terrainHAt(ship:position).
         local h0 to altitude - terrainH - safeH.
         local g to body:mu / (groundAlt() + body:radius) ^ 2.

@@ -106,6 +106,7 @@ function timeBetweenTanlies {
     if x > y {
         set manlyX to manlyX - 360.
     }
+    print manlyX + ", " + manlyY.
 
     local avgAngularV to 360 / argOrbit:period.
     return (manlyY - manlyX) / avgAngularV. 
