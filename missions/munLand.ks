@@ -19,9 +19,9 @@ local kMunPeHigh to kMunPeLow * 3.
 local kInterStg to 3.
 local kLanderStg to 2.
 set kClimb:Turn to 5.
-set kClimb:ClimbAp to 75000.
-set kPhases:startInc to 5.
-set kPhases:stopInc to 5.
+set kClimb:ClimbAp to 90000.
+set kPhases:startInc to 0.
+set kPhases:stopInc to 0.
 local lz to latlng(90, 0).
 
 wait until ship:unpacked.

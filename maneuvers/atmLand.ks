@@ -8,9 +8,13 @@ declare global kAtmLand to lexicon().
 
 set kAtmLand:kEntryPe to 45000.
 set kAtmLand:kBurnAlt to 55000.
-set kAtmLand:kReturnTanly to 100.
+set kAtmLand:kReturnTanly to 140.
 set kAtmLand:kWinged to false.
+set kAtmLand:kCoast to true.
 set kAtmLand:kSurrenderQ to .01.
+set kAtmLand:kCoastReserve to 100.
+set kAtmLand:kCoastH to 100.
+set kAtmLand:kCoastSpd to 5.
 
 function atmLandInit {
     set kuniverse:timewarp:mode to "RAILS".
@@ -34,14 +38,22 @@ function atmLandLoop {
         lock steering to ship:srfretrograde.
         set kuniverse:timewarp:rate to 2.
     } else if ship:q < kAtmLand:kSurrenderQ {
-        if maxThrust = 0 and kAtmLand:kWinged {
+        if kAtmLand:kWinged {
             lock throttle to 0.
             lock steering to heading(90, 45, 0).
+        } else if not kAtmLand:kCoast or ship:deltav:current > kAtmLand:kCoastReserve {
+            lock throttle to 0.5.
+            lock steering to ship:srfretrograde.
+        } else {
+            lock throttle to 0.
         }
-        lock throttle to 1.
-        lock steering to ship:srfretrograde.
-    } else  {
-        lock steering to ship:srfretrograde.
+    } else {
+        unlock steering.
+        if kAtmLand:kCoast and ship:altitude > kAtmLand:kCoastH {
+            lock throttle to 0.
+        } else {
+            coast(kAtmLand:kCoastSpd).
+        }
     }
     atmLandStage().
     wait 0.
@@ -60,13 +72,7 @@ function atmLandStage {
 function planLandingBurn {
     local sNorm to shipNorm().
 
-    local wpoints to allWaypoints().
-    local ksc to wpoints[wpoints:length - 1].
-    for w in allWaypoints() {
-        if w:name = ksc {
-            set ksc to w.
-        }
-    }
+    local ksc to waypoint("ksc").
 
     // doesn't work, need to account for eccentricity and spin
     local orbW to removeComp(ksc:position - body:position, sNorm).
