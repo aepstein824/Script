@@ -40,6 +40,7 @@ function landFromDeorbit {
     
     lock throttle to 0.
     unlock steering.
+    brakes on.
     stageTo(0).
     set kuniverse:timewarp:rate to 2.
 
@@ -47,6 +48,7 @@ function landFromDeorbit {
 
     kuniverse:timewarp:cancelwarp().
     if (kLandAtm:Coast) {
+        brakes off.
         coast(kLandAtm:CoastSpd).
     }
 

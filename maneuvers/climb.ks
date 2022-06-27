@@ -11,16 +11,12 @@ set kClimb:LastStage to 0.
 set kClimb:ClimbA to 1.5.
 set kClimb:TLimAlt to 5000.
 
-local steer to ship:facing.
-local throt to 0.
 
 function climbSuccess  {
     return ship:obt:periapsis > kClimb:ClimbPe.
 }
 
 function climbInit {
-    lock steering to steer.
-    lock throttle to throt.
 }
 
 function climbLoop {
@@ -29,8 +25,8 @@ function climbLoop {
     if surfaceV <  kClimb:VertV {
         verticalClimb().
     } else if surfaceV < kClimb:SteerV {
-        set steer to acHeading(90 - kClimb:Turn).
-        set throt to slowThrottle().
+        lock steering to acHeading(90 - kClimb:Turn).
+        lock throttle to slowThrottle().
     } else if ship:apoapsis < kClimb:ClimbAp {
         gravityTurn().
     } else if not climbShouldCircleBurn() {
@@ -90,34 +86,34 @@ function solidCheck {
 }
 
 function verticalClimb {
-    set steer to acHeading(90).
-    set throt to slowThrottle()..
+    lock steering to acHeading(90).
+    lock throttle to slowThrottle()..
 }
 
 function gravityTurn {
-    set steer to ship:srfPrograde.
+    lock steering to ship:srfPrograde.
     if (ship:altitude < kClimb:TLimAlt) {
-        set throt to slowThrottle().
+        lock throttle to slowThrottle().
     }
     else {
-        set throt to 1.
+        lock throttle to 1.
     }
 }
 
 function warpUp {
-    set steer to ship:srfPrograde.
-    set throt to 0.
+    unlock throttle.
+    unlock steering.
     set kuniverse:timewarp:rate to 2.
 }
 
 function circularize {
-    set steer to acHeading(0).
+    lock steering to acHeading(0).
     if vang(ship:facing:vector, acHeading(0):vector) > 10 {
         set kuniverse:timewarp:rate to 1.
-        set throt to 0.
+        lock throttle to 0.
     } else {
         set kuniverse:timewarp:rate to 2.
-        set throt to 1.
+        lock throttle to 1.
     }
 }
 
@@ -128,7 +124,7 @@ function climbShouldCircleBurn {
     local cSpd to sqrt(body:mu / (kClimb:ClimbAp + body:radius)).
     local apTime to time + obt:eta:apoapsis.
     local apSpd to shipVAt(apTime):mag.
-    return obt:eta:apoapsis < shipTimeToDV(cSpd - apSpd) / 2.
+    return obt:eta:apoapsis < (shipTimeToDV(cSpd - apSpd) / 2 + 10).
 }
 
 function acHeading {

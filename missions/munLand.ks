@@ -28,7 +28,7 @@ wait until ship:unpacked.
 
 if shouldPhase(0) {
     print "Launch to Orbit!".
-    kuniverse:quicksaveto("mun_land_probe_launch").
+    kuniverse:quicksaveto("mun_land_launch").
     ensureHibernate().
     launchToOrbit().
     stageTo(kInterStg).
