@@ -33,11 +33,6 @@ if shouldPhase(0) {
 }
 if shouldPhase(1) {
     print "Plan Intercept".
-    waitWarp(time:seconds + orbit:nextpatcheta + 60).
-    local hl to hlIntercept(ship, duna).
-    add hl:burnNode.
-    wait 10.
-    remove nextNode.
-    local hl to hlIntercept(ship, eve).
+    local hl to hlIntercept(ship, target).
     add hl:burnNode.
 }

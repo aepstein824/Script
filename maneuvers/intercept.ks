@@ -5,6 +5,10 @@ runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 runOncePath("0:maneuvers/node.ks").
 
+global kIntercept to lexicon().
+set kIntercept:StartSpan to 2.
+set kIntercept:DurSpan to 1.
+
 function hohmannTransfer {
     parameter rd, ra, mu.
     local a to (rd + ra) / 2.
@@ -39,17 +43,22 @@ function hohmannIntercept {
 
     local mm2 to 360 / obt2:period.
     local mm1 to 360 / obt1:period.
-    local transAngle to 180 - mm2 * hi:duration.
+    set hi:transAngle to 180 - mm2 * hi:duration.
     local rel0 to posToTanly(obt2:position, obt1) + obt1:trueanomaly.
     // assume same direction
     local mmRel to mm2 - mm1.
-    local t to (transAngle - rel0) / mmRel.
+    // print "Rel Mean Motion = " + mmRel.
+    // print "MM2 = " + mm2.
+    // print "MM1 = " + mm1.
+    // print "Rel0 = " + rel0.
+
+    local t to (hi:transAngle - rel0) / mmRel.
     if t < 0 {
         local period to 360 / abs(mmRel).
         set t to t + period.
     }
     set hi:when to t.
-    print hi.
+    // print hi.
 
     return hi.
 }
@@ -68,8 +77,8 @@ function hlIntercept {
 
     local fineT to rough:start.
     local fineDur to rough:duration.
-    set di to di / 6.
-    set dj to dj / 3.
+    set di to di / (kIntercept:StartSpan + 1).
+    set dj to dj / (kIntercept:DurSpan + 1).
 
     local fine to lambertGrid(obtable1, obtable2, fineT, fineDur, di, dj).
 
@@ -82,15 +91,16 @@ function lambertGrid {
     local best to lexicon().
     set best:totalV to 10 ^ 20.
 
-    for i in range(-5, 5) {
-        for j in range (-2, 2) {
+    for i in range(-kIntercept:StartSpan, kIntercept:StartSpan + 1) {
+        for j in range (-kIntercept:DurSpan, kIntercept:DurSpan + 1) {
             local startTime to guessT + i * di.
             local flightDuration to guessDur + j * dj.
-            local results to lambert(obtable1, obtable2, v(0, 0, 0),
-                startTime, flightDuration, false).
+            local results to lambert(obtable1, obtable2, v(-100000, 0, -100000),
+                startTime, flightDuration, true).
             if results:ok {
                 set results:totalV to results:burnVec:mag. 
                 set results:totalV to results:totalV + results:matchVec:mag.
+                // print round(results:burnVec:mag) + " -> " + round(results:matchVec:mag).
                 if results:totalV < best:totalV {
                     set results:start to startTime.
                     set results:duration to flightDuration.

@@ -78,6 +78,7 @@ function invLerp {
 
 function removeComp {
     parameter x, orth.
+    set orth to orth:normalized.
     return x - vDot(x, orth) * orth.
 }
 

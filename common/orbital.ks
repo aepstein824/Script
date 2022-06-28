@@ -115,9 +115,11 @@ function timeBetweenTanlies {
 function posToTanly {
     parameter x, o.
 
-    local norm to vCrs(o:velocity:surface, o:position - o:body:position). 
-    local orbX to removeComp(o:body:position - x, norm).
-    local angleToO to vectorAngleAround(o:position, norm, orbX).
+    local p1 to o:position - o:body:position.
+    local p2 to x - o:body:position.
+    local norm to vCrs(o:velocity:orbit, p1):normalized. 
+    local orbX to removeComp(p2, norm).
+    local angleToO to vectorAngleAround(p1, norm, orbX).
 
     return angleToO - o:trueanomaly.
 }

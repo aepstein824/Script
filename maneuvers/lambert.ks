@@ -25,6 +25,10 @@ function lambert {
     local pi to constant:pi.
     local p1 to positionAt(obtable1, startTime) - focus:position.
     local p2 to positionAt(obtable2, endTime) - focus:position.
+    // clearVecDraws().
+    // vecdraw(focus:position, p1, rgb(0, 0, 1), "p1", 1.0, true).
+    // vecdraw(focus:position, p2, rgb(0, 1, 0), "p2", 1.0, true).
+    wait 5.
 
     local pro2 to velocityAt(obtable2, endTime):orbit:normalized.
     local norm2 to vCrs(pro2, p2):normalized.
@@ -38,9 +42,17 @@ function lambert {
     local r2 to p2:mag.
     local radRat to r2 / r1.
 
-    local globalUp to v(0, 1, 0).
-    local dTheta to vectorAngleAroundR(p1, globalUp, p2).
-    local cAng to vectorAngleAroundR(p1, globalUp, cvec).
+    local startVec to velocityAt(obtable1, startTime):orbit.
+    //print "Out trans = " + transOut.
+    //print "Trans vec = " + transVec.
+    //print "Start vec = " + startVec.
+    local startPro to startVec:normalized.
+    local startRad to (p1 - vDot(p1, startPro) * startPro):normalized.
+    local startNorm to vCrs(startPro, startRad).
+    local ih to -1 * vCrs(p1, p2):normalized.
+
+    local dTheta to vectorAngleAroundR(p1, ih, p2).
+    local cAng to vectorAngleAroundR(p1, ih, cvec).
     local nRef to sqrt(focus:mu / (r1 ^ 3)).
     local tauS to flightDuration * nRef.
     local isShort to dTheta <= pi.
@@ -85,7 +97,7 @@ function lambert {
     local x to 0.
     local dX to 0.0001.
     local cDimless to cvec:mag / r1.
-    local epsilon to (1 / 10 ^ 12) / min(1, tauS).
+    local epsilon to (1 / 10 ^ 8) / min(1, tauS).
     local yS to ln(tauS).
     local et to 0.
     local kLimit to 12.
@@ -122,7 +134,6 @@ function lambert {
     }
 
     local ic to cvec:normalized.
-    local ih to -1 * vCrs(p1, p2):normalized.
     local ip to -1 * vCrs (ih, ic).
     local evec to et * ip + ef * ic.
     // print ih.
@@ -169,13 +180,7 @@ function lambert {
     }
 
     local ejectVec to transVAtPos(p1).
-    local startVec to velocityAt(obtable1, startTime):orbit.
-    //print "Out trans = " + transOut.
-    //print "Trans vec = " + transVec.
-    //print "Start vec = " + startVec.
-    local startPro to startVec:normalized.
-    local startRad to (p1 - vDot(p1, startPro) * startPro):normalized.
-    local startNorm to vCrs(startPro, startRad).
+
     local burnVec to ejectVec - startVec.
     local burnPro to vdot(burnVec, startPro).
     local burnNorm to vdot(burnVec, startNorm).
@@ -222,6 +227,9 @@ function dimensionlessKepler {
     local p2Tanly to dTheta - tanlyReverse.
     local p1Manly to dimlessManly(p1Tanly).
     local p2Manly to dimlessManly(p2Tanly).
+    if p2Manly < p1Manly {
+        set p2Manly to p2Manly + 2 * constant:pi.
+    }
     // print " tanlyReverse = " + tanlyReverse.
     // print " p2Tanly  = " + p2Tanly.
     // print "p1Manly = " + p1Manly.
