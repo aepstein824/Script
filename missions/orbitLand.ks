@@ -3,16 +3,20 @@ clearscreen.
 
 wait until ship:unpacked.
 
-print "Launch to Orbit!".
-runOncePath("0:phases/launchToOrbit.ks").
+local kWaitTime to 40 * 6 * 60 * 60.
 
-print "Wait in orbit!".
-lock throttle to 0.
-wait 3.
-kuniverse:timewarp:warpto(time:seconds + 60 * 60).
-wait 60 * 60.
-print "Land at Ksc!".
+runOncePath("0:phases/launchToOrbit.ks").
 runOncePath("0:phases/landKsc.ks").
+
+print "Launch to Orbit!".
+kuniverse:quicksaveto("orbit_land_launch").
+launchToOrbit().
+lock throttle to 0.
+print "Wait in orbit!".
+wait 5.
+waitWarp(time:seconds + kWaitTime).
+print "Land at Ksc!".
+landKsc().
 
 
 

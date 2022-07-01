@@ -83,6 +83,7 @@ if shouldPhase(7) {
     rcsNeutralize().
 }
 if shouldPhase(8) {
+    print "Dock with lab".
     if (target:position:mag > kRndvParams:floatDist) {
         ballistic().
         rcsNeutralize().

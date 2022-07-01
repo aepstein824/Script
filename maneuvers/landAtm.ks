@@ -17,7 +17,7 @@ set kLandAtm:SurrenderQ to .05.
 set kLandAtm:CoastReserve to 100.
 set kLandAtm:CoastH to 100.
 set kLandAtm:CoastSpd to 5.
-set kLandAtm:Roll to 90.
+set kLandAtm:Roll to 0.
 
 function landFromDeorbit {
     lock throttle to 0.
