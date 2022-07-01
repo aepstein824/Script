@@ -99,3 +99,13 @@ function qfMax {
     local m to quadraticFormula(a, b, c, -1).
     return max(p, m).
 }
+
+function posmod {
+    parameter dividend, divisor.
+    local badmod to mod(dividend, divisor).
+    if dividend < 0 {
+        return divisor + badmod.
+    }
+    return badmod.
+}
+

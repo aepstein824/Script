@@ -40,7 +40,7 @@ function planMoonFlyby {
 
 function refinePe {
     parameter low, high.
-    add node(time, 1, 0, 1).
+    add node(time, 1, 0, 0).
     local proAndOut to nextnode:deltav:normalized.
     if ship:periapsis < low {
         lock steering to proAndOut.

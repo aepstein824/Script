@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-runPath("0:maneuvers/atmLand.ks").
+runPath("0:maneuvers/landAtm.ks").
 
 local kKerbPark to 75000.
 
@@ -14,13 +14,9 @@ function circleAtKerbin {
         lock throttle to 0.
         wait 5.
     }
-    if obt:eta:periapsis < obt:eta:apoapsis {
-        changeApAtPe(kKerbPark).
-    } else {
-        changePeAtAp(kKerbPark).
-    }
-    wait 1.
+    changePeAtAp(kKerbPark).
     nodeExecute().
+    wait 1.
     changeApAtPe(kKerbPark).
     local dvBudget to ship:deltav:current - 200.
     print dvBudget.
@@ -33,11 +29,9 @@ function circleAtKerbin {
 }
 
 function landKsc {
-    landingBurn().
+    planLandingBurn().
+    nodeExecute().
     print ship:geoposition.
-    atmLandInit().
-    until atmLandSuccess() {
-        atmLandLoop().
-    }
+    landFromDeorbit().
     print ship:geoposition.
 }

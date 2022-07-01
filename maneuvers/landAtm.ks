@@ -11,7 +11,7 @@ declare global kLandAtm to lexicon().
 set kLandAtm:EntryPe to 45000.
 set kLandAtm:BurnAlt to 55000.
 set kLandAtm:ReturnTanly to 130.
-set kLandAtm:Winged to false.
+set kLandAtm:Winged to true.
 set kLandAtm:Coast to true.
 set kLandAtm:SurrenderQ to .05.
 set kLandAtm:CoastReserve to 100.
@@ -41,12 +41,15 @@ function landFromDeorbit {
     lock throttle to 0.
     unlock steering.
     brakes on.
+    chutes on.
     stageTo(0).
     set kuniverse:timewarp:rate to 2.
 
-    wait until ship:altitude < kLandAtm:CoastH.
+    wait until groundAlt() < kLandAtm:CoastH.
+    print "Coasting to the ground.".
 
     kuniverse:timewarp:cancelwarp().
+    gear on.
     if (kLandAtm:Coast) {
         brakes off.
         coast(kLandAtm:CoastSpd).
@@ -74,10 +77,12 @@ function burnExtraFuel {
     lock steering to ship:srfretrograde.
     
     wait until ship:altitude < kLandAtm:BurnAlt.
-    lock throttle to 1.
-    until stage:number = 0 {
+    lock throttle to 0.5.
+    until ship:deltav:current < kLandAtm:CoastReserve or stage:number = 0 {
         shipStage().
+        wait 0.
     }
+
 }
 
 function planLandingBurn {

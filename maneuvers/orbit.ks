@@ -126,3 +126,46 @@ function dontEscape {
         print "Just fine actually " + obt:nextpatch():transition <> "FINAL".
     }
 }
+
+function escapeWith {
+    parameter exitSpd, delay.
+    if body = sun { return. }
+
+    local escapeSign to 1.
+    if exitSpd < 0 {
+        set escapeSign to -1.
+        set exitSpd to -exitSpd.
+    }
+    // set delay to 0.
+
+    local startTime to time + delay.
+    local r0 to altitude + body:radius.
+    local escapeRIntegral to 1 / r0 - 1 / body:soiradius.
+    // print "escape integral " + escapeRIntegral.
+    local v0 to sqrt(exitSpd^2 + 2 * body:mu * escapeRIntegral).
+    // print "sqrt(" + exitSpd ^2 + " + " + (2 * body:mu / r0) + ")".
+    // print "v0 " + v0.
+
+    local a to 1 / (2 / r0 - v0 ^ 2 / body:mu).
+    local e to max(1 - r0 / a, 1).
+    // print "e " + e.
+    local deflectAngle to arcsin(1 / e).
+    // print "deflectAngle " + deflectAngle.
+    // velocity is 90 offset from position.
+    local burnToInfAngle to deflectAngle + 90.
+    // print "Just Checking " + arccos(-1/e).
+
+    local bodyV to velocityAt(body, startTime):orbit.
+    local bodyVAsPos to escapeSign * bodyV + body:position.
+    print "Escape " + escapeSign.
+    local infTanly to posToTanly(bodyVAsPos, obt).
+    print "inf tanly " + infTanly.
+    local startTanly to posToTanly(shipPAt(startTime), obt).
+    print "start tanly " + startTanly.
+    local burnTanly to posmod(infTanly - burnToInfAngle, 360).
+    print "burn tanly " + burnTanly.
+    local alignDur to timeBetweenTanlies(startTanly, burnTanly, obt).
+    print "alignDur " + alignDur.
+
+    add node(startTime + alignDur, 0, 0, v0 - ship:velocity:orbit:mag).
+}

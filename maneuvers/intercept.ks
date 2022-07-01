@@ -44,7 +44,7 @@ function hohmannIntercept {
     local mm2 to 360 / obt2:period.
     local mm1 to 360 / obt1:period.
     set hi:transAngle to 180 - mm2 * hi:duration.
-    local rel0 to posToTanly(obt2:position, obt1) + obt1:trueanomaly.
+    local rel0 to posToTanly(obt2:position, obt1) - obt1:trueanomaly.
     // assume same direction
     local mmRel to mm2 - mm1.
     // print "Rel Mean Motion = " + mmRel.
@@ -55,7 +55,7 @@ function hohmannIntercept {
     local t to (hi:transAngle - rel0) / mmRel.
     if t < 0 {
         local period to 360 / abs(mmRel).
-        set t to t + period.
+        set t to posmod(t, period).
     }
     set hi:when to t.
     // print hi.
@@ -95,7 +95,7 @@ function lambertGrid {
         for j in range (-kIntercept:DurSpan, kIntercept:DurSpan + 1) {
             local startTime to guessT + i * di.
             local flightDuration to guessDur + j * dj.
-            local results to lambert(obtable1, obtable2, v(-100000, 0, -100000),
+            local results to lambert(obtable1, obtable2, v(-500000, 0, 0),
                 startTime, flightDuration, true).
             if results:ok {
                 set results:totalV to results:burnVec:mag. 

@@ -106,7 +106,7 @@ function timeBetweenTanlies {
     if x > y {
         set manlyX to manlyX - 360.
     }
-    print manlyX + ", " + manlyY.
+    // print manlyX + ", " + manlyY.
 
     local avgAngularV to 360 / argOrbit:period.
     return (manlyY - manlyX) / avgAngularV. 
@@ -117,9 +117,12 @@ function posToTanly {
 
     local p1 to o:position - o:body:position.
     local p2 to x - o:body:position.
+    // print "p2 " + p2.
     local norm to vCrs(o:velocity:orbit, p1):normalized. 
+    // print "norm " + norm.
     local orbX to removeComp(p2, norm).
+    // print "orbX " + orbx.
     local angleToO to vectorAngleAround(p1, norm, orbX).
 
-    return angleToO - o:trueanomaly.
+    return posmod(angleToO + o:trueanomaly, 360).
 }
