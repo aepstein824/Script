@@ -3,6 +3,8 @@
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/math.ks").
 
+local pi to constant:pi.
+
 function lambert {
     parameter obtable1.
     parameter obtable2. 
@@ -22,7 +24,6 @@ function lambert {
     local focus to obt1:body.
     local endTime to startTime + flightDuration.
 
-    local pi to constant:pi.
     local p1 to positionAt(obtable1, startTime) - focus:position.
     local p2 to positionAt(obtable2, endTime) - focus:position.
     // clearVecDraws().
@@ -194,6 +195,16 @@ function lambert {
     return results.
 }
 
+function dimlessManly {
+    parameter tanly, ecc.
+    local cosTanly to cosR(tanly).
+    local eanly to arcCosR((ecc + cosTanly) / (1 + ecc * cosTanly)).
+    if tanly > pi {
+        set eanly to 2 * pi - eanly.
+    }
+    return eanly - ecc * sinR(eanly).
+}
+
 function dimensionlessKepler {
     parameter rho, c, wc, dTheta, ef, et.
     local ecc to sqrt (ef ^ 2 + et ^ 2).
@@ -211,24 +222,16 @@ function dimensionlessKepler {
     local meanMotion to semiMajor ^ (-3/2).
     //print " dimlessMeanMotion = " + meanMotion.
 
-    // mean anomaly angle
-    local function dimlessManly {
-        parameter tanly.
-        local eanly to arcCosR((ecc + cosR(tanly)) / (1 + ecc * cosR(tanly))).
-        if tanly > constant:pi {
-            set eanly to 2 * constant:pi - eanly.
-        }
-        return eanly - ecc * sinR(eanly).
-    }
-
-    local tanlyReverse to arcTan2R(ef * sinR(wc) + et * cosR(wc),
-        ef * cosR(wc) - et * sinR(wc)).
+    local sinWc to sinR(wc).
+    local cosWc to cosR(wc).
+    local tanlyReverse to arcTan2R(ef * sinWc + et * cosWc,
+        ef * cosWc - et * sinWc).
     local p1Tanly to -1 * tanlyReverse.
     local p2Tanly to dTheta - tanlyReverse.
-    local p1Manly to dimlessManly(p1Tanly).
-    local p2Manly to dimlessManly(p2Tanly).
+    local p1Manly to dimlessManly(p1Tanly, ecc).
+    local p2Manly to dimlessManly(p2Tanly, ecc).
     if p2Manly < p1Manly {
-        set p2Manly to p2Manly + 2 * constant:pi.
+        set p2Manly to p2Manly + 2 * pi.
     }
     // print " tanlyReverse = " + tanlyReverse.
     // print " p2Tanly  = " + p2Tanly.
@@ -254,7 +257,6 @@ function landingOptimizer {
     local focus to obt1:body.
     local endTime to startTime + flightDuration.
 
-    local pi to constant:pi.
     local p1 to positionAt(obtable1, startTime) - focus:position.
     local p2 to pos2 - focus:position.
 

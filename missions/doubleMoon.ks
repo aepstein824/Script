@@ -40,7 +40,7 @@ if shouldPhase(1) {
     nodeExecute().
     if not orbit:hasnextpatch() {
         print "Correcting Course".
-        waitWarp(time:seconds + 10 * 60).
+        waitWarp(time:seconds + 5 * 60).
         set hl to hlIntercept(ship, first).
         add hl:burnNode.
         nodeExecute().

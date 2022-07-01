@@ -26,8 +26,8 @@ function hohmannTransfer {
         set ht:vd to vl.
         set ht:va to vh.
     } else {
-        set ht:vd to vh.
-        set ht:va to vl.
+        set ht:vd to -vh.
+        set ht:va to -vl.
     }
     return ht.
 }
@@ -82,7 +82,7 @@ function hlIntercept {
 
     local fine to lambertGrid(obtable1, obtable2, fineT, fineDur, di, dj).
 
-    return fine.
+    return mergeLex(hi, fine).
 }
 
 function lambertGrid {
@@ -111,4 +111,12 @@ function lambertGrid {
     }
 
     return best.
+}
+
+function courseCorrect {
+    parameter dest, duration.
+    local dt to .05 * duration.
+    local startTime to time:seconds + dt * kIntercept:StartSpan + 5 * 60.
+    local correction to lambertGrid(ship, dest, startTime, duration, dt, dt).
+    add correction:burnNode.
 }

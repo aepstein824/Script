@@ -92,6 +92,15 @@ function keyOrDefault {
     return lex:k.
 }
 
+function mergeLex {
+    parameter a, b.
+    local merged to a:copy().
+    for bk in b:keys {
+        set merged[bk] to b[bk].
+    }
+    return merged.
+}
+
 function stageTo {
     parameter limit.
     until ship:stagenum <= limit {

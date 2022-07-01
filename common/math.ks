@@ -10,37 +10,37 @@ function sgn {
 
 function sinR {
     parameter x.
-    return sin(x * constant:RadToDeg).
+    return sin(x * 57.2958).
 }
 
 function cosR {
     parameter x.
-    return cos(x * constant:RadToDeg).
+    return cos(x * 57.2958).
 }
 
 function tanR {
     parameter x.
-    return tan(x * constant:RadToDeg).
+    return tan(x * 57.2958).
 }
 
 function arcCosR {
     parameter x.
-    return arcCos(x) * constant:DegToRad.
+    return arcCos(x) * 0.017453.
 }
 
 function arcTanR {
     parameter x.
-    return arctan(x) * constant:DegToRad.
+    return arctan(x) * 0.017453.
 }
 
 function arcTan2R {
     parameter x, y.
-    return arcTan2(x, y) * constant:DegToRad.
+    return arcTan2(x, y) * 0.017453.
 }
 
 function vectorAngleR {
     parameter x, y.
-    return vang(x, y) * constant:DegToRad.
+    return vang(x, y) * 0.017453.
 }
 
 function vectorAngleAround {

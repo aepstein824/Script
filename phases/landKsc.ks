@@ -3,6 +3,7 @@
 runPath("0:maneuvers/landAtm.ks").
 
 local kKerbPark to 75000.
+local kLandingBudget to 200.
 
 function circleAtKerbin {
     if obt:transition = "ESCAPE" {
@@ -14,12 +15,16 @@ function circleAtKerbin {
         lock throttle to 0.
         wait 5.
     }
-    changePeAtAp(kKerbPark).
+
+    matchPlanesAndSemi(V(0, 1, 0), kKerbPark).
+    if nextNodeOverBudget(kLandingBudget) {
+        remove nextNode. 
+        changePeAtAp(kKerbPark).
+    }
     nodeExecute().
     wait 1.
     changeApAtPe(kKerbPark).
-    local dvBudget to ship:deltav:current - 200.
-    print dvBudget.
+    local dvBudget to ship:deltav:current - kLandingBudget.
     if nextnode:prograde < 0 {
         set nextnode:prograde to max(nextnode:prograde, -dvBudget).
     } else {

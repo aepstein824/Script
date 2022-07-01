@@ -2,39 +2,27 @@
 
 runOncePath("0:common/info.ks").
 runOncePath("0:common/operations.ks").
+runOncePath("0:maneuvers/intercept.ks").
 runOncePath("0:maneuvers/lambert.ks").
 
-function planMoonFlyby {
+function doMoonFlyby {
     parameter dest.
-    local best to Lexicon().
-    set best:totalV to 1000000.
-    for i in range(5, 25) {
-        for j in list(50, 56, 62) {
-            local startTime to time + i * 2 * 60.
-            local flightDuration to j * 60 * 60.
-            local results to lambert(ship, dest, V(-2 * dest:radius, 0, 0),
-                startTime, flightDuration, false).
 
-            if results:ok {
-                set results:totalV to results:burnVec:mag. 
-                set results:totalV to results:totalV + results:matchVec:mag.
-                if results:totalV < best:totalV {
-                    set best to results.
-                }
-            }
-        }
-    }
-    local nd to best["burnNode"].
-    add nd.
-    for i in range(30) {
-        if (nd:obt:nextpatch():periapsis < 0) {
-            set nd:prograde to nd:prograde - 0.5.
-        } else if (nd:obt:nextpatch():periapsis < kWarpHeights[dest]) {
-            set nd:prograde to nd:prograde - 0.1.
-        } else {
-            break.
-        }
-        if i < 0 { break. } // unused...
+    print "Go to " + dest:name.
+    local hl to hlIntercept(ship, dest).
+    local arrivalTime to time:seconds + hl:when + hl:duration.
+    add hl:burnNode.
+    nodeExecute().
+    wait 5.
+    if not orbit:hasnextpatch() or orbit:nextpatch:body <> dest{
+        print "Correcting Course".
+        // Time after escape.
+        local arrivalEta to arrivalTime - time:seconds.
+        local dt to .05 * arrivalEta.
+        local startTime to time:seconds + dt * kIntercept:StartSpan + 5 * 60.
+        local correction to lambertGrid(ship, minmus, startTime, arrivalEta, dt, dt).
+        add correction:burnNode.
+        nodeExecute().
     }
 }
 

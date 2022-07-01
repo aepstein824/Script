@@ -70,4 +70,8 @@ function shipStage {
     }
 }
 
-        
+function nextNodeOverBudget {
+    parameter budget.
+
+    return ship:deltav:current - nextNode:deltav:mag < budget.
+}

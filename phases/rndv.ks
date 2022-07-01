@@ -11,6 +11,7 @@ global kRndvParams to Lexicon().
 set kRndvParams:floatDist to 200.
 set kRndvParams:maxSpeed to 100.
 set kRndvParams:thrustAng to 5.
+set kRndvParams:rcsSpd to 5.
 
 clearscreen.
 
@@ -90,19 +91,94 @@ function ballistic {
         if vang(ship:facing:vector, goalV) > kRndvParams:thrustAng {
             return 0.
         }
-        return invLerp(goalV:mag, 0, ship:maxThrust).
+        local thrust to invLerp(2 * goalV:mag, 0, ship:maxThrust).
+        if thrust < 0.01 {
+            set thrust to 0.
+        }
+        return thrust.
     }
 
     lock steering to toGoalV(1).
     lock throttle to goalThrot(1).
 
-    local reverseDist to .25 * distance + kRndvParams:floatDist.
+    local reverseDist to 2 * shipTimeToDV(maxSpeed) * maxSpeed 
+        + kRndvParams:floatDist.
     wait until (target:position - ship:position):mag < reverseDist.
+
+    lock steering to toGoalV(.1).
+    lock throttle to goalThrot(.1).
+    wait until (target:position - ship:position):mag < kRndvParams:floatDist.
 
     lock steering to toGoalV(0).
     lock throttle to goalThrot(0).
-    wait until toGoalV(0):mag < 2.
+    wait until toGoalV(0):mag < 1.
 
     lock throttle to 0.
     lock steering to ship:position - target:position.
 }
+
+function setRcs {
+    parameter vt.
+    set ship:control:translation to v(
+        vDot(vt, ship:facing:starvector),
+        vDot(vt, ship:facing:topvector),
+        vDot(vt, ship:facing:forevector)
+    ).
+}
+
+function rcsNeutralize {
+    lock throttle to 0.
+    lock steering to ship:position - target:position.
+
+    wait 3.
+
+    rcs on.
+    until false {
+        local tr to target:velocity:orbit - ship:velocity:orbit.
+        if (tr:mag < 0.1){
+            break.
+        }
+        setRcs(tr).
+    }
+    set ship:control:translation to v(0,0,0).
+    rcs off.
+}
+
+function rcsApproach {
+    lock throttle to 0.
+    lock steering to target:position - ship:position.
+    wait 3.
+    ship:dockingports[0]:GETMODULE("ModuleDockingNode")
+        :DOEVENT("Control From Here").
+
+    rcs on.
+    local approachStart to time.
+    local halfway to (target:position - ship:position):mag.
+    until false {
+        local towards to target:position - ship:position.
+        local tr to target:velocity:orbit - ship:velocity:orbit.
+
+        local desired to kRndvParams:rcsSpd * towards:normalized.
+        local delta to desired + tr.
+        if delta:mag < 0.1 or towards:mag < halfway / 2{
+            break.
+        }
+        setRcs(delta).
+    }
+    local approachDur to time - approachStart.
+    local reverseDist to approachDur * kRndvParams:rcsSpd / 2 + 10.
+    wait until (target:position - ship:position):mag < reverseDist.
+
+    until false {
+        local towards to target:position - ship:position.
+        local tr to target:velocity:orbit - ship:velocity:orbit.
+
+        local desired to 0.5 * towards:normalized.
+        local delta to desired + tr.
+        if towards:mag < 0.5 {
+            break.
+        }
+        setRcs(delta).
+    }
+    rcs off.
+} 
