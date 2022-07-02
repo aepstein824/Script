@@ -126,3 +126,11 @@ function posToTanly {
 
     return posmod(angleToO + o:trueanomaly, 360).
 }
+
+function circleToSemiV {
+    parameter r1, r2, mu.
+    local circleV to sqrt(mu / r1).
+    local a to (r1 + r2) / 2. 
+    local semiV to sqrt((mu / a) * (r2 / r1)).
+    return semiV - circleV.
+}

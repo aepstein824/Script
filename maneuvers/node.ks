@@ -11,6 +11,12 @@ function nodeExecute {
     print "Node in: " + round(nd:eta) 
         + ", DeltaV: " + round(nd:deltav:mag).
     local dv to nd:deltav:mag.
+    
+    if dv < 0.1 {
+        remove nd.
+        wait 1.
+        return.
+    }
 
     local rocketEstimate to shipTimeToDV(dv).
 
@@ -27,10 +33,10 @@ function nodeExecute {
 
     until done {
         local maxAcceleration to ship:maxthrust/ship:mass.
-        local minS to .1 * .05.
+        local minTime to 0.1. 
         if maxAcceleration > 0 {
             lock throttle to min(nd:deltav:mag / maxAcceleration, 1).
-            if nd:deltav:mag / maxAcceleration < minS {
+            if nd:deltav:mag / maxAcceleration < minTime {
                 set done to true.
             }
         } 
@@ -48,7 +54,7 @@ function nodeExecute {
     unlock steering.
     unlock throttle.
     remove nd.
-    wait 0.1.
+    wait 1.
 }
 
 function nodeStage {

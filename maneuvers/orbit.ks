@@ -74,6 +74,8 @@ function matchPlanesAndSemi {
     add node(burnTime, vDot(dv, burnRad), vDot(dv, norm), vDot(dv, burnPro)).
 }
 
+
+
 function changePeAtAp {
     parameter destPe.
     local ra to ship:obt:apoapsis + ship:body:radius.

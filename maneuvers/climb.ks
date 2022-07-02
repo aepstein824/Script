@@ -10,7 +10,8 @@ set kClimb:ClimbPe to 71000.
 set kClimb:LastStage to 0.
 set kClimb:ClimbA to 1.5.
 set kClimb:TLimAlt to 5000.
-
+set kClimb:Heading to 90.
+set kClimb:Roll to 0.
 
 function climbSuccess  {
     return ship:obt:periapsis > kClimb:ClimbPe.
@@ -29,7 +30,7 @@ function climbLoop {
         lock throttle to slowThrottle().
     } else if ship:apoapsis < kClimb:ClimbAp {
         gravityTurn().
-    } else if not climbShouldCircleBurn() {
+    } else if ship:altitude < 70000 {
         warpUp().
     } else {
         circularize().
@@ -91,7 +92,7 @@ function verticalClimb {
 }
 
 function gravityTurn {
-    lock steering to ship:srfPrograde.
+    lock steering to lookDirUp(ship:velocity:surface, -body:position).
     if (ship:altitude < kClimb:TLimAlt) {
         lock throttle to slowThrottle().
     }
@@ -107,8 +108,9 @@ function warpUp {
 }
 
 function circularize {
-    lock steering to acHeading(0).
-    if vang(ship:facing:vector, acHeading(0):vector) > 10 {
+    lock steering to removeComp(ship:velocity:orbit, body:position).
+    if vang(ship:facing:vector, steering) > 10
+        or not climbShouldCircleBurn() { 
         set kuniverse:timewarp:rate to 1.
         lock throttle to 0.
     } else {
@@ -124,10 +126,10 @@ function climbShouldCircleBurn {
     local cSpd to sqrt(body:mu / (kClimb:ClimbAp + body:radius)).
     local apTime to time + obt:eta:apoapsis.
     local apSpd to shipVAt(apTime):mag.
-    return obt:eta:apoapsis < (shipTimeToDV(cSpd - apSpd) / 2 + 10).
+    return obt:eta:apoapsis < (shipTimeToDV(cSpd - apSpd) / 2 + 5).
 }
 
 function acHeading {
     parameter pitch.
-    return heading (90, pitch, 0).
+    return heading (kClimb:Heading, pitch, kClimb:Roll).
 }
