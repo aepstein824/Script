@@ -21,7 +21,7 @@ local kCircleHigh to 200000.
 local kInterStg to 2.
 set kClimb:Turn to 7.
 set kClimb:ClimbAp to 76000.
-set kPhases:startInc to 8.
+set kPhases:startInc to 0.
 set kPhases:stopInc to 8.
 
 wait until ship:unpacked.

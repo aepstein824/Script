@@ -62,11 +62,8 @@ function hopBestTo {
 }
 
 function groundAlt {
-    local ground to altitude - geoPosition:terrainheight.
-    if body:hasocean() {
-        set ground to max(ground, 0).
-    }
-    return ground.
+    local galt to altitude - terrainHAt(ship:position).
+    return galt.
 }
 
 function terrainHAt {

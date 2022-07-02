@@ -1,58 +1,83 @@
 @LAZYGLOBAL OFF.
 
-global sciencePartNames to list(
+global anytimeScienceParts to list(
     "sensorBarometer",
     "sensorThermometer",
-    "goo",
-    "science.module",
-    "sensorAccelerometer"
+    "sensorAccelerometer",
+    "sensorGravimeter"
 ).
-// doScience().
+global spaceScienceParts to list(
+    "magnetometer"
+).
 
-function doScience {
-    local mods to scienceModules.
+global useOnceScienceParts to list(
+     "goo",
+    "science.module"
+).
 
+function doAG1To45Science {
+    local ag1Parts to anytimeScienceParts.
+    local mods to scienceModules(ag1Parts).
+    doSearchScience(mods).
+    wait 5.
+    ag4 off. ag4 on.
+    cleanModules(mods).
+    wait 3.
+    doSearchScience(mods).
+    wait 5.
+    ag5 off. ag5 on.
+    cleanModules(mods).
+    wait 3.
+}
+
+function doAG13To45Science {
+    local ag13Parts to mergeList(anytimeScienceParts, spaceScienceParts).
+    local mods to scienceModules(ag13Parts).
+    doSearchScience(mods).
+    wait 10.
+    ag4 off. ag4 on.
+    cleanModules(mods).
+    wait 10.
+    doSearchScience(mods).
+    wait 10.
+    ag5 off. ag5 on.
+    cleanModules(mods).
+    wait 10.
+}
+
+function doSearchScience {
+    parameter mods.
+
+    wait 1.
     for m in mods:values {
         m[0]:deploy().
     }
+}
 
+function cleanModules {
+    parameter mods.
+    for m in mods:values {
+        cleanModule(m[0]).
+    }
+}
+
+function doSearchAndCollect {
+    parameter mods.
+
+    doSearchScience(mods).
     wait 5.
 
     local eruPattern to "ScienceBox|Experiment Return".
     local eruPart to ship:partsdubbedpattern(eruPattern)[0].
     local eru to eruPart:getmodule("ModuleScienceContainer").
     eru:doaction("collect all", true).
-    
-    wait 1.
-
-    for m in mods:values {
-        cleanModule(m[0]).
-    }
 }
 
-function cleanModule {
-    parameter m.
-
-    // duplicates
-    m:dump().
-    // local p to m:part.
-    // local doorModName to "ModuleAnimateGeneric".
-    // if p:hasmodule(doorModName) {
-    //     local doorMod to p:getmodule(doorModName).
-    //     local doorActionName to "toggle doors".
-    //     if doorMod:hasaction(doorActionName) {
-    //         doorMod:doAction(doorActionName, true).
-    //     }
-    //     local coverActionName to "toggle cover".
-    //     if doorMod:hasaction(coverActionName) {
-    //         doorMod:doAction(coverActionName, true).
-    //     }
-    // }
-}
 
 function scienceModules {
+    parameter scienceParts.
     local scienceMods to Lexicon().
-    for pname in sciencePartNames {
+    for pname in scienceParts {
         local parts to ship:partsdubbedpattern(pname). 
         local mods to List().
         for p in parts {
@@ -101,6 +126,15 @@ function mergeLex {
     return merged.
 }
 
+function mergeList {
+    parameter a, b.
+    local merged to a:copy().
+    for bItem in b {
+        merged:add(bItem).
+    }
+    return merged.
+}
+
 function stageTo {
     parameter limit.
     until ship:stagenum <= limit {
@@ -108,4 +142,24 @@ function stageTo {
         stage.
         wait 0.5.
     }
+}
+
+function cleanModule {
+    parameter m.
+
+    // duplicates
+    m:dump().
+    // local p to m:part.
+    // local doorModName to "ModuleAnimateGeneric".
+    // if p:hasmodule(doorModName) {
+    //     local doorMod to p:getmodule(doorModName).
+    //     local doorActionName to "toggle doors".
+    //     if doorMod:hasaction(doorActionName) {
+    //         doorMod:doAction(doorActionName, true).
+    //     }
+    //     local coverActionName to "toggle cover".
+    //     if doorMod:hasaction(coverActionName) {
+    //         doorMod:doAction(coverActionName, true).
+    //     }
+    // }
 }

@@ -175,7 +175,7 @@ function rcsApproach {
 
         local desired to 0.5 * towards:normalized.
         local delta to desired + tr.
-        if towards:mag < 0.5 {
+        if towards:mag < 2 {
             break.
         }
         setRcs(delta).

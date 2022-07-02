@@ -23,7 +23,7 @@ set kClimb:Turn to 5.
 set kClimb:ClimbAp to 80000.
 set kPhases:startInc to 8.
 set kPhases:stopInc to 8.
-local lz to latlng(-67, 72).
+local lz to latlng(14, -45).
 
 wait until ship:unpacked.
 
@@ -33,10 +33,12 @@ if shouldPhase(0) {
     ensureHibernate().
     launchToOrbit().
     stageTo(kInterStg).
+    doAG13To45Science().
 }
 if shouldPhase(1) {
     doMoonFlyby(dest).
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
+    doAG13To45Science().
 }
 if shouldPhase(2) {
     print "Missing the " + dest:name.
@@ -45,23 +47,23 @@ if shouldPhase(2) {
 if shouldPhase(3) {
     print "Circling " + dest:name.
     circleNextExec(kMunPeLow).
+    doAG13To45Science().
 }
 if shouldPhase(4) {
     print "Landing".
     lights on.
     vacDescendToward(lz).
-    print ship:geoposition.
     stageTo(kLanderStg).
     vacLand().
+    doAG1To45Science().
     print ship:geoposition.
 }
 if shouldPhase(5) {
     verticalLeapTo(100).
     wait until ship:velocity:surface:mag < 2.
-    hopBestTo(latlng(lz):altitudeposition(100)).
+    hopBestTo(lz:altitudeposition(100)).
     suicideBurn(100).
     coast(5).
-    doScience().
 }
 if shouldPhase(6) {
     lights off.
@@ -99,16 +101,30 @@ function vacDescendToward {
    
     matchGeoPlane(wGeo).
 
+    local norm to shipNorm().
     local wPos to wGeo:position - body:position.
     local pePos to shipPAtPe().
-    local wTanly to vectorAngleAround(pePos, shipNorm(), wPos).
+    local wTanly to vectorAngleAround(pePos, norm, wPos).
     local landAngle to 20.
     local landTanly to mod(wTanly - landAngle + 360, 360).
     print "wTanly = " + wTanly.
     print "landTanly = " + landTanly.
-    local landTime to timeBetweenTanlies(obt:trueanomaly, landTanly, obt) + time:seconds.
-    local res to landingOptimizer(ship, wGeo:position, landTime, 0, true).
-    add res["burnNode"].
+    local landDur to timeBetweenTanlies(obt:trueanomaly, landTanly, obt).
+
+    local mm to 360 / obt:period.
+    print "mm " + mm.
+    // bodyMm is right handed
+    local bodyMm to -body:angularvel:y * constant:radtodeg.
+    print "bdmm " + bodyMm.
+    // positive norm and bodymm mean body is moving in same direction, land later
+    local timeFactor to (mm + bodyMm * norm:y) / mm.
+    print "timeFactor " + timeFactor.
+    set landDur to landDur * timeFactor.
+    local p2 to rotateVecAround(wPos, v(0, 1, 0), bodyMm * landDur).
+    
+    local landTime to time + landDur.
+    local res to lambertLanding(ship, p2, landTime).
+    add res:burnNode.
     nodeExecute().
 }
 
@@ -128,4 +144,5 @@ function vacClimb {
         wait 0.
     }
     lock throttle to 0.
+    wait until altitude > 3100.
 }

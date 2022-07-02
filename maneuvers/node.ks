@@ -13,6 +13,7 @@ function nodeExecute {
     local dv to nd:deltav:mag.
     
     if dv < 0.1 {
+        print "Removing small node with dv " + dv.
         remove nd.
         wait 1.
         return.

@@ -53,6 +53,8 @@ function matchGeoPlane {
 
     matchPlanesAndSemi(wNorm, kWarpHeights[body]).
     nodeExecute().
+
+    return wDelayS.
 }
 
 function doWaypoint {
@@ -69,7 +71,7 @@ function doWaypoint {
     lock steering to nextNode:deltav.
     waitWarpPhsx(time:seconds + nextNode:eta - 10).
     wait until vDot(w:position - ship:position, ship:prograde:vector) < 0.
-    doScience().
+    doAG13To45Science().
     nodeExecute().
 
     circleNextExec(kWarpHeights[body]).

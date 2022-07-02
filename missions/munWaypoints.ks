@@ -21,13 +21,13 @@ launchToOrbit().
 wait 1.
 ensureHibernate().
 print "Going to " + dest:name.
-planMoonFlyby(dest).
+doMoonFlyby(dest).
 nodeExecute().
 waitWarp(time:seconds + 10 * 60).
 wait 5.
 if not orbit:hasnextpatch() {
     print "Correcting Course".
-    planMoonFlyby(dest).
+    doMoonFlyby(dest).
     nodeExecute().
 }
 waitWarp(time:seconds + orbit:nextpatcheta + 60).

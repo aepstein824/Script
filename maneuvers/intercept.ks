@@ -95,8 +95,8 @@ function lambertGrid {
         for j in range (-kIntercept:DurSpan, kIntercept:DurSpan + 1) {
             local startTime to guessT + i * di.
             local flightDuration to guessDur + j * dj.
-            local results to lambert(obtable1, obtable2, v(-500000, 0, 0),
-                startTime, flightDuration, true).
+            local results to lambertIntercept(obtable1, obtable2, v(-200000, 0, 0),
+                startTime, flightDuration).
             if results:ok {
                 set results:totalV to results:burnVec:mag. 
                 set results:totalV to results:totalV + results:matchVec:mag.
