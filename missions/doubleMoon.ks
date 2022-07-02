@@ -18,11 +18,10 @@ local first to mun.
 local kMunLow to 80000.
 local kMinmusLow to 28000.
 local kCircleHigh to 200000.
-local kInterStg to 2.
 set kClimb:Turn to 7.
 set kClimb:ClimbAp to 76000.
-set kPhases:startInc to 0.
-set kPhases:stopInc to 8.
+set kPhases:startInc to 8.
+set kPhases:stopInc to 9.
 
 wait until ship:unpacked.
 
@@ -31,7 +30,6 @@ if shouldPhase(0) {
     kuniverse:quicksaveto("double_mun_launch").
     ensureHibernate().
     launchToOrbit().
-    stageTo(kInterStg).
 }
 if shouldPhase(1) {
     print "Go to " + first:name.
@@ -90,8 +88,10 @@ if shouldPhase(7) {
     escapeWith(-150, 0).
     nodeExecute().
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
-    circleAtKerbin().
 }
 if shouldPhase(8) {
+    circleAtKerbin().
+}
+if shouldPhase(9) {
     landKsc().
 }

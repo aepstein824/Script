@@ -15,7 +15,7 @@ set kLandAtm:Winged to true.
 set kLandAtm:Coast to true.
 set kLandAtm:SurrenderQ to .05.
 set kLandAtm:CoastReserve to 100.
-set kLandAtm:CoastH to 100.
+set kLandAtm:CoastH to 50.
 set kLandAtm:CoastSpd to 5.
 set kLandAtm:Roll to 0.
 
@@ -100,7 +100,7 @@ function planLandingBurn {
     local rb to burnPos:mag.
     local rp to body:radius + kLandAtm:EntryPe.
     local vb to sqrt(2 * ship:body:mu * rp / rb / (rp + rb)).
-    local burnStart to shipVAt(burnTime).
-    local burnMag to burnStart:mag - vb.
-    add node(burnTime, 0, 0, -1 * burnMag).
+    local burnStart to removeComp(shipVAt(burnTime), burnPos).
+    local burnMag to vb - burnStart:mag.
+    add node(burnTime, 0, 0, burnMag).
 }

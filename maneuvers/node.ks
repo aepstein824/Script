@@ -34,7 +34,7 @@ function nodeExecute {
 
     until done {
         local maxAcceleration to ship:maxthrust/ship:mass.
-        local minTime to 0.1. 
+        local minTime to 0.2 * 0.05. 
         if maxAcceleration > 0 {
             lock throttle to min(nd:deltav:mag / maxAcceleration, 1).
             if nd:deltav:mag / maxAcceleration < minTime {

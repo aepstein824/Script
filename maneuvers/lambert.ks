@@ -101,8 +101,8 @@ function lambert {
     // vecdraw(focus:position, p1, rgb(0, 0, 1), "p1", 1.0, true).
     // vecdraw(focus:position, p2, rgb(0, 1, 0), "p2", 1.0, true).
 
-    print "P1 = " + p1:mag.
-    print "P2 = " + p2:mag.
+    // print "P1 = " + p1:mag.
+    // print "P2 = " + p2:mag.
 
     local cvec to p2 - p1.
     local r1 to p1:mag.
@@ -114,10 +114,10 @@ function lambert {
     local dTheta to vectorAngleAroundR(p1, ih, p2).
     local isShort to dTheta <= pi.
 
-    print "Theta = " + dTheta.
+    // print "Theta = " + dTheta.
 
     local ef to (r1 - r2) / cvec:mag.
-    print "Ef = " + ef.
+    // print "Ef = " + ef.
     local ep to sqrt(1 - ef^2).
     local eh to ep.
 
@@ -153,16 +153,16 @@ function lambert {
         set et to fromX(x).
         local ecc to sqrt(ef ^2 + et ^2).
 
-        print "Try et = " + et + ", " + x.
-        print "Ecc " + ecc.
+        // print "Try et = " + et + ", " + x.
+        // print "Ecc " + ecc.
         if ecc > .999599 {
-            print "aborting due to high ecc".
+            // print "aborting due to high ecc".
             return results.
         }
  
         local y to specifics:fitness:call(et).
         if abs(y) < epsilon {
-            print "Found good orbit".
+            // print "Found good orbit".
             break.
         }
 
@@ -173,7 +173,7 @@ function lambert {
         local y_p to specifics:fitness:call(et_p).
         local dY_dX to (y_p - y) / dX.
 
-        print "y = " + y + ", dy = " + dY_dX.
+        // print "y = " + y + ", dy = " + dY_dX.
 
         // nr iteration
         set x to x - y / dY_dX.

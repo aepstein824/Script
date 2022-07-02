@@ -13,8 +13,9 @@ set kClimb:ClimbAp to 75000.
 set kClimb:Heading to 90.
 set kClimb:Roll to 0.
 set kClimb:TLimAlt to 6000.
-set kPhases:startInc to 2.
+set kPhases:startInc to 0.
 set kPhases:stopInc to 2.
+local shouldPark to false.
 local kCarrierPark to 1200000.
 local kApDir to (v(0, -1, 0) + solarPrimeVector):normalized.
 
@@ -26,11 +27,12 @@ if shouldPhase(0) {
     wait 5.
     ag10 on.
 }
-if shouldPhase(1) {
+if shouldPhase(1) and shouldPark {
     circleNextExec(kCarrierPark).
 }
 if shouldPhase(2) {
-    sat100orbit(kApDir).
+    sat100sun().
+    // sat100orbit(kApDir).
 }
 
 function sat100sun {
