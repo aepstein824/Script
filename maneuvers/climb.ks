@@ -102,7 +102,7 @@ function gravityTurn {
 }
 
 function warpUp {
-    unlock throttle.
+    lock throttle to 0.
     unlock steering.
     set kuniverse:timewarp:rate to 2.
 }

@@ -31,8 +31,10 @@ function lambertIntercept {
     set factory to factory:bind(flightDuration).
 
     local res to lambert(obtable1, p2, startTime, true, factory).
+    if res:ok {
+        set res:matchVec to velocityAt(obtable2, endTime):orbit - res:vAtP2.
+    }
 
-    set res:matchVec to velocityAt(obtable2, endTime):orbit - res:vAtP2.
     return res.
 }
 

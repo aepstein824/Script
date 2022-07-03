@@ -144,6 +144,17 @@ function stageTo {
     }
 }
 
+function setTargetTo {
+    parameter name.
+    local candidates to list().
+    list targets in candidates.
+    for c in candidates {
+        if c:name = name {
+            set target to c:name.
+        }
+    }
+}
+
 function cleanModule {
     parameter m.
 

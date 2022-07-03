@@ -2,7 +2,6 @@
 
 clearscreen.
 runOncePath("0:common/phasing.ks").
-runOncePath("0:maneuvers/atmLand.ks").
 runOncePath("0:maneuvers/climb.ks").
 runOncePath("0:maneuvers/hop.ks").
 runOncePath("0:maneuvers/lambert.ks").
@@ -77,15 +76,19 @@ if shouldPhase(6) {
 }
 if shouldPhase(7) {
     print "Rndv with lab".
-    local hl to hohmannIntercept(ship:obt, target:obt).
-    add node(time + hl:when, 0, 0, hl:vd).
-    nodeExecute().
-    waitWarp(time:seconds + hl:duration - 60).
+    setTargetTo("KLab").
+
+    local hl to hlIntercept(ship, target).
+    add hl:burnNode.
+
+    nodePrecise().
+    waitWarp(time:seconds + hl:duration).
     ballistic().
     rcsNeutralize().
 }
 if shouldPhase(8) {
     print "Dock with lab".
+    setTargetTo("KLab").
     if (target:position:mag > kRndvParams:floatDist) {
         ballistic().
         rcsNeutralize().

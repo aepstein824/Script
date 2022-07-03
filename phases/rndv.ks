@@ -117,15 +117,6 @@ function ballistic {
     lock steering to ship:position - target:position.
 }
 
-function setRcs {
-    parameter vt.
-    set ship:control:translation to v(
-        vDot(vt, ship:facing:starvector),
-        vDot(vt, ship:facing:topvector),
-        vDot(vt, ship:facing:forevector)
-    ).
-}
-
 function rcsNeutralize {
     lock throttle to 0.
     lock steering to ship:position - target:position.
@@ -139,6 +130,7 @@ function rcsNeutralize {
             break.
         }
         setRcs(tr).
+        wait 0.
     }
     set ship:control:translation to v(0,0,0).
     rcs off.
@@ -148,14 +140,17 @@ function rcsApproach {
     lock throttle to 0.
     lock steering to target:position - ship:position.
     wait 3.
-    ship:dockingports[0]:GETMODULE("ModuleDockingNode")
-        :DOEVENT("Control From Here").
+
+    local ourPort to ship:dockingports[0].
+    local tgtPort to target:dockingports[0].
+    
+    ourport:getmodule("ModuleDockingNode"):doevent("Control From Here").
 
     rcs on.
     local approachStart to time.
-    local halfway to (target:position - ship:position):mag.
+    local halfway to (tgtPort:position - ourPort:position):mag.
     until false {
-        local towards to target:position - ship:position.
+        local towards to tgtPort:position - ourPort:position.
         local tr to target:velocity:orbit - ship:velocity:orbit.
 
         local desired to kRndvParams:rcsSpd * towards:normalized.
@@ -167,10 +162,10 @@ function rcsApproach {
     }
     local approachDur to time - approachStart.
     local reverseDist to approachDur * kRndvParams:rcsSpd / 2 + 10.
-    wait until (target:position - ship:position):mag < reverseDist.
+    wait until (tgtPort:position - ourPort:position):mag < reverseDist.
 
     until false {
-        local towards to target:position - ship:position.
+        local towards to tgtPort:position - ourPort:position.
         local tr to target:velocity:orbit - ship:velocity:orbit.
 
         local desired to 0.5 * towards:normalized.

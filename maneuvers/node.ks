@@ -6,6 +6,8 @@ runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 
 function nodeExecute {
+    parameter precise to false.
+
     wait 0.
     local nd to nextnode.
     print "Node in: " + round(nd:eta) 
@@ -52,10 +54,24 @@ function nodeExecute {
 
     lock throttle to 0.
     wait 0.1.
+    local rcsThrusters to list().
+    list rcs in rcsThrusters.
+    if (precise and not rcsThrusters:empty()) {
+        rcs on.
+        until nd:deltav:mag < 0.05 {
+            setRcs(nd:deltav).
+            wait 0.
+        }
+        rcs off.
+    }
     unlock steering.
     unlock throttle.
     remove nd.
     wait 1.
+}
+
+function nodePrecise {
+    nodeExecute(true).
 }
 
 function nodeStage {
@@ -68,3 +84,11 @@ function nodeStage {
     }
 }
         
+function setRcs {
+    parameter vt.
+    set ship:control:translation to v(
+        vDot(vt, ship:facing:starvector),
+        vDot(vt, ship:facing:topvector),
+        vDot(vt, ship:facing:forevector)
+    ).
+}

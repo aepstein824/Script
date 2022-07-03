@@ -10,12 +10,12 @@ declare global kLandAtm to lexicon().
 
 set kLandAtm:EntryPe to 45000.
 set kLandAtm:BurnAlt to 55000.
-set kLandAtm:ReturnTanly to 130.
+set kLandAtm:ReturnTanly to 100.
 set kLandAtm:Winged to true.
 set kLandAtm:Coast to true.
 set kLandAtm:SurrenderQ to .05.
-set kLandAtm:CoastReserve to 100.
-set kLandAtm:CoastH to 50.
+set kLandAtm:CoastReserve to 120.
+set kLandAtm:CoastH to 80.
 set kLandAtm:CoastSpd to 5.
 set kLandAtm:Roll to 0.
 
@@ -55,6 +55,7 @@ function landFromDeorbit {
         coast(kLandAtm:CoastSpd).
     }
 
+    print "Landed at " + geoPosition.
 }
 
 function getToAtm {
@@ -77,7 +78,7 @@ function burnExtraFuel {
     lock steering to ship:srfretrograde.
     
     wait until ship:altitude < kLandAtm:BurnAlt.
-    lock throttle to 0.5.
+    lock throttle to 0.75.
     until ship:deltav:current < kLandAtm:CoastReserve or stage:number = 0 {
         shipStage().
         wait 0.

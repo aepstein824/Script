@@ -180,7 +180,7 @@ function coast {
     lock throttle to throt.
 
     lock steering to -ship:velocity:surface.
-    until ship:status = "LANDED" {
+    until ship:status = "LANDED"  or ship:status = "SPLASHED" {
         local vDown to vDot(body:position:normalized, ship:velocity:surface).
         set throt to pid:update(time:seconds, vDown).
         set throt to clamp(throt, 0, 1).
