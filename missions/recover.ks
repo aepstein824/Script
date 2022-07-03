@@ -3,7 +3,7 @@
 runOncePath("0:maneuvers/landAtm.ks").
 
 set kLandAtm:ReturnTanly to 120.
-set kLandAtm:Winged to false.
+set kLandAtm:Winged to true.
 
 planLandingBurn().
 nodeExecute().

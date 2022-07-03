@@ -5,19 +5,22 @@ declare global kClimb to lexicon().
 set kClimb:Turn to 10.
 set kClimb:VertV to 60.
 set kClimb:SteerV to 150.
-set kClimb:ClimbAp to 85000.
+set kClimb:ClimbAp to 75000.
 set kClimb:ClimbPe to 71000.
 set kClimb:LastStage to 0.
 set kClimb:ClimbA to 1.5.
-set kClimb:TLimAlt to 5000.
+set kClimb:TLimAlt to 10000.
 set kClimb:Heading to 90.
 set kClimb:Roll to 0.
+
+local jettisoned to false.
 
 function climbSuccess  {
     return ship:obt:periapsis > kClimb:ClimbPe.
 }
 
 function climbInit {
+    set jettisoned to false.
 }
 
 function climbLoop {
@@ -33,6 +36,10 @@ function climbLoop {
     } else if ship:altitude < 70000 {
         warpUp().
     } else {
+        if not jettisoned {
+            jettisonFairings().
+            set jettisoned to true.
+        }
         circularize().
     }
 

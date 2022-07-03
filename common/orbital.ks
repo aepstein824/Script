@@ -134,3 +134,37 @@ function circleToSemiV {
     local semiV to sqrt((mu / a) * (r2 / r1)).
     return semiV - circleV.
 }
+
+function closestApproach {
+    parameter obtable1, obtable2.
+
+    local lr to 0.02.
+    local t to time.
+    local dt to 10.
+    local dxSignLast to 0.
+    until false {
+        local p1 to positionAt(obtable1, t).
+        local p2 to positionAt(obtable2, t).
+        local p1_p to positionAt(obtable1, t + dt).
+        local p2_p to positionAt(obtable2, t + dt).
+
+        local x to (p2 - p1):mag.
+        local x_p to (p2_p - p1_p):mag.
+
+        local dx_dt to (x_p - x) / dt.
+        local dxSign to sgn(dx_dt).
+        // print "Iter:".
+        // print " t = " + t.
+        // print " x = " + x.
+        // print " d = " + dx_dt.
+        // print " u = " + lr * x / dx_dt / 60 / 60.
+        if dxSignLast = -1 and dxSign = 1  {
+            break.
+        }
+        set dxSignLast to dxSign.
+
+        set t to t - lr * x / dx_dt.
+    }
+
+    return t:seconds.
+}

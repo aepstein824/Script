@@ -174,3 +174,14 @@ function cleanModule {
     //     }
     // }
 }
+
+function jettisonFairings {
+	for part in ship:parts {
+		if part:hasmodule("moduleproceduralfairing") {
+			local decoupler is part:getmodule("moduleproceduralfairing").
+			if decoupler:hasevent("deploy") {
+				decoupler:doevent("deploy").
+			}
+		}
+    }
+}

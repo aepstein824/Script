@@ -6,8 +6,8 @@ runOncePath("0:common/ship.ks").
 runOncePath("0:maneuvers/node.ks").
 
 global kIntercept to lexicon().
-set kIntercept:StartSpan to 1.
-set kIntercept:DurSpan to 1.
+set kIntercept:StartSpan to 2.
+set kIntercept:DurSpan to 5.
 
 function hohmannTransfer {
     parameter rd, ra, mu.
@@ -35,13 +35,21 @@ function hohmannTransfer {
 function hohmannIntercept {
     parameter obt1, obt2.
 
+    local mu to obt1:body:mu.
     local rd to obt1:semimajoraxis.
     local ra to obt2:semimajoraxis.
-    local mu to obt1:body:mu.
+    local mm2 to 0.
+    if ra < 0 {
+        // hyperbolic, just use periapse
+        set ra to obt2:periapsis.
+        local spd2 to obt2:velocity:orbit:mag.
+        set mm2 to 360 * spd2 / (constant:pi * ra).
+    } else {
+        set mm2 to 360 / obt2:period.
+    }
 
     local hi to hohmannTransfer(rd, ra, mu).
 
-    local mm2 to 360 / obt2:period.
     local mm1 to 360 / obt1:period.
     set hi:transAngle to 180 - mm2 * hi:duration.
     local rel0 to posToTanly(obt2:position, obt1) - obt1:trueanomaly.
@@ -58,7 +66,7 @@ function hohmannIntercept {
         set t to posmod(t, period).
     }
     set hi:when to t.
-    // print hi.
+    print hi.
 
     return hi.
 }
@@ -84,6 +92,14 @@ function hlIntercept {
     local fine to lambertGrid(obtable1, obtable2, fineT, fineDur, di, dj).
 
     return mergeLex(hi, fine).
+}
+
+function informedLambert {
+    parameter obtable1, obtable2, guessDur.
+    
+    local dt to .05 * guessDur.
+    local startTime to dt * kIntercept:StartSpan + 5 * 60.
+    return lambertGrid(obtable1, obtable2, startTime, guessDur, dt, dt).
 }
 
 function lambertGrid {
