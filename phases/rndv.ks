@@ -13,26 +13,62 @@ set kRndvParams:maxSpeed to 100.
 set kRndvParams:thrustAng to 5.
 set kRndvParams:rcsSpd to 5.
 
-clearscreen.
+global stratIntercept to "INTERCEPT".
+global stratSatellite to "SATELLITE_PLANEOF".
+global stratEscapeTo to "ESCAPE_TOWARDS".
+global stratEscape to "ESCAPE".
+global stratOrbiting to "ORBITING".
 
-// function rndvWithTarget {
-//     local ourBodies to list(body).
-//     local bodyIter to body.
-//     until bodyIter = sun {
-//         bodyIter:add(bodyIter).
-//         set bodyIter to bodyIter:obt:body.
-//     }
+function travelStratTo {
+    parameter targetable.
 
-//     local tgtBodyIter to target:obt:body.
-//     until false {
-//         local idx to ourBodies:find(tgtBodyIter).
-//     }
-// }
-//planIntercept().
-// nodeExecute().
-// catchInCircle().
-// ballistic().
+    local ourBodies to list().
+    local bodyIter to body.
+    until bodyIter = sun {
+        ourBodies:add(bodyIter).
+        set bodyIter to bodyIter:obt:body.
+    }
+    ourBodies:add(sun).
 
+    if ourBodies:find(targetable) <> -1 {
+        return list(stratOrbiting).
+    }
+
+    local tgtBodies to list().
+    local tgtBodyIter to targetable.
+    local ourIdx to ourBodies:length - 1.
+    if targetable:typename <> "BODY" {
+        set tgtBodyIter to targetable:obt:body.
+        tgtBodies:add(targetable).
+    }
+    print "Traveling from " + body:name + " to " + tgtBodyIter:name.
+    until false {
+        tgtBodies:add(tgtBodyIter).
+        local idx to ourBodies:find(tgtBodyIter).
+        if idx <> -1 {
+            set ourIdx to idx.
+            break.
+        }
+        set tgtBodyIter to tgtBodyIter:obt:body.
+    }
+
+    // TgtBodies always ends in the common body.
+    local tgtLen to tgtBodies:length.
+    if ourIdx = 0 {
+        if tgtBodies:length = 2 {
+            return list(stratIntercept, tgtBodies[tgtLen - 2]).
+        } else  {
+            return list(stratSatellite, tgtBodies[tgtLen - 2],
+                tgtBodies[tgtLen - 3]).
+        } 
+    } 
+    if ourIdx = 1 {
+        return list(stratEscapeTo, tgtBodies[tgtLen - 2]).
+    }
+    if ourIdx > 1 {
+        return list(stratEscape).
+    }
+}
 
 function planIntercept {
     local best to Lexicon().

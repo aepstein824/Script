@@ -5,6 +5,8 @@ runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 runOncePath("0:maneuvers/node.ks").
 
+// circleNextExec(95000).
+
 function matchPlanes {
     // combine with matchplanesandsemi
     parameter targetNorm.

@@ -53,7 +53,7 @@ function lambertInterceptFitnessFactory {
         parameter et.
         local tau to 0.
         set tau to dimlessKepler(radRat, cDimless, cang, dTheta, ef, et).
-        local y to ln(tau).
+        local y to ln(max(tau, 0.00001)).
         return y - yS. 
     }
 
@@ -248,7 +248,7 @@ function lambert {
     return results.
 }
 
-function dimlessElipse {
+function dimlessEllipse {
     parameter p1Tanly, p2Tanly.
     parameter rho, c, dTheta, ef, et.
 
@@ -339,7 +339,7 @@ function dimlessKepler {
 
     local ecc2 to ef ^ 2 + et ^ 2.
     if ecc2 < 1 {
-        return dimlessElipse(p1Tanly, p2Tanly, rho, c, dTheta, ef, et).
+        return dimlessEllipse(p1Tanly, p2Tanly, rho, c, dTheta, ef, et).
     } else {
         return dimlessHyper(p1Tanly, p2Tanly, rho, c, dTheta, ef, et).
     }

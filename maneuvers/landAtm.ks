@@ -24,7 +24,7 @@ function landFromDeorbit {
     unlock steering.
 
     getToAtm().
-
+    
     if kLandAtm:Winged { 
         print "Winged Descent".
         wingedDescent().
@@ -33,22 +33,20 @@ function landFromDeorbit {
         burnExtraFuel().
     }
 
-    kuniverse:timewarp:cancelwarp().
 
     wait until ship:q > kLandAtm:SurrenderQ.
     print "Surrender and Slow".
+    kuniverse:timewarp:cancelwarp().
     
     lock throttle to 0.
     unlock steering.
     brakes on.
     chutes on.
     stageTo(0).
-    set kuniverse:timewarp:rate to 2.
 
     wait until groundAlt() < kLandAtm:CoastH.
     print "Coasting to the ground.".
 
-    kuniverse:timewarp:cancelwarp().
     gear on.
     if (kLandAtm:Coast) {
         brakes off.

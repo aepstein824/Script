@@ -13,15 +13,16 @@ runOncePath("0:phases/moon.ks").
 runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/waypoints.ks").
 
+set kPhases:startInc to 7.
+set kPhases:stopInc to 8.
+
 local dest to minmus.
 local kMunPeLow to kWarpHeights[dest].
 local kMunPeHigh to kMunPeLow * 3.
-local kInterStg to 2.
-local kLanderStg to 2.
+local kInterStg to 1.
+local kLanderStg to 1.
 set kClimb:Turn to 5.
 set kClimb:ClimbAp to 80000.
-set kPhases:startInc to 8.
-set kPhases:stopInc to 8.
 local lz to latlng(14, -45).
 
 wait until ship:unpacked.
@@ -82,17 +83,12 @@ if shouldPhase(7) {
     add hl:burnNode.
 
     nodeRcs().
-    waitWarp(time:seconds + hl:duration).
-    ballistic().
-    rcsNeutralize().
+    waitWarp(closestApproach()).
+    doubleBallisticRcs().
 }
 if shouldPhase(8) {
     print "Dock with lab".
     setTargetTo("KLab").
-    if (target:position:mag > kRndvParams:floatDist) {
-        ballistic().
-        rcsNeutralize().
-    }
     rcsApproach().
 }
 if shouldPhase(9) {
