@@ -185,3 +185,13 @@ function jettisonFairings {
 		}
     }
 }
+
+function enableRcs {
+    rcs on.
+    set ship:control:translation to v(0, 0, 0).
+}
+
+function disableRcs {
+    rcs off.
+    set ship:control:translation to v(0, 0, 0).
+}

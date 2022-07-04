@@ -1,5 +1,7 @@
 @LAZYGLOBAL OFF.
 
+local eul to constant:e.
+
 function sgn {
     parameter x.
     if x >= 0 {
@@ -109,3 +111,12 @@ function posmod {
     return badmod.
 }
 
+function sinHR {
+    parameter x.
+    return (eul^x - eul^(-x)) / 2.
+}
+
+function arcCosHR {
+    parameter x.
+    return ln(x + sqrt(x^2 - 1)).
+}

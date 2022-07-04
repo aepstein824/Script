@@ -81,7 +81,7 @@ if shouldPhase(7) {
     local hl to hlIntercept(ship, target).
     add hl:burnNode.
 
-    nodePrecise().
+    nodeRcs().
     waitWarp(time:seconds + hl:duration).
     ballistic().
     rcsNeutralize().

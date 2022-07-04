@@ -1,5 +1,6 @@
 @LAZYGLOBAL OFF.
 
+runOncePath("0:common/info.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/math.ks").
 
@@ -50,7 +51,8 @@ function lambertInterceptFitnessFactory {
 
     local function fitness {
         parameter et.
-        local tau to dimensionlessKepler(radRat, cDimless, cang, dTheta, ef, et).
+        local tau to 0.
+        set tau to dimlessKepler(radRat, cDimless, cang, dTheta, ef, et).
         local y to ln(tau).
         return y - yS. 
     }
@@ -130,17 +132,22 @@ function lambert {
     if not isShort {
         local emax to -1 / cosR(dTheta / 2).
         set eh to sqrt(emax^2 - ef^2).
-        set eh to min(ep, eh) .
     }
     // print "E limits = " + -1 * eh + " < eF < "+ ep.
 
     local fromX to { parameter x_. return x_. }.
-
-    set fromX to {
-        parameter x_.
-        local bigX to eul ^ (x_ * (1 / eh + 1 / ep)).
-        return ep * eh * (bigX - 1) / (ep + eh * bigX).
-    }.
+    if isShort {
+        set fromX to {
+            parameter x_.
+            return ep * (1 - constant:e ^ (1 - x_ / ep)).
+        }.
+    } else {
+        set fromX to {
+            parameter x_.
+            local bigX to eul ^ (x_ * (1 / eh + 1 / ep)).
+            return ep * eh * (bigX - 1) / (ep + eh * bigX).
+        }.
+    }
 
     local cAng to vectorAngleAroundR(p1, ih, cvec).
     local specifics to fitnessFactory:call(r1, r2, focus:mu, dTheta, cvec, cang, ef).
@@ -151,16 +158,10 @@ function lambert {
     local dX to 0.0001.
     local et to 0.
     local kLimit to 12.
-    from { local k to 0. } until k > kLimit step {set k to k + 1. } do {
+    from { local k to 0. } until k > kLimit step {set k to k + 1.} do {
         set et to fromX(x).
-        local ecc to sqrt(ef ^2 + et ^2).
 
-        // print "Try et = " + et + ", " + x.
-        // print "Ecc " + ecc.
-        if ecc > .999599 {
-            // print "aborting due to high ecc".
-            return results.
-        }
+        // print " Try et = " + et + ", " + x.
  
         local y to specifics:fitness:call(et).
         if abs(y) < epsilon {
@@ -247,52 +248,104 @@ function lambert {
     return results.
 }
 
-function dimlessManly {
-    parameter tanly, ecc.
-    local cosTanly to cosR(tanly).
-    local eanly to arcCosR((ecc + cosTanly) / (1 + ecc * cosTanly)).
-    if tanly > pi {
-        set eanly to 2 * pi - eanly.
-    }
-    return eanly - ecc * sinR(eanly).
-}
+function dimlessElipse {
+    parameter p1Tanly, p2Tanly.
+    parameter rho, c, dTheta, ef, et.
 
-function dimensionlessKepler {
-    parameter rho, c, wc, dTheta, ef, et.
     local ecc to sqrt (ef ^ 2 + et ^ 2).
+    local function dimlessManly {
+        parameter tanly.
+        local cosTanly to cosR(tanly).
+        local eanly to arcCosR((ecc + cosTanly) / (1 + ecc * cosTanly)).
+        if tanly > pi {
+            set eanly to 2 * pi - eanly.
+        }
+        return eanly - ecc * sinR(eanly).
+    }
+    // dimless mean motion 
     //print " ecc = " + ecc.
-
-    // dimensionless mean motion 
     local funMajor to (1 + rho) / 2.
     //print " af = " + funMajor.
     local funRectum to funMajor * (1 - ef ^2).
     //print " pf = " + funRectum.
     local rectum to funRectum - sinR(dTheta) * et * rho / c.
     //print " p = "  + rectum.
-    local semiMajor to rectum / (1 - ecc ^ 2).
+    local semiMajorDen to (1 - ecc ^ 2).
+    local semiMajor to rectum / semiMajorDen.
     //print " a = " + semiMajor.
     local meanMotion to semiMajor ^ (-3/2).
     //print " dimlessMeanMotion = " + meanMotion.
 
+    local p1Manly to dimlessManly(p1Tanly).
+    local p2Manly to dimlessManly(p2Tanly).
+    if p2Manly < p1Manly {
+        set p2Manly to p2Manly + 2 * pi.
+    }
+    // print " p1Manly = " + p1Manly.
+    // print " p2Manly = " + p2Manly.
+
+    local t to (p2Manly - p1Manly) / meanMotion.
+    return t.
+}
+
+function dimlessHyper {
+    parameter p1Tanly, p2Tanly.
+    parameter rho, c, dTheta, ef, et.
+
+    local ecc to sqrt (ef ^ 2 + et ^ 2).
+
+    local function dimlessManly {
+        parameter tanly.
+        local cosTanly to cosR(tanly).
+        local cosHF to (ecc + cosTanly) / (1 + ecc * cosTanly).
+        local F to arcCosHR(cosHF).
+        // local sinHF to sqrt((cosHF  - 1) / (cosHF + 1)) * (cosHF + 1).
+        local sinHF to sinHR(F).
+        local manly to ecc * sinHf - F.
+        return manly.
+    }
+
+    // dimless mean motion 
+    //print " ecc = " + ecc.
+    local funMajor to (1 + rho) / 2.
+    //print " af = " + funMajor.
+    local funRectum to funMajor * (1 - ef ^2).
+    //print " pf = " + funRectum.
+    local rectum to funRectum - sinR(dTheta) * et * rho / c.
+    //print " p = "  + rectum.
+    local semiMajorDen to (1 - ecc ^ 2).
+    local semiMajor to rectum / semiMajorDen.
+    //print " a = " + semiMajor.
+    local meanMotion to (-semiMajor) ^ (-3/2).
+    //print " dimlessMeanMotion = " + meanMotion.
+
+    local p1Manly to dimlessManly(p1Tanly).
+    local p2Manly to dimlessManly(p2Tanly).
+
+    local t to (p2Manly - p1Manly) / meanMotion.
+    return t.
+}
+
+function dimlessKepler {
+    parameter rho, c, wc, dTheta, ef, et.
     local sinWc to sinR(wc).
     local cosWc to cosR(wc).
     local tanlyReverse to arcTan2R(ef * sinWc + et * cosWc,
         ef * cosWc - et * sinWc).
     local p1Tanly to -1 * tanlyReverse.
     local p2Tanly to dTheta - tanlyReverse.
-    local p1Manly to dimlessManly(p1Tanly, ecc).
-    local p2Manly to dimlessManly(p2Tanly, ecc).
-    if p2Manly < p1Manly {
-        set p2Manly to p2Manly + 2 * pi.
-    }
     // print " tanlyReverse = " + tanlyReverse.
     // print " p2Tanly  = " + p2Tanly.
-    // print "p1Manly = " + p1Manly.
-    // print " p2Manly = " + p2Manly.
 
-    local t to (p2Manly - p1Manly) / meanMotion.
-    return t.
+    local ecc2 to ef ^ 2 + et ^ 2.
+    if ecc2 < 1 {
+        return dimlessElipse(p1Tanly, p2Tanly, rho, c, dTheta, ef, et).
+    } else {
+        return dimlessHyper(p1Tanly, p2Tanly, rho, c, dTheta, ef, et).
+    }
 }
+
+
 
 // if hyper are allowed
     // if isShort {

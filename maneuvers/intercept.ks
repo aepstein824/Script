@@ -7,7 +7,7 @@ runOncePath("0:maneuvers/node.ks").
 
 global kIntercept to lexicon().
 set kIntercept:StartSpan to 2.
-set kIntercept:DurSpan to 5.
+set kIntercept:DurSpan to 2.
 
 function hohmannTransfer {
     parameter rd, ra, mu.
@@ -66,7 +66,7 @@ function hohmannIntercept {
         set t to posmod(t, period).
     }
     set hi:when to t.
-    print hi.
+    // print hi.
 
     return hi.
 }
@@ -98,13 +98,15 @@ function informedLambert {
     parameter obtable1, obtable2, guessDur.
     
     local dt to .05 * guessDur.
-    local startTime to dt * kIntercept:StartSpan + 5 * 60.
+    local startTime to time:seconds + dt * kIntercept:StartSpan + 5 * 60.
     return lambertGrid(obtable1, obtable2, startTime, guessDur, dt, dt).
 }
 
 function lambertGrid {
     parameter obtable1, obtable2, guessT, guessDur, di, dj.
     parameter offset to v(0, 0, 0).
+
+    print "LG to " + obtable2 + " in " + (guessDur * sToDays) + " days".
 
     local best to lexicon().
     set best:totalV to 10 ^ 20.

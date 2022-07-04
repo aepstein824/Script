@@ -70,6 +70,10 @@ function shipStage {
     }
 }
 
+function shipAccel {
+    return ship:maxThrust / ship:mass.
+}
+
 function nextNodeOverBudget {
     parameter budget.
 

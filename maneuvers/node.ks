@@ -6,7 +6,12 @@ runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 
 function nodeExecute {
-    parameter precise to false.
+    parameter useRcs to false.
+
+    local rcsThrusters to list().
+    list rcs in rcsThrusters.
+    set useRcs to  useRcs and not rcsThrusters:empty().
+    
 
     wait 0.
     local nd to nextnode.
@@ -40,11 +45,18 @@ function nodeExecute {
         if maxAcceleration > 0 {
             lock throttle to min(nd:deltav:mag / maxAcceleration, 1).
             if nd:deltav:mag / maxAcceleration < minTime {
+                // Too small for this engine
                 set done to true.
             }
         } 
         
         if nd:deltav:mag < 0.05 or vdot(nodeDv0, nd:deltav) < 0 {
+            // Reversed direction or just too small
+            set done to true.
+        }
+
+        if useRcs and nd:deltav:mag < 0.5 {
+            // Leave the last bit for rcs if in use
             set done to true.
         }
 
@@ -54,15 +66,15 @@ function nodeExecute {
 
     lock throttle to 0.
     wait 0.1.
-    local rcsThrusters to list().
-    list rcs in rcsThrusters.
-    if (precise and not rcsThrusters:empty()) {
-        rcs on.
+
+    if useRcs {
+        enableRcs().
         until nd:deltav:mag < 0.05 {
             setRcs(nd:deltav).
             wait 0.
         }
-        rcs off.
+        setRcs(v(0,0,0)).
+        disableRcs().
     }
     unlock steering.
     unlock throttle.
@@ -70,7 +82,7 @@ function nodeExecute {
     wait 1.
 }
 
-function nodePrecise {
+function nodeRcs {
     nodeExecute(true).
 }
 

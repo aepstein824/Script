@@ -15,7 +15,19 @@ set kRndvParams:rcsSpd to 5.
 
 clearscreen.
 
+// function rndvWithTarget {
+//     local ourBodies to list(body).
+//     local bodyIter to body.
+//     until bodyIter = sun {
+//         bodyIter:add(bodyIter).
+//         set bodyIter to bodyIter:obt:body.
+//     }
 
+//     local tgtBodyIter to target:obt:body.
+//     until false {
+//         local idx to ourBodies:find(tgtBodyIter).
+//     }
+// }
 //planIntercept().
 // nodeExecute().
 // catchInCircle().
@@ -65,16 +77,18 @@ function catchInCircle {
 }
 
 function ballistic {
-    local distance to ((target:position - ship:position):mag 
-        - kRndvParams:floatDist).
-    local accel to ship:maxthrust / ship:mass.
-    print "Accel " + accel.
-    local shortestHalf to sqrt(distance / accel).
-    print "Shortest half " + shortestHalf.
+    print "Ballistic rndv with " + target:name.
+    local function distance {
+        return (target:position - ship:position):mag.
+    }
+    local floatDist to kRndvParams:floatDist.
+    local currentSpeed to (target:velocity:orbit - ship:velocity:orbit):mag.
+    local shortestHalftime to sqrt((distance() - floatDist) / shipAccel()).
     local maxAccel to 0.5. // accel for 1/4 total
-    local maxSpeed to min(accel * shortestHalf * maxAccel,
-        kRndvParams:maxSpeed). 
-    print "Max Speed " + maxSpeed.
+    local infFuelSpd to shipAccel() * shortestHalftime * maxAccel.
+    print " Infinite Fuel Speed " + round(infFuelSpd).
+    local maxSpeed to min(infFuelSpd, max(kRndvParams:maxSpeed, currentSpeed)). 
+    print " Max Speed " + round(maxSpeed).
 
     local function toGoalV{
         parameter approach.
@@ -91,30 +105,45 @@ function ballistic {
         if vang(ship:facing:vector, goalV) > kRndvParams:thrustAng {
             return 0.
         }
-        local thrust to invLerp(2 * goalV:mag, 0, ship:maxThrust).
+        local thrust to invLerp(5 * goalV:mag, 0, shipAccel()).
         if thrust < 0.01 {
             set thrust to 0.
         }
         return thrust.
     }
 
+    local function timeToBurn {
+        parameter dv.
+        return 1.3 * shipTimeToDV(dv) + 5.
+    }
+
     lock steering to toGoalV(1).
     lock throttle to goalThrot(1).
 
-    local reverseDist to 2 * shipTimeToDV(maxSpeed) * maxSpeed 
-        + kRndvParams:floatDist.
-    wait until (target:position - ship:position):mag < reverseDist.
+    local reverseDist to timeToBurn(maxSpeed) * maxSpeed + floatDist.
+    if distance() > 10 * reverseDist {
+        set kuniverse:timewarp:mode to "PHYSICS".
+        set kuniverse:timewarp:rate to 4.
+    }
+    print " Will reverse at " + round(reverseDist) + "m".
+    wait until distance() < reverseDist.
+    kuniverse:timewarp:cancelwarp().
 
-    lock steering to toGoalV(.1).
-    lock throttle to goalThrot(.1).
-    wait until (target:position - ship:position):mag < kRndvParams:floatDist.
+    local stopFactor to 0.1.
+    local stopSpd to maxSpeed * stopFactor.
+    lock steering to toGoalV(stopFactor).
+    lock throttle to goalThrot(stopFactor).
+
+    local stopDist to timeToBurn(stopSpd) * stopSpd + floatDist.
+    print " Will stop at " + round(stopDist) + "m".
+    wait until distance() < stopDist.
 
     lock steering to toGoalV(0).
     lock throttle to goalThrot(0).
     wait until toGoalV(0):mag < 1.
 
     lock throttle to 0.
-    lock steering to ship:position - target:position.
+    unlock steering.
 }
 
 function rcsNeutralize {
@@ -137,14 +166,16 @@ function rcsNeutralize {
 }
 
 function rcsApproach {
-    lock throttle to 0.
-    lock steering to target:position - ship:position.
-    wait 3.
-
     local ourPort to ship:dockingports[0].
-    local tgtPort to target:dockingports[0].
-    
-    ourport:getmodule("ModuleDockingNode"):doevent("Control From Here").
+    ourPort:getmodule("ModuleDockingNode"):doevent("Control From Here").
+    local tgtPort to target.
+    local tgtPorts to target:dockingports.
+    if not tgtPorts:empty() {
+        set tgtPort to tgtPorts[0].
+    }
+    lock steering to tgtPort:position - ship:position.
+    lock throttle to 0.
+    wait 3. 
 
     rcs on.
     local approachStart to time.
@@ -165,6 +196,9 @@ function rcsApproach {
     wait until (tgtPort:position - ourPort:position):mag < reverseDist.
 
     until false {
+        if not hasTarget {
+            break.
+        }
         local towards to tgtPort:position - ourPort:position.
         local tr to target:velocity:orbit - ship:velocity:orbit.
 
@@ -175,5 +209,15 @@ function rcsApproach {
         }
         setRcs(delta).
     }
+    setRcs(v(0, 0, 0)).
     rcs off.
 } 
+
+function doubleBallisticRcs {
+    ballistic().
+    rcsNeutralize().
+    if (target:position:mag > kRndvParams:floatDist) {
+        ballistic().
+        rcsNeutralize().
+    }
+}

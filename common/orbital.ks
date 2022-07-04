@@ -135,22 +135,35 @@ function circleToSemiV {
     return semiV - circleV.
 }
 
+function distanceAt {
+    parameter obtable1, obtable2, t.
+
+    local p1 to positionAt(obtable1, t).
+    local p2 to positionAt(obtable2, t).
+    local x to (p2 - p1):mag.
+    return x.
+}
+
+function normOf {
+    parameter obt1.
+    return vCrs(obt1:velocity:orbit, 
+        obt1:position - obt1:body:position):normalized.
+}
+
 function closestApproach {
     parameter obtable1, obtable2.
 
-    local lr to 0.02.
-    local t to time.
+    local lr to .5.
+    local t to time:seconds.
     local dt to 10.
     local dxSignLast to 0.
+    local tEarly to t.
     until false {
-        local p1 to positionAt(obtable1, t).
-        local p2 to positionAt(obtable2, t).
-        local p1_p to positionAt(obtable1, t + dt).
-        local p2_p to positionAt(obtable2, t + dt).
+        local t_p to t + dt.
 
-        local x to (p2 - p1):mag.
-        local x_p to (p2_p - p1_p):mag.
-
+        local x to distanceAt(obtable1, obtable2, t).
+        local x_p to distanceAt(obtable1, obtable2, t_p).
+        
         local dx_dt to (x_p - x) / dt.
         local dxSign to sgn(dx_dt).
         // print "Iter:".
@@ -161,10 +174,38 @@ function closestApproach {
         if dxSignLast = -1 and dxSign = 1  {
             break.
         }
-        set dxSignLast to dxSign.
-
+        set tEarly to t.
         set t to t - lr * x / dx_dt.
+        set dxSignLast to dxSign.
     }
 
-    return t:seconds.
+    local earlyLateDifference to t - tEarly.
+    local tLate to t + earlyLateDifference.
+    set tEarly to tEarly - earlyLateDifference.
+    until false {
+        // print tEarly * sToHours + ", " + (tLate * sToHours).
+        local tGuess to (tEarly + tLate) / 2.
+        if (tLate - tEarly) < dt {
+            print "Binary search range too small.".
+            return t.
+        }
+
+        local x to distanceAt(obtable1, obtable2, tGuess - dt).
+        local x_p to distanceAt(obtable1, obtable2, tGuess).
+        local x_p2 to distanceAt(obtable1, obtable2, tGuess + dt).
+
+        local early to x > x_p.
+        local straddle to ((x > x_p) <> (x_p > x_p2)).
+        if straddle {
+            set t to tGuess.
+            break.
+        }
+        if early {
+            set tEarly to tGuess.  
+        } else {
+            set tLate to tGuess.
+        }
+    }
+
+    return t.
 }
