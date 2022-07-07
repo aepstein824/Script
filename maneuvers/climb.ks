@@ -2,7 +2,7 @@
 
 declare global kClimb to lexicon().
 
-set kClimb:Turn to 10.
+set kClimb:Turn to 5.
 set kClimb:VertV to 60.
 set kClimb:SteerV to 150.
 set kClimb:ClimbAp to 75000.
@@ -77,7 +77,9 @@ function handleStage {
 
     if shouldStage {
         print "Staging " + stage:number.
+        lock throttle to 0.2.
         stage.
+        wait 1.
     }
 }
 

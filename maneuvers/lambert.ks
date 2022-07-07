@@ -175,8 +175,10 @@ function lambert {
 
         local y_p to specifics:fitness:call(et_p).
         local dY_dX to (y_p - y) / dX.
-
-        // print "y = " + y + ", dy = " + dY_dX.
+        if abs(dy_dx) < epsilon {
+            // print "Aborting since dy_dx = " + dy_dx.
+            return results.
+        }
 
         // nr iteration
         set x to x - y / dY_dX.

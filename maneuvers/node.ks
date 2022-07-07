@@ -98,6 +98,9 @@ function nodeStage {
         
 function setRcs {
     parameter vt.
+    if vt:mag > 0 and vt:mag < 0.2 {
+        set vt to vt * 0.2 / vt:mag.
+    }
     set ship:control:translation to v(
         vDot(vt, ship:facing:starvector),
         vDot(vt, ship:facing:topvector),

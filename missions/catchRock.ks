@@ -17,10 +17,10 @@ wait until ship:unpacked.
 set kPhases:startInc to 5.
 set kPhases:stopInc to 5.
 
-set kClimb:Turn to 3.
+set kClimb:Turn to 4.
 set kClimb:TLimAlt to 15000.
 set kClimb:ClimbAp to 75000.
-local kInterStg to 1.
+local kInterStg to 0.
 local kAsteroidStorage to 120000.
 
 if shouldPhase(0) {
@@ -61,9 +61,10 @@ if shouldPhase(4) {
     mineAsteroid().
 }
 if shouldPhase(5) {
-     matchPlanes(normOf(mun)).
-     nodeExecute().
-    // circleNextExec(kAsteroidStorage).
+    // nodeExecute(). // exercise for the miner.
+    matchPlanesAndSemi(normOf(mun), kAsteroidStorage).
+    nodeExecute().
+    circleNextExec(kAsteroidStorage).
 }
 if shouldPhase(6) {
 }

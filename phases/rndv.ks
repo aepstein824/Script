@@ -118,6 +118,9 @@ function ballistic {
         return (target:position - ship:position):mag.
     }
     local floatDist to kRndvParams:floatDist.
+    if distance() < floatDist {
+        return.
+    }
     local currentSpeed to (target:velocity:orbit - ship:velocity:orbit):mag.
     local shortestHalftime to sqrt((distance() - floatDist) / shipAccel()).
     local maxAccel to 0.5. // accel for 1/4 total

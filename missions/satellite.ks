@@ -28,10 +28,11 @@ if shouldPhase(0) {
     ag10 on.
 }
 if shouldPhase(1) and shouldPark {
-    circleNextExec(kCarrierPark).
+    
 }
 if shouldPhase(2) {
-    sat100sun().
+    circleNextExec(kCarrierPark).
+    // sat100sun().
     // sat100orbit(kApDir).
 }
 
