@@ -44,9 +44,9 @@ function lambertInterceptFitnessFactory {
 
     local radRat to r2 / r1.
     local nRef to sqrt(mu / (r1 ^ 3)).
-    local tauS to flightDuration * nRef.
+    local tauS to detimestamp(flightDuration * nRef).
     local cDimless to cvec:mag / r1.
-    local epsilon to (1 / 10 ^ 8) / min(1, tauS).
+    local epsilon to (1 / 10 ^ 10) / min(1, tauS).
     local yS to ln(tauS).
 
     local function fitness {
@@ -101,9 +101,9 @@ function lambert {
     local focus to obt1:body.
 
     local p1 to positionAt(obtable1, startTime) - focus:position.
-    // clearVecDraws().
-    // vecdraw(focus:position, p1, rgb(0, 0, 1), "p1", 1.0, true).
-    // vecdraw(focus:position, p2, rgb(0, 1, 0), "p2", 1.0, true).
+    clearVecDraws().
+    vecdraw(focus:position, p1, rgb(0, 0, 1), "p1", 1.0, true).
+    vecdraw(focus:position, p2, rgb(0, 1, 0), "p2", 1.0, true).
 
     // print "P1 = " + p1:mag.
     // print "P2 = " + p2:mag.
@@ -133,13 +133,13 @@ function lambert {
         local emax to -1 / cosR(dTheta / 2).
         set eh to sqrt(emax^2 - ef^2).
     }
-    // print "E limits = " + -1 * eh + " < eF < "+ ep.
+    // print "E limits = " + -1 * eh + " < eT < "+ ep.
 
     local fromX to { parameter x_. return x_. }.
     if isShort {
         set fromX to {
             parameter x_.
-            return ep * (1 - constant:e ^ (1 - x_ / ep)).
+            return ep * (1 - eul ^ (-x_ / ep)).
         }.
     } else {
         set fromX to {
@@ -219,7 +219,7 @@ function lambert {
     // print "V = " + tangV.
     local function transVAtPos {
         parameter pos_.
-        local tangV to sqrt(body:mu * (2 / pos_:mag - 1 / semiMajor)).
+        local tangV to sqrt(focus:mu * (2 / pos_:mag - 1 / semiMajor)).
         local transTanly to vectorAngleAroundR(evec, ih, pos_).
         // print "Transit True Anomaly = " + transTanly.
         local flightA to arcTan2R(ecc * sinR(transTanly), 
@@ -227,7 +227,7 @@ function lambert {
         // print "Flight Angle = " + flightA.
 
         local transCircle to vCrs(pos_, ih):normalized.
-        //print "Circular trans = " + transCircle.
+        // print "Circular trans = " + transCircle.
         local transOut to pos_:normalized.
         local transV to tangV * (transCircle * cosR(flightA)
             + transOut * sinR(flightA)).
@@ -235,9 +235,11 @@ function lambert {
     }
 
     local ejectVec to transVAtPos(p1).
+    // print "ejectVec " + ejectVec.
     local startVec to velocityAt(obtable1, startTime):orbit.
+    // print "startVec " + startVec.
     local startPro to startVec:normalized.
-    local startRad to (p1 - vDot(p1, startPro) * startPro):normalized.
+    local startRad to removeComp(p1, startPro):normalized.
     local startNorm to vCrs(startPro, startRad).
     local burnVec to ejectVec - startVec.
     local burnPro to vdot(burnVec, startPro).
@@ -246,6 +248,7 @@ function lambert {
     set results["ok"] to true.
     set results["burnVec"] to burnVec.
     set results["burnNode"] to node(startTime, burnRad, burnNorm, burnPro).
+    set results["norm"] to ih.
     set results:vAtP2 to transVAtPos(p2).
     return results.
 }
@@ -267,16 +270,16 @@ function dimlessEllipse {
     // dimless mean motion 
     //print " ecc = " + ecc.
     local funMajor to (1 + rho) / 2.
-    //print " af = " + funMajor.
+    // print " af = " + funMajor.
     local funRectum to funMajor * (1 - ef ^2).
-    //print " pf = " + funRectum.
+    // print " pf = " + funRectum.
     local rectum to funRectum - sinR(dTheta) * et * rho / c.
-    //print " p = "  + rectum.
+    // print " p = "  + rectum.
     local semiMajorDen to (1 - ecc ^ 2).
     local semiMajor to rectum / semiMajorDen.
-    //print " a = " + semiMajor.
+    // print " a = " + semiMajor.
     local meanMotion to semiMajor ^ (-3/2).
-    //print " dimlessMeanMotion = " + meanMotion.
+    // print " dimlessMeanMotion = " + meanMotion.
 
     local p1Manly to dimlessManly(p1Tanly).
     local p2Manly to dimlessManly(p2Tanly).

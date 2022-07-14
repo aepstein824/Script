@@ -71,7 +71,7 @@ function slowThrottle {
 }
 
 function handleStage {
-    declare local shouldStage to ((maxThrust = 0 or solidCheck) 
+    declare local shouldStage to ((maxThrust = 0 or solidCheck()) 
         and stage:ready
         and stage:number >= kClimb:LastStage).
 
@@ -84,9 +84,10 @@ function handleStage {
 }
 
 function solidCheck {
-    for res in ship:resources {
-        if res:name = "SOLIDFUEL" and res:amount = 0
-            and not res:parts:empty() {
+    local allEngines to list().
+    list engines in allEngines.
+    for e in allEngines {
+        if e:ignition and e:flameout and e:throttlelock {
             print "Solid Fuel depleted.".
             return true.
         }
@@ -121,7 +122,7 @@ function circularize {
     if vang(ship:facing:vector, steering) > 10
         or not climbShouldCircleBurn() { 
         set kuniverse:timewarp:rate to 1.
-        lock throttle to 0.
+        lock throttle to 0.05. // engine gimbal will help turn
     } else {
         set kuniverse:timewarp:rate to 2.
         lock throttle to 1.

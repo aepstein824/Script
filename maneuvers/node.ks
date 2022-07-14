@@ -80,6 +80,7 @@ function nodeExecute {
     unlock throttle.
     remove nd.
     wait 1.
+    clearVecDraws().
 }
 
 function nodeRcs {
@@ -87,12 +88,22 @@ function nodeRcs {
 }
 
 function nodeStage {
-    declare local shouldStage to maxThrust = 0 and stage:ready
-        and stage:number > 0.
+    local shouldStage to maxThrust = 0 and stage:ready and stage:number > 0.
 
     if shouldStage {
-        print "Staging " + stage:number.
-        stage.
+        local hasFlamedOut to false.
+        local allEngines to list().
+        list engines in allEngines.
+        for e in allEngines {
+            if e:ignition and e:flameout {
+                set hasFlamedOut to true.
+                break.
+            }
+        }
+        if hasFlamedOut {
+            print "Staging " + stage:number.
+            stage.
+        }
     }
 }
         

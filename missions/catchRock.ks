@@ -27,7 +27,6 @@ if shouldPhase(0) {
     print "Launch to Orbit!".
     kuniverse:quicksaveto("asteroid_launch").
     ensureHibernate().
-    targetAsteroid().
     set kClimb:Heading to launchHeading().
     launchToOrbit().
     ag10 off. ag10 on.
@@ -35,6 +34,7 @@ if shouldPhase(0) {
 }
 if shouldPhase(1) {
     print "Catch " + target:name.
+    kuniverse:quicksaveto("vampire_hunting").
     local hl to hlIntercept(ship, target).
     add hl:burnNode.
     nodeExecute().
@@ -62,6 +62,8 @@ if shouldPhase(4) {
 }
 if shouldPhase(5) {
     // nodeExecute(). // exercise for the miner.
+    // changeApAtPe(kerbin:soiradius * 0.9).
+    // nodeExecute().
     matchPlanesAndSemi(normOf(mun), kAsteroidStorage).
     nodeExecute().
     circleNextExec(kAsteroidStorage).

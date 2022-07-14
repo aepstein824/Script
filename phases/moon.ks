@@ -28,25 +28,3 @@ function doMoonFlyby {
         nodeExecute().
     }
 }
-
-function refinePe {
-    parameter low, high.
-    add node(time, 1, 0, 1).
-    local proAndOut to nextnode:deltav:normalized.
-    if ship:periapsis < low {
-        lock steering to proAndOut.
-    } else if ship:periapsis > high {
-        lock steering to -1 * proAndOut.
-    } 
-    wait 10.
-    until ship:periapsis > low and ship:periapsis < high {
-        lock throttle to 0.1.
-        nodeStage().
-        wait 0.
-    }
-    lock throttle to 0.
-    remove nextNode.
-    wait 1.
-    return.
-}
-

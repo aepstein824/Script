@@ -6,8 +6,8 @@ runOncePath("0:common/ship.ks").
 runOncePath("0:maneuvers/node.ks").
 
 global kIntercept to lexicon().
-set kIntercept:StartSpan to 2.
-set kIntercept:DurSpan to 2.
+set kIntercept:StartSpan to 1.
+set kIntercept:DurSpan to 1.
 
 function hohmannTransfer {
     parameter rd, ra, mu.
@@ -17,7 +17,6 @@ function hohmannTransfer {
     local rh to max(rd, ra).
     local vl to sqrt(mu / rl) * (sqrt(rh / a) - 1).
     local vh to sqrt(mu / rh) * (1- sqrt(rl / a)).
-
 
     local ht to lexicon().
     set ht:duration to constant:pi * sqrt(a ^ 3 / mu).
@@ -66,7 +65,9 @@ function hohmannIntercept {
         set t to posmod(t, period).
     }
     set hi:when to t.
-    // print hi.
+    set hi:start to t + time.
+    set hi:arrivalTime to time + hi:when + hi:duration.
+    print hi.
 
     return hi.
 }
@@ -77,21 +78,33 @@ function hlIntercept {
 
     local hi to hohmannIntercept(obtable1:orbit, obtable2:orbit).
 
-    local roughT to hi:when + time.
+    local roughT to hi:start.
     local roughDur to hi:duration.
     local di to obtable1:obt:period * 0.1.
-    local dj to hi:duration * 0.1.
+    local dj to hi:duration * 0.3.
 
     local rough to lambertGrid(obtable1, obtable2, roughT, roughDur, di, dj).
 
     local fineT to rough:start.
     local fineDur to rough:duration.
-    set di to di / (kIntercept:StartSpan + 1).
-    set dj to dj / (kIntercept:DurSpan + 1).
+    set di to di / (kIntercept:StartSpan + 1) / 2.
+    set dj to dj / (kIntercept:DurSpan + 1) / 2.
 
     local fine to lambertGrid(obtable1, obtable2, fineT, fineDur, di, dj).
 
-    return mergeLex(hi, fine).
+    local merged to mergeLex(hi, fine).
+    set merged:arrivalTime to merged:start + merged:duration.
+
+    clearVecDraws().
+    local bodyPos to obtable1:obt:body:position.
+    vecdraw(bodyPos, positionAt(obtable1, merged:start) - bodyPos,
+        rgb(0, 0, 1), "p1", 1.0, true).
+    vecdraw(bodyPos, positionAt(obtable2, merged:arrivalTime) - bodyPos,
+        rgb(0, 1, 0), "p2", 1.0, true).
+
+
+
+    return merged.
 }
 
 function informedLambert {
@@ -106,7 +119,9 @@ function lambertGrid {
     parameter obtable1, obtable2, guessT, guessDur, di, dj.
     parameter offset to v(0, 0, 0).
 
-    print "LG to " + obtable2 + " in " + (guessDur * sToDays) + " days".
+    print ("LGrid to " + obtable2:name + " in "
+        + round((guessT - time):seconds * sToDays) + ", " 
+        + round(guessDur * sToDays) + " long").
 
     local best to lexicon().
     set best:totalV to 10 ^ 20.
@@ -117,13 +132,18 @@ function lambertGrid {
             local flightDuration to guessDur + j * dj.
             local results to lambertIntercept(obtable1, obtable2, offset,
                 startTime, flightDuration).
+            // print "Duration " + round(flightDuration * sToDays).
             if results:ok {
                 set results:totalV to results:burnVec:mag. 
                 set results:totalV to results:totalV + results:matchVec:mag.
-                // print round(results:burnVec:mag) + " -> " + round(results:matchVec:mag).
+                print "(" + i + ", " + j + ") "
+                    + round(results:burnVec:mag) + " -> "
+                    + round(results:matchVec:mag).
                 if results:totalV < best:totalV {
                     set results:start to startTime.
+                    set results:when to startTime - time.
                     set results:duration to flightDuration.
+                    set results:arrivalTime to startTime + flightDuration.
                     set best to results.
                 }
             }
@@ -135,8 +155,11 @@ function lambertGrid {
 
 function courseCorrect {
     parameter dest, duration.
-    local dt to .05 * duration.
-    local startTime to time:seconds + dt * kIntercept:StartSpan + 5 * 60.
-    local correction to lambertGrid(ship, dest, startTime, duration, dt, dt).
+    parameter offset to v(0, 0, 0).
+
+    local dt to .1 * duration.
+    local startTime to time + dt * kIntercept:StartSpan + 5 * 60.
+    local correction to lambertGrid(ship, dest, startTime, duration, dt, dt, offset).
     add correction:burnNode.
+    return correction.
 }

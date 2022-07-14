@@ -9,6 +9,7 @@ runOncePath("0:maneuvers/orbit.ks").
 runOncePath("0:phases/landKsc.ks").
 runOncePath("0:phases/launchToOrbit.ks").
 runOncePath("0:phases/rndv.ks").
+runOncePath("0:phases/travel.ks").
 
 set kPhases:startInc to 1.
 set kPhases:stopInc to 1.
@@ -26,12 +27,9 @@ if shouldPhase(0) {
 if shouldPhase(1) {
     print "Rndv with " + dest:name.
     setTargetTo(dest:name).
-
-    local hl to hlIntercept(ship, target).
-    add hl:burnNode.
-    nodeExecute().
-
-    waitWarp(closestApproach(ship, target) - 3 * 60).
-    wait until ship:unpacked.
-    doubleBallisticRcs().
+    travelTo(lexicon("dest", dest)).
+}
+if shouldPhase(2) {
+    print "Docking with " + target:name.
+    rcsApproach().
 }

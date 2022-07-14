@@ -2,45 +2,63 @@
 
 clearscreen.
 runOncePath("0:common/info.ks").
+runOncePath("0:common/operations.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/phasing.ks").
 runOncePath("0:maneuvers/orbit.ks").
 runOncePath("0:phases/launchToOrbit.ks").
+runOncePath("0:phases/travel.ks").
+
+set kPhases:startInc to 2.
+set kPhases:stopInc to 2.
 
 set kClimb:Turn to 5.
-set kClimb:ClimbA to 1.4.
+set kClimb:ClimbA to 1.3.
 set kClimb:ClimbAp to 75000.
 set kClimb:Heading to 90.
 set kClimb:Roll to 0.
-set kClimb:TLimAlt to 6000.
-set kPhases:startInc to 0.
-set kPhases:stopInc to 2.
-local shouldPark to false.
-local kCarrierPark to 1200000.
-local kApDir to (v(0, -1, 0) + solarPrimeVector):normalized.
+set kClimb:TLimAlt to 12000.
+local shouldPark to true.
+local kCarrierPark to 120000.
+local kInterStage to 1.
+local dest to minmus.
+
+local kApDir to sat100dirs()[0].
 
 if shouldPhase(0) {
     print "Launch to Orbit!".
-    kuniverse:quicksaveto("satellite_launch").
+    launchQuicksave("satellite_" + dest:name).
     ensureHibernate().
     launchToOrbit().
+    stageTo(kInterStage).
+    // lifter is yeeting itself back onto the surface 
+    lock throttle to 0.2.
+    wait 3.
+    lock throttle to 0.
     wait 5.
     ag10 on.
 }
 if shouldPhase(1) and shouldPark {
-    
+    circleNextExec(kCarrierPark).
 }
 if shouldPhase(2) {
-    circleNextExec(kCarrierPark).
     // sat100sun().
+    set target to dest.
+    local travelContext to lexicon(
+        "dest", dest,
+        "altitude", polarScannerAltitude(dest),
+        "inclination", 90
+    ).
+    travelTo(travelContext).
+}
+if shouldPhase(3) {
     // sat100orbit(kApDir).
 }
 
 function sat100sun {
     print "Escape Retrograde".
     escapeWith(-5000, 0).
-    local nn to nextNode.
-    set nn:prograde to ship:deltav:current - 300.
+    set nextnode:prograde to ship:deltav:current - 300.
     nodeExecute().
 }
 
@@ -59,4 +77,13 @@ function sat100orbit {
     local burnV to circleToSemiV(r1, r2, body:mu).
     add node(atOp, 0, 0, burnV).
     nodeExecute().
+}
+
+function sat100dirs {
+    return list(
+        (v(0, 1, 0) + solarPrimeVector):normalized,
+        (v(0, 1, 0) - solarPrimeVector):normalized,
+        (v(0, -1, 0) + solarPrimeVector):normalized,
+        (v(0, -1, 0) - solarPrimeVector):normalized
+    ).
 }

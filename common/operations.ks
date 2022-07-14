@@ -145,11 +145,16 @@ function stageTo {
 }
 
 function setTargetTo {
-    parameter name.
+    parameter nameOrThing.
+
+    if nameOrThing:typename <> "String" {
+        set target to nameOrThing.
+    }
+
     local candidates to list().
     list targets in candidates.
     for c in candidates {
-        if c:name = name {
+        if c:name = nameOrThing {
             set target to c:name.
         }
     }
@@ -194,4 +199,23 @@ function enableRcs {
 function disableRcs {
     rcs off.
     set ship:control:translation to v(0, 0, 0).
+}
+
+function launchQuicksave {
+    parameter name.
+
+    if body = kerbin and status = "PRELAUNCH" {
+        kuniverse:quicksaveto(name + "_launch").
+    } else {
+        print "NON KERBIN DETECTED: SKIPPING QUICKSAVE".
+    }
+}
+
+function detimestamp {
+    parameter t.
+
+    if t:typename = "TimeStamp" or t:typename = "TimeSpan" {
+        return t:seconds.
+    }
+    return t.
 }

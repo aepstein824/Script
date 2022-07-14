@@ -76,8 +76,6 @@ function matchPlanesAndSemi {
     add node(burnTime, vDot(dv, burnRad), vDot(dv, norm), vDot(dv, burnPro)).
 }
 
-
-
 function changePeAtAp {
     parameter destPe.
     local ra to ship:obt:apoapsis + ship:body:radius.
@@ -132,44 +130,147 @@ function dontEscape {
 }
 
 function escapeWith {
-    parameter exitSpd, delay.
+    parameter v_x, delay.
+
     if body = sun { return. }
 
-    local escapeSign to 1.
-    if exitSpd < 0 {
-        set escapeSign to -1.
-        set exitSpd to -exitSpd.
-    }
     // set delay to 0.
 
     local startTime to time + delay.
     local r0 to altitude + body:radius.
     local escapeRIntegral to 1 / r0 - 1 / body:soiradius.
     // print "escape integral " + escapeRIntegral.
-    local v0 to sqrt(exitSpd^2 + 2 * body:mu * escapeRIntegral).
-    // print "sqrt(" + exitSpd ^2 + " + " + (2 * body:mu / r0) + ")".
-    // print "v0 " + v0.
+    
+    // local bodyV to velocityAt(body, startTime):orbit.
+    // add body position to get to ship coordinates
+    // local bodyVAsPos to bodyV + body:position.
+    // print "Escape " + escapeSign.
 
-    local a to 1 / (2 / r0 - v0 ^ 2 / body:mu).
+    // local bodyP to positionAt(body, startTime)
+        // - positionAt(body:obt:body, startTime).
+    // local normClosest to removeComp(norm, bodyP).
+
+
+    // local incEx to vectorAngleAround(bodyV, bodyP, vEx).
+    // print "incEx " + incEx.
+
+    local spd0 to sqrt(v_x:mag ^ 2 + 2 * body:mu * escapeRIntegral).
+    print "v0 " + spd0.
+    local a to 1 / (2 / r0 - spd0 ^ 2 / body:mu).
     local e to max(1 - r0 / a, 1).
     // print "e " + e.
     local deflectAngle to arcsin(1 / e).
-    // print "deflectAngle " + deflectAngle.
-    // velocity is 90 offset from position.
-    local burnToInfAngle to deflectAngle + 90.
-    // print "Just Checking " + arccos(-1/e).
+    print "deflectAngle " + deflectAngle.
 
-    local bodyV to velocityAt(body, startTime):orbit.
-    local bodyVAsPos to escapeSign * bodyV + body:position.
-    print "Escape " + escapeSign.
-    local infTanly to posToTanly(bodyVAsPos, obt).
-    print "inf tanly " + infTanly.
-    local startTanly to posToTanly(shipPAt(startTime), obt).
+    local i_n to shipnorm().
+    local i_x to v_x:normalized.
+    local ix_dot_in to vDot(i_x, i_n).
+    local spdNorm to spd0 * (ix_dot_in / cos(deflectAngle)).
+    local spdPro to sqrt(spd0 ^ 2 - spdNorm ^ 2).
+
+    print "spdNorm " + spdNorm.
+    print "spdPro " + spdPro.
+
+    local cosDeflect to cos(deflectAngle).
+    local sinDeflect to sin(deflectAngle).
+    local i_rx to vCrs(i_n, i_x):normalized.
+    local i0 to i_x * cosDeflect + i_rx * sinDeflect.
+    // local cosTheta to spdPro / spd0.
+    // local i0 to removeComp(v_x, i_n) * cosTheta * cosDeflect + i_rx * sinDeflect.
+    local i0_p to vCrs(i_n, i0):normalized.
+
+    local pos0 to i0_p + body:position. 
+    local burnTanly to posToTanly(pos0, obt).
+    print "burnTanly " + burnTanly.
+    local shipPos to positionAt(ship, startTime).
+    local startTanly to posToTanly(shipPos, obt).
     print "start tanly " + startTanly.
-    local burnTanly to posmod(infTanly - burnToInfAngle, 360).
-    print "burn tanly " + burnTanly.
     local alignDur to timeBetweenTanlies(startTanly, burnTanly, obt).
-    print "alignDur " + alignDur.
+    print "alignDur " + round(alignDur / 60) + " min".
 
-    add node(startTime + alignDur, 0, 0, v0 - ship:velocity:orbit:mag).
+    add node(startTime + alignDur, 0, spdNorm,
+        spdPro - ship:velocity:orbit:mag).
+    wait 10000.
+}
+
+function refinePe {
+    parameter low, high.
+    add node(time, 1, 0, 1).
+    local proAndOut to nextnode:deltav:normalized.
+    if ship:periapsis < low {
+        lock steering to proAndOut.
+    } else if ship:periapsis > high {
+        lock steering to -1 * proAndOut.
+    } 
+    wait 10.
+    until ship:periapsis > low and ship:periapsis < high {
+        lock throttle to 0.1.
+        nodeStage().
+        wait 0.
+    }
+    lock throttle to 0.
+    remove nextNode.
+    wait 1.
+    return.
+}
+
+function inclinationToNorm {
+    parameter inc.
+
+    local poleBodyPos to latlng(90, 0):position - body:position. 
+    local shipPos to shipPAt(time).
+    local equatorPos to vCrs(shipPos, poleBodyPos). 
+    local norm to cos(inc) * poleBodyPos:normalized
+        - sin(inc) * equatorPos:normalized.
+    return norm.
+}
+
+function spdToHyperTurn {
+    parameter spd, rpe, r, mu.
+
+    local a to 1 / (2 / r - (spd ^ 2) / mu).
+    local e to 1 - rpe / a.
+    local turn to 2 * arcsin(1 / e).
+    return turn.
+}
+
+function hyperPe {
+    parameter pe, norm.
+
+    local burnTime to time + 2 * 60.
+    local rPe to pe + body:radius.
+    local shipPos to shipPAt(burnTime).
+    local r to shipPos:mag.
+    local startVec to shipVAt(burnTime).
+    local currentTurn to spdToHyperTurn(startVec:mag, rPe, r, body:mu).
+    local turn to max(22, currentTurn).
+
+    local e to 1 / sin(turn / 2).
+    local a to rPe / (1 - e).
+    print "a " + a.
+    // local b to -a / tan(turn / 2).
+    // print "b " + b.
+    // local realB to -a. //(b - a) / 2.
+    // local tanly to -1 * (45 + arcCos(realB / r)).
+    // local tanly to -131.
+    local tanly to -1 * arccos((a * (1 - e^2) - r) / e / r).
+    print "tanly " + tanly.
+    local spd to sqrt(body:mu * (2 / r - 1 / a)).
+    print "spd " + spd.
+    local flightA to arcTan2(e * sin(tanly), 1 + e * cos(tanly)).
+    print "flightA " + flightA.
+
+    local around to vCrs(shipPos, norm):normalized.
+    local out to shipPos:normalized.
+    local hyperV to spd * (around * cos(flightA) + out * sin(flightA)).
+
+    local startPro to startVec:normalized.
+    local startRad to removeComp(shipPos, startPro):normalized.
+    local startNorm to vCrs(startPro, startRad).
+
+    local burnVec to hyperV - startVec.
+    local burnRad to vDot(burnVec, startRad).
+    local burnNorm to vDot(burnVec, startNorm).
+    local burnPro to vDot(burnVec, startPro).
+    add node(burnTime, burnRad, burnNorm, burnPro).
 }

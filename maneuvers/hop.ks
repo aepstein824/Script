@@ -167,8 +167,7 @@ function suicideBurn {
 function coast {
     parameter spd.
 
-    local g to body:mu / (groundAlt() + body:radius) ^ 2.
-    local kp to -1 / (ship:maxthrust / ship:mass - g).
+    local kp to -1 / (ship:maxthrust / ship:mass).
     // print "kp = " + kp.
     local ki to -.04.
     // local ki to 0.

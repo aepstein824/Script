@@ -8,10 +8,8 @@ function mineAsteroid {
     local allResources to list().
     list resources in allResources.
     local foundOre to false.
-    local ore to false.
     for r in allResources {
         if r:name = "ORE" {
-            set ore to r.
             set foundOre to true.
         }
     }

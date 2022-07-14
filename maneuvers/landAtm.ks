@@ -49,6 +49,7 @@ function landFromDeorbit {
 
     gear on.
     if (kLandAtm:Coast) {
+        kuniverse:timewarp:cancelwarp().
         brakes off.
         coast(kLandAtm:CoastSpd).
     }
@@ -69,7 +70,7 @@ function getToAtm {
 
 function wingedDescent {
     lock throttle to 0.
-    lock steering to heading(90, 20, kLandAtm:Roll).
+    lock steering to heading(90, 25, kLandAtm:Roll).
 }
 
 function burnExtraFuel {
