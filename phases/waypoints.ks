@@ -51,7 +51,7 @@ function matchGeoPlane {
     set wNorm to rotateVecAround(wNorm, v(0, 1, 0), 
         -1 * wDelayS * body:angularvel:y * constant:radtodeg).
 
-    matchPlanesAndSemi(wNorm, kWarpHeights[body]).
+    matchPlanes(wNorm).
     nodeExecute().
 
     return wDelayS.

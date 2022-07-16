@@ -21,7 +21,7 @@ set kClimb:TLimAlt to 12000.
 local shouldPark to true.
 local kCarrierPark to 120000.
 local kInterStage to 1.
-local dest to minmus.
+local dest to kerbin.
 
 local kApDir to sat100dirs()[0].
 

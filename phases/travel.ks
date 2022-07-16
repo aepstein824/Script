@@ -106,8 +106,6 @@ function travelIntercept {
 
     local hl to hlIntercept(ship, target).
     add hl:burnNode.
-    add node(hl:arrivalTime, 0, 0, 0).
-    wait 100000.
     nodeRcs().
 
     if (target:typename = "BODY") {
@@ -132,6 +130,10 @@ function travelEscapeTo {
     local hl to hlIntercept(body, tgtBody).
     print hl:burnNode.
     escapeWith(hl:burnVec, hl:when).
+    add node(hl:arrivalTime, 0, 0, 0).
+    print "waiting in escape 134".
+    wait 10000.
+
     nodeExecute().
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
 

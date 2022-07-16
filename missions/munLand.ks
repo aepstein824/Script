@@ -13,8 +13,8 @@ runOncePath("0:phases/moon.ks").
 runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/waypoints.ks").
 
-set kPhases:startInc to 7.
-set kPhases:stopInc to 8.
+set kPhases:startInc to 4.
+set kPhases:stopInc to 4.
 
 local dest to minmus.
 local kMunPeLow to kWarpHeights[dest].
@@ -23,7 +23,7 @@ local kInterStg to 1.
 local kLanderStg to 1.
 set kClimb:Turn to 5.
 set kClimb:ClimbAp to 80000.
-local lz to latlng(14, -45).
+local lz to latlng(-50, -15).
 
 wait until ship:unpacked.
 

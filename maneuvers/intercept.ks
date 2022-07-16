@@ -6,8 +6,8 @@ runOncePath("0:common/ship.ks").
 runOncePath("0:maneuvers/node.ks").
 
 global kIntercept to lexicon().
-set kIntercept:StartSpan to 1.
-set kIntercept:DurSpan to 1.
+set kIntercept:StartSpan to 2.
+set kIntercept:DurSpan to 2.
 
 function hohmannTransfer {
     parameter rd, ra, mu.
@@ -67,7 +67,7 @@ function hohmannIntercept {
     set hi:when to t.
     set hi:start to t + time.
     set hi:arrivalTime to time + hi:when + hi:duration.
-    print hi.
+    // print hi.
 
     return hi.
 }
@@ -102,8 +102,6 @@ function hlIntercept {
     vecdraw(bodyPos, positionAt(obtable2, merged:arrivalTime) - bodyPos,
         rgb(0, 1, 0), "p2", 1.0, true).
 
-
-
     return merged.
 }
 
@@ -120,8 +118,8 @@ function lambertGrid {
     parameter offset to v(0, 0, 0).
 
     print ("LGrid to " + obtable2:name + " in "
-        + round((guessT - time):seconds * sToDays) + ", " 
-        + round(guessDur * sToDays) + " long").
+        + round((guessT - time):seconds * sToDays) + "d, " 
+        + round(guessDur * sToDays) + "d long").
 
     local best to lexicon().
     set best:totalV to 10 ^ 20.
@@ -136,9 +134,9 @@ function lambertGrid {
             if results:ok {
                 set results:totalV to results:burnVec:mag. 
                 set results:totalV to results:totalV + results:matchVec:mag.
-                print "(" + i + ", " + j + ") "
-                    + round(results:burnVec:mag) + " -> "
-                    + round(results:matchVec:mag).
+                // print "(" + i + ", " + j + ") "
+                    // + round(results:burnVec:mag) + " -> "
+                    // + round(results:matchVec:mag).
                 if results:totalV < best:totalV {
                     set results:start to startTime.
                     set results:when to startTime - time.

@@ -140,27 +140,14 @@ function escapeWith {
     local r0 to altitude + body:radius.
     local escapeRIntegral to 1 / r0 - 1 / body:soiradius.
     // print "escape integral " + escapeRIntegral.
-    
-    // local bodyV to velocityAt(body, startTime):orbit.
-    // add body position to get to ship coordinates
-    // local bodyVAsPos to bodyV + body:position.
-    // print "Escape " + escapeSign.
-
-    // local bodyP to positionAt(body, startTime)
-        // - positionAt(body:obt:body, startTime).
-    // local normClosest to removeComp(norm, bodyP).
-
-
-    // local incEx to vectorAngleAround(bodyV, bodyP, vEx).
-    // print "incEx " + incEx.
 
     local spd0 to sqrt(v_x:mag ^ 2 + 2 * body:mu * escapeRIntegral).
-    print "v0 " + spd0.
+    // print "v0 " + spd0.
     local a to 1 / (2 / r0 - spd0 ^ 2 / body:mu).
     local e to max(1 - r0 / a, 1).
     // print "e " + e.
     local deflectAngle to arcsin(1 / e).
-    print "deflectAngle " + deflectAngle.
+    // print "deflectAngle " + deflectAngle.
 
     local i_n to shipnorm().
     local i_x to v_x:normalized.
@@ -168,8 +155,8 @@ function escapeWith {
     local spdNorm to spd0 * (ix_dot_in / cos(deflectAngle)).
     local spdPro to sqrt(spd0 ^ 2 - spdNorm ^ 2).
 
-    print "spdNorm " + spdNorm.
-    print "spdPro " + spdPro.
+    // print "spdNorm " + spdNorm.
+    // print "spdPro " + spdPro.
 
     local cosDeflect to cos(deflectAngle).
     local sinDeflect to sin(deflectAngle).
@@ -181,16 +168,17 @@ function escapeWith {
 
     local pos0 to i0_p + body:position. 
     local burnTanly to posToTanly(pos0, obt).
-    print "burnTanly " + burnTanly.
+    // print "burnTanly " + burnTanly.
     local shipPos to positionAt(ship, startTime).
     local startTanly to posToTanly(shipPos, obt).
-    print "start tanly " + startTanly.
+    // print "start tanly " + startTanly.
     local alignDur to timeBetweenTanlies(startTanly, burnTanly, obt).
-    print "alignDur " + round(alignDur / 60) + " min".
+    // print "alignDur " + round(alignDur / 60) + " min".
 
     add node(startTime + alignDur, 0, spdNorm,
         spdPro - ship:velocity:orbit:mag).
-    wait 10000.
+        wait 0.
+    // print "add node? hello".
 }
 
 function refinePe {

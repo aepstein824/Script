@@ -283,13 +283,10 @@ function dimlessEllipse {
 
     local p1Manly to dimlessManly(p1Tanly).
     local p2Manly to dimlessManly(p2Tanly).
-    if p2Manly < p1Manly {
-        set p2Manly to p2Manly + 2 * pi.
-    }
-    // print " p1Manly = " + p1Manly.
-    // print " p2Manly = " + p2Manly.
+    // print " p1Manly = " + p1Manly * constant:radtodeg.
+    // print " p2Manly = " + p2Manly * constant:radtodeg.
 
-    local t to (p2Manly - p1Manly) / meanMotion.
+    local t to abs(p2Manly - p1Manly) / meanMotion.
     return t.
 }
 
@@ -335,7 +332,8 @@ function dimlessKepler {
     parameter rho, c, wc, dTheta, ef, et.
     local sinWc to sinR(wc).
     local cosWc to cosR(wc).
-    local tanlyReverse to arcTan2R(ef * sinWc + et * cosWc,
+    local tanlyReverse to arcTan2R(
+        ef * sinWc + et * cosWc,
         ef * cosWc - et * sinWc).
     local p1Tanly to -1 * tanlyReverse.
     local p2Tanly to dTheta - tanlyReverse.
