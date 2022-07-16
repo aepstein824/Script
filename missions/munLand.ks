@@ -9,12 +9,12 @@ runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/orbit.ks").
 runOncePath("0:phases/landKsc.ks").
 runOncePath("0:phases/launchToOrbit.ks").
-runOncePath("0:phases/moon.ks").
+runOncePath("0:phases/travel.ks").
 runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/waypoints.ks").
 
-set kPhases:startInc to 4.
-set kPhases:stopInc to 4.
+set kPhases:startInc to 3.
+set kPhases:stopInc to 3.
 
 local dest to minmus.
 local kMunPeLow to kWarpHeights[dest].
@@ -23,7 +23,7 @@ local kInterStg to 1.
 local kLanderStg to 1.
 set kClimb:Turn to 5.
 set kClimb:ClimbAp to 80000.
-local lz to latlng(-50, -15).
+local lz to latlng(23, -88).
 
 wait until ship:unpacked.
 
@@ -36,46 +36,45 @@ if shouldPhase(0) {
     doAG13To45Science().
 }
 if shouldPhase(1) {
-    doMoonFlyby(dest).
-    waitWarp(time:seconds + orbit:nextpatcheta + 60).
-    doAG13To45Science().
+    local travelContext to lexicon(
+        "dest", dest,
+        "altitude", kWarpHeights[dest],
+        "inclination", 0
+    ). 
+    travelTo(travelContext).
 }
 if shouldPhase(2) {
-    print "Missing the " + dest:name.
-    refinePe(kMunPeLow, kMunPeHigh).
-}
-if shouldPhase(3) {
     print "Circling " + dest:name.
     circleNextExec(kMunPeLow).
     doAG13To45Science().
 }
-if shouldPhase(4) {
+if shouldPhase(3) {
     print "Landing".
     lights on.
     vacDescendToward(lz).
+    print "Descent Burn at " + ship:geoposition.
     stageTo(kLanderStg).
     vacLand().
-    doAG1To45Science().
-    print ship:geoposition.
+    print "Landed at " + ship:geoposition.
 }
-if shouldPhase(5) {
+if shouldPhase(4) {
     verticalLeapTo(100).
     wait until ship:velocity:surface:mag < 2.
     hopBestTo(lz:altitudeposition(100)).
     suicideBurn(100).
     coast(5).
 }
-if shouldPhase(6) {
+if shouldPhase(5) {
     lights off.
     print "Leaving " + dest:name.
-    vacClimb().
+    vacClimb(kMunPeLow).
     circleNextExec(kMunPeLow).
     escapeWith(-150, 0).
     nodeExecute().
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
     circleAtKerbin().
 }
-if shouldPhase(7) {
+if shouldPhase(6) {
     print "Rndv with lab".
     setTargetTo("KLab").
 
@@ -86,62 +85,12 @@ if shouldPhase(7) {
     waitWarp(closestApproach()).
     doubleBallisticRcs().
 }
-if shouldPhase(8) {
+if shouldPhase(7) {
     print "Dock with lab".
     setTargetTo("KLab").
     rcsApproach().
 }
-if shouldPhase(9) {
+if shouldPhase(8) {
     landKsc().
 }
 
-function vacDescendToward {
-    parameter wGeo.
-   
-    matchGeoPlane(wGeo).
-
-    local norm to shipNorm().
-    local wPos to wGeo:position - body:position.
-    local pePos to shipPAtPe().
-    local wTanly to vectorAngleAround(pePos, norm, wPos).
-    local landAngle to 20.
-    local landTanly to mod(wTanly - landAngle + 360, 360).
-    print "wTanly = " + wTanly.
-    print "landTanly = " + landTanly.
-    local landDur to timeBetweenTanlies(obt:trueanomaly, landTanly, obt).
-
-    local mm to 360 / obt:period.
-    print "mm " + mm.
-    // bodyMm is right handed
-    local bodyMm to -body:angularvel:y * constant:radtodeg.
-    print "bdmm " + bodyMm.
-    // positive norm and bodymm mean body is moving in same direction, land later
-    local timeFactor to (mm + bodyMm * norm:y) / mm.
-    print "timeFactor " + timeFactor.
-    set landDur to landDur * timeFactor.
-    local p2 to rotateVecAround(wPos, v(0, 1, 0), bodyMm * landDur).
-    
-    local landTime to time + landDur.
-    local res to lambertLanding(ship, p2, landTime).
-    add res:burnNode.
-    nodeExecute().
-}
-
-function vacLand {
-    legs on.
-    suicideBurn(600).
-    suicideBurn(100).
-    coast(5).
-}
-
-function vacClimb {
-    verticalLeapTo(100).
-    lock steering to heading(90, 45, 0).
-    lock throttle to 1.
-    until apoapsis > kMunPeLow {
-        nodeStage().
-        wait 0.
-    }
-    lock throttle to 0.
-    wait until altitude > 3100.
-}

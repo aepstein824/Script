@@ -5,47 +5,32 @@ runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 runOncePath("0:maneuvers/node.ks").
 
-// circleNextExec(95000).
-
+// Match planes at closest node preserving radius.
+// Works by applying a pro/norm burn based on angle difference.
 function matchPlanes {
-    // combine with matchplanesandsemi
     parameter targetNorm.
-    local shipPePos to positionAt(ship, time + obt:eta:periapsis) - body:position.
+    print "Target Norm " + targetNorm.
     local norm to shipNorm().
     local crs to vCrs(targetNorm, norm):normalized.
 
-    print "tanly = " + vectorAngleAround(shipPePos, norm, crs). 
-    local delayFromPe to timeBetweenTanlies(0, 
-        vectorAngleAround(shipPePos, norm, crs), obt).
+    // take sooner one
+    if vdot(ship:prograde:vector, crs) < 0 {
+        set crs to -1 * crs.
+    }
+
+    local shipPos to shipPAt(time).
+    local delayFromPe to timeBetweenTanlies(obt:trueanomaly, 
+        vectorAngleAround(shipPos, norm, crs), obt).
     local burnTime to time + obt:eta:periapsis + delayFromPe.
     local burnStartSpd to velocityAt(ship, burnTime):orbit:mag.
-    local dt to vang(norm, targetNorm).
+    local dt to vectorAngleAround(norm, crs, targetNorm).
 
     local dv to 2 * burnStartSpd * sin(dt / 2).
     add node(burnTime, 0, dv * cos(dt / 2), -dv * sin(dt / 2)).  
 }
 
-function escapeRetro {
-    // probably only works from circle
-    local burnDir to body:position - body:obt:body:position.
-    local norm to shipNorm().
-    local pePos to shipPAtPe().
-    local burnTanly to vectorAngleAround(pePos, norm, burnDir).
-
-    local burnTime to timeBetweenTanlies(obt:trueanomaly, burnTanly, obt) + time.
-    local burnPos to shipPAt(burnTime). 
-    local burnR to burnPos:mag.
-    local fudge to .9.
-    local escapeSpd to fudge * sqrt(2 * body:mu / burnR).
-    local ds to escapeSpd - shipVAt(burnTime):mag.
-
-    local nd to node(burnTime, 0, 0, ds).
-    add nd.
-    until nd:obt:hasnextpatch() {
-        set nd:prograde to nd:prograde + 1.
-    }
-}
-
+// Match planes at closest node, killing radial v and setting opposite alt.
+// Works differently enough from matchPlanes that I will keep both.
 function matchPlanesAndSemi {
     parameter targetNorm, targetOp.
     local norm to shipNorm().

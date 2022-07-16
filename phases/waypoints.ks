@@ -105,3 +105,59 @@ function planCutAtWaypoint {
     add node(cutTime, radBurn, 0, 0).
     add node(wTime + 5, -1 * radBurn, 0, 0).
 }
+
+function vacDescendToward {
+    parameter wGeo.
+   
+    matchGeoPlane(wGeo).
+
+    local norm to shipNorm().
+    local wPos to groundPosition(wGeo).
+    local pePos to shipPAtPe().
+    local wTanly to vectorAngleAround(pePos, norm, wPos).
+    local deorbitAngle to 20.
+    local deorbitTanly to mod(wTanly - deorbitAngle + 360, 360).
+    // print "wTanly = " + wTanly.
+    // print "deorbitTanly = " + deorbitTanly.
+    local deorbitDur to timeBetweenTanlies(obt:trueanomaly, deorbitTanly, obt).
+    print "deorbitDur " + deorbitDur * sToHours.
+    local passoverDur to timeBetweenTanlies(obt:trueanomaly, wTanly, obt).
+    print "passoverDur " + passoverDur * sToHours.
+    local landDur to 2 * passoverDur - deorbitDur.
+
+    local mm to 360 / obt:period.
+    // print "mm " + mm.
+    // bodyMm is right handed
+    local bodyMm to -body:angularvel:y * constant:radtodeg.
+    // print "bdmm " + bodyMm.
+    // positive norm and bodymm mean body is moving in same direction, deorbit later
+    local timeFactor to (mm + bodyMm * norm:y) / mm.
+    // print "timeFactor " + timeFactor.
+    set deorbitDur to deorbitDur. // * timeFactor.
+    local p2 to rotateVecAround(wPos, v(0, 1, 0), bodyMm * landDur).
+    
+    local deorbitTime to time + deorbitDur.
+    local res to lambertLanding(ship, p2, deorbitTime).
+    add res:burnNode.
+    nodeExecute().
+}
+
+function vacLand {
+    legs on.
+    suicideBurn(600).
+    suicideBurn(100).
+    coast(5).
+}
+
+function vacClimb {
+    parameter height.
+    verticalLeapTo(100).
+    lock steering to heading(90, 45, 0).
+    lock throttle to 1.
+    until apoapsis > height {
+        nodeStage().
+        wait 0.
+    }
+    lock throttle to 0.
+    wait until altitude > 3100.
+}

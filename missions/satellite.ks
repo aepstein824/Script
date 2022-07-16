@@ -9,8 +9,8 @@ runOncePath("0:maneuvers/orbit.ks").
 runOncePath("0:phases/launchToOrbit.ks").
 runOncePath("0:phases/travel.ks").
 
-set kPhases:startInc to 2.
-set kPhases:stopInc to 2.
+set kPhases:startInc to 3.
+set kPhases:stopInc to 3.
 
 set kClimb:Turn to 5.
 set kClimb:ClimbA to 1.3.
@@ -23,7 +23,7 @@ local kCarrierPark to 120000.
 local kInterStage to 1.
 local dest to kerbin.
 
-local kApDir to sat100dirs()[0].
+local kApDir to sat100dirs()[3].
 
 if shouldPhase(0) {
     print "Launch to Orbit!".
@@ -52,7 +52,7 @@ if shouldPhase(2) {
     travelTo(travelContext).
 }
 if shouldPhase(3) {
-    // sat100orbit(kApDir).
+    sat100orbit(kApDir).
 }
 
 function sat100sun {

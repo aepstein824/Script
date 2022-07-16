@@ -136,7 +136,7 @@ function suicideBurn {
         local qc to h0 - 0.5 * v0^2 / a.
         local tf to qfMax(qa, qb, qc).
 
-        if tf < 1 {
+        if tf < 5 {
             kuniverse:timewarp:cancelwarp().
         }
         if tf < 0 {
@@ -155,7 +155,7 @@ function suicideBurn {
     print "Burn!".
     until vDot(startV, currentV) < 0 {
         set currentV to -1 * ship:velocity:surface.
-        lock steering to 0.3 * startV:normalized() + currentV:normalized().
+        lock steering to 0.1 * startV:normalized() + currentV:normalized().
         // lock throttle to 1.
         local timeTo to shipTimeToDV(currentV:mag).
         lock throttle to max(timeTo, 0.5).
@@ -191,6 +191,13 @@ function coast {
     lock steering to up.
     lock throttle to 0.
     wait 5.
+}
+
+function groundPosition {
+    parameter geo.
+
+    local terrainH to geo:terrainHeight.
+    return geo:altitudePosition(terrainH) - body:position.
 }
 
 // attempt 1
