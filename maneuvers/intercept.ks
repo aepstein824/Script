@@ -74,7 +74,6 @@ function hohmannIntercept {
 
 function hlIntercept {
     parameter obtable1, obtable2. 
-    parameter offset to v(0, 0, 0).
 
     local hi to hohmannIntercept(obtable1:orbit, obtable2:orbit).
 
@@ -95,12 +94,12 @@ function hlIntercept {
     local merged to mergeLex(hi, fine).
     set merged:arrivalTime to merged:start + merged:duration.
 
-    clearVecDraws().
-    local bodyPos to obtable1:obt:body:position.
-    vecdraw(bodyPos, positionAt(obtable1, merged:start) - bodyPos,
-        rgb(0, 0, 1), "p1", 1.0, true).
-    vecdraw(bodyPos, positionAt(obtable2, merged:arrivalTime) - bodyPos,
-        rgb(0, 1, 0), "p2", 1.0, true).
+    // clearVecDraws().
+    // local bodyPos to obtable1:obt:body:position.
+    // vecdraw(bodyPos, positionAt(obtable1, merged:start) - bodyPos,
+        // rgb(0, 0, 1), "p1", 1.0, true).
+    // vecdraw(bodyPos, positionAt(obtable2, merged:arrivalTime) - bodyPos,
+        // rgb(0, 1, 0), "p2", 1.0, true).
 
     return merged.
 }
@@ -119,7 +118,7 @@ function lambertGrid {
 
     print ("LGrid to " + obtable2:name + " in "
         + round((guessT - time):seconds * sToDays) + "d, " 
-        + round(guessDur * sToDays) + "d long").
+        + round(detimestamp(guessDur) * sToDays) + "d long").
 
     local best to lexicon().
     set best:totalV to 10 ^ 20.

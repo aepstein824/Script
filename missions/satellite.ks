@@ -9,19 +9,19 @@ runOncePath("0:maneuvers/orbit.ks").
 runOncePath("0:phases/launchToOrbit.ks").
 runOncePath("0:phases/travel.ks").
 
-set kPhases:startInc to 3.
-set kPhases:stopInc to 3.
+set kPhases:startInc to 0.
+set kPhases:stopInc to 0.
 
-set kClimb:Turn to 5.
+set kClimb:Turn to 2.
 set kClimb:ClimbA to 1.3.
-set kClimb:ClimbAp to 75000.
+set kClimb:ClimbAp to 90000.
 set kClimb:Heading to 90.
 set kClimb:Roll to 0.
-set kClimb:TLimAlt to 12000.
+set kClimb:TLimAlt to 14000.
 local shouldPark to true.
 local kCarrierPark to 120000.
-local kInterStage to 1.
-local dest to kerbin.
+local kInterStage to 0.
+local dest to minmus.
 
 local kApDir to sat100dirs()[3].
 
@@ -33,7 +33,7 @@ if shouldPhase(0) {
     stageTo(kInterStage).
     // lifter is yeeting itself back onto the surface 
     lock throttle to 0.2.
-    wait 3.
+    wait 1.
     lock throttle to 0.
     wait 5.
     ag10 on.

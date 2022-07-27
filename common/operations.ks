@@ -153,6 +153,15 @@ function setTargetTo {
 
     local candidates to list().
     list targets in candidates.
+
+    for c in candidates {
+        if c:name = nameOrThing {
+            set target to c:name.
+        }
+    }
+
+    list bodies in candidates.
+
     for c in candidates {
         if c:name = nameOrThing {
             set target to c:name.

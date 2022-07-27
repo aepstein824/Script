@@ -13,17 +13,17 @@ runOncePath("0:phases/travel.ks").
 runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/waypoints.ks").
 
-set kPhases:startInc to 3.
-set kPhases:stopInc to 3.
+set kPhases:startInc to 5.
+set kPhases:stopInc to 5.
 
 local dest to minmus.
 local kMunPeLow to kWarpHeights[dest].
 local kMunPeHigh to kMunPeLow * 3.
-local kInterStg to 1.
-local kLanderStg to 1.
+local kInterStg to 0.
+local kLanderStg to 0.
 set kClimb:Turn to 5.
 set kClimb:ClimbAp to 80000.
-local lz to latlng(23, -88).
+local lz to latlng(12, -45).
 
 wait until ship:unpacked.
 
@@ -52,7 +52,6 @@ if shouldPhase(3) {
     print "Landing".
     lights on.
     vacDescendToward(lz).
-    print "Descent Burn at " + ship:geoposition.
     stageTo(kLanderStg).
     vacLand().
     print "Landed at " + ship:geoposition.
@@ -69,10 +68,10 @@ if shouldPhase(5) {
     print "Leaving " + dest:name.
     vacClimb(kMunPeLow).
     circleNextExec(kMunPeLow).
-    escapeWith(-150, 0).
-    nodeExecute().
-    waitWarp(time:seconds + orbit:nextpatcheta + 60).
-    circleAtKerbin().
+    // escapeWith(-150, 0).
+    // nodeExecute().
+    // waitWarp(time:seconds + orbit:nextpatcheta + 60).
+    // circleAtKerbin().
 }
 if shouldPhase(6) {
     print "Rndv with lab".

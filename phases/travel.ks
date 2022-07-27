@@ -18,6 +18,7 @@ function travelTo {
 
     until false {
         local strat to travelStratTo(dest).
+        // print strat.
 
         if strat[0] = stratOrbiting {
             break.
@@ -54,7 +55,10 @@ function travelStratTo {
     ourBodies:add(sun).
 
     if ourBodies:find(targetable) <> -1 {
-        return list(stratOrbiting).
+        if targetable = body {
+            return list(stratOrbiting).
+        }
+        return list(stratEscape).
     }
 
     local tgtBodies to list().
@@ -106,7 +110,7 @@ function travelIntercept {
 
     local hl to hlIntercept(ship, target).
     add hl:burnNode.
-    nodeRcs().
+    nodeExecute().
 
     if (target:typename = "BODY") {
         travelIntoSatOrbit(ctx, target, hl:arrivalTime).
@@ -114,7 +118,6 @@ function travelIntercept {
     } else {
         waitWarp(closestApproach(ship, target) - 2 * 60).
         doubleBallisticRcs().
-        travelCaptureToInc(ctx, target).
     }
 }
 
@@ -128,7 +131,7 @@ function travelEscapeTo {
     parameter ctx, tgtBody, planeOf.
 
     local hl to hlIntercept(body, tgtBody).
-    print hl:burnNode.
+    // print hl:burnNode.
     escapeWith(hl:burnVec, hl:when).
     add node(hl:arrivalTime, 0, 0, 0).
     print "waiting in escape 134".

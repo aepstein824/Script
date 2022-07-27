@@ -114,6 +114,24 @@ function dontEscape {
     }
 }
 
+function escapeHyperDeflect {
+    parameter e.
+    return arcsin(1 / e).
+}
+
+function escapeEllipseDeflect {
+    parameter a, r, e.
+
+    local num to a * (1 - e^2) / r.
+    print "num " + num.
+    local cosTanly to (num - 1) / e.
+    print "cosTanly " + cosTanly.
+    local tanly to arcCos(cosTanly).
+    local flightPath to arctan(e * sin(tanly) / (1 + e * cos(tanly))).
+    print "flightPath " + flightPath.
+    return tanly - flightPath.
+} 
+
 function escapeWith {
     parameter v_x, delay.
 
@@ -124,23 +142,37 @@ function escapeWith {
     local startTime to time + delay.
     local r0 to altitude + body:radius.
     local escapeRIntegral to 1 / r0 - 1 / body:soiradius.
-    // print "escape integral " + escapeRIntegral.
+    // print "escape integral " + (escapeRIntegral * r0).
 
     local spd0 to sqrt(v_x:mag ^ 2 + 2 * body:mu * escapeRIntegral).
     // print "v0 " + spd0.
     local a to 1 / (2 / r0 - spd0 ^ 2 / body:mu).
-    local e to max(1 - r0 / a, 1).
-    // print "e " + e.
-    local deflectAngle to arcsin(1 / e).
-    // print "deflectAngle " + deflectAngle.
+    // print "a " + a.
+    // print "a / soi " + (a / body:soiradius).
+    // print "a correct " + (body:soiradius + r0) / 2.
+    local e to 1 - r0 / a.
+    print "e " + e.
+    local deflectAngle to 0.
+    if (e > 1) {
+        set deflectAngle to escapeHyperDeflect(e).
+    } else {
+        print "r? " + a * (1 - e^2) / (1 - e) / body:soiradius.
+        print "r? " + a * (1 + e) / body:soiradius.
+        set deflectAngle to escapeEllipseDeflect(a, body:soiradius, e).
+    }
+    print "deflectAngle " + deflectAngle.
 
     local i_n to shipnorm().
     local i_x to v_x:normalized.
     local ix_dot_in to vDot(i_x, i_n).
+    // print "norm dot " + ix_dot_in.
     local spdNorm to spd0 * (ix_dot_in / cos(deflectAngle)).
+    // print "spdNorm " + spdNorm.
+    // if spdNorm > spd0 {
+        // set spdNorm to 0.
+    // }
     local spdPro to sqrt(spd0 ^ 2 - spdNorm ^ 2).
 
-    // print "spdNorm " + spdNorm.
     // print "spdPro " + spdPro.
 
     local cosDeflect to cos(deflectAngle).
@@ -162,8 +194,6 @@ function escapeWith {
 
     add node(startTime + alignDur, 0, spdNorm,
         spdPro - ship:velocity:orbit:mag).
-        wait 0.
-    // print "add node? hello".
 }
 
 function refinePe {

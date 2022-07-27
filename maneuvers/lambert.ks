@@ -101,9 +101,9 @@ function lambert {
     local focus to obt1:body.
 
     local p1 to positionAt(obtable1, startTime) - focus:position.
-    clearVecDraws().
-    vecdraw(focus:position, p1, rgb(0, 0, 1), "p1", 1.0, true).
-    vecdraw(focus:position, p2, rgb(0, 1, 0), "p2", 1.0, true).
+    // clearVecDraws().
+    // vecdraw(focus:position, p1, rgb(0, 0, 1), "p1", 1.0, true).
+    // vecdraw(focus:position, p2, rgb(0, 1, 0), "p2", 1.0, true).
 
     // print "P1 = " + p1:mag.
     // print "P2 = " + p2:mag.

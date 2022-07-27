@@ -11,17 +11,13 @@ runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/orbit.ks").
 runOncePath("0:phases/landKsc.ks").
 runOncePath("0:phases/launchToOrbit.ks").
-runOncePath("0:phases/moon.ks").
+runOncePath("0:phases/travel.ks").
 runOncePath("0:phases/waypoints.ks").
 
-local first to mun.
-local kMunLow to 80000.
-local kMinmusLow to 28000.
-local kCircleHigh to 200000.
 set kClimb:Turn to 7.
 set kClimb:ClimbAp to 76000.
-set kPhases:startInc to 8.
-set kPhases:stopInc to 9.
+set kPhases:startInc to 3.
+set kPhases:stopInc to 5.
 
 wait until ship:unpacked.
 
@@ -32,66 +28,21 @@ if shouldPhase(0) {
     launchToOrbit().
 }
 if shouldPhase(1) {
-    print "Go to " + first:name.
-    local hl to hlIntercept(ship, first).
-    add hl:burnNode.
-    nodeExecute().
-    if not orbit:hasnextpatch() {
-        print "Correcting Course".
-        waitWarp(time:seconds + 5 * 60).
-        set hl to hlIntercept(ship, first).
-        add hl:burnNode.
-        nodeExecute().
-    }
-    waitWarp(time:seconds + orbit:nextpatcheta + 60).
+    print "Go to Mun".
+    travelTo(lexicon("dest", mun, "altitude", 80000)).
 }
 if shouldPhase(2) {
-    print "Missing " + first:name.
-    refinePe(kMunLow, kCircleHigh).
+    print "Go to Minmus".
+    travelTo(lexicon("dest", kerbin)).
+    travelTo(lexicon("dest", minmus, "altitude", 25000)).
 }
 if shouldPhase(3) {
-    print "Circling " + first:name.
-    circleNextExec(kMunLow).
+    print "Escape Minmus".
+    travelTo(lexicon("dest", kerbin)).
 }
 if shouldPhase(4) {
-    print "Transfer to Minmus".
-    local hi to hohmannIntercept(mun:obt, minmus:obt).
-    local arrivalTime to time:seconds + hi:when + hi:duration.
-    escapeWith(hi:vd, hi:when).
-    nodeExecute().
-    wait 1.
-    waitWarp(time:seconds + orbit:nextpatcheta + 60).
-    wait 5.
-    if not orbit:hasnextpatch() or orbit:nextpatch:body <> minmus {
-        print "Correcting Course".
-        // Time after escape.
-        local arrivalEta to arrivalTime - time:seconds.
-        local dt to .05 * arrivalEta.
-        local startTime to time:seconds + dt * kIntercept:StartSpan + 5 * 60.
-        local correction to lambertGrid(ship, minmus, startTime, arrivalEta, dt, dt).
-        add correction:burnNode.
-        nodeExecute().
-    }
-    waitWarp(time:seconds + orbit:nextpatcheta + 60).
-}
-if shouldPhase(5) {
-    print "Missing Minmus".
-    refinePe(kMinmusLow, kCircleHigh).
-
-}
-if shouldPhase(6) {
-    print "Circling Minmus".
-    circleNextExec(kMinmusLow).
-}
-if shouldPhase(7) {
-    print "Leaving Minmus".
-    escapeWith(-150, 0).
-    nodeExecute().
-    waitWarp(time:seconds + orbit:nextpatcheta + 60).
-}
-if shouldPhase(8) {
     circleAtKerbin().
 }
-if shouldPhase(9) {
+if shouldPhase(5) {
     landKsc().
 }
