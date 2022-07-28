@@ -1,6 +1,5 @@
 @LAZYGLOBAL OFF.
 
-clearscreen.
 runOncePath("0:common/phasing.ks").
 runOncePath("0:maneuvers/climb.ks").
 runOncePath("0:maneuvers/hop.ks").
@@ -12,11 +11,12 @@ runOncePath("0:phases/launchToOrbit.ks").
 runOncePath("0:phases/travel.ks").
 runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/waypoints.ks").
+clearAll().
 
-set kPhases:startInc to 0.
-set kPhases:stopInc to 0.
+set kPhases:startInc to 1.
+set kPhases:stopInc to 2.
 
-local lz to latlng(-10, -48).
+local lz to latlng(90, 0).
 
 local home to vessel("hive").
 

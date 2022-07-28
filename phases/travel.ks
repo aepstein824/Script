@@ -133,11 +133,12 @@ function travelEscapeTo {
     local hl to hlIntercept(body, tgtBody).
     // print hl:burnNode.
     escapeWith(hl:burnVec, hl:when).
-    add node(hl:arrivalTime, 0, 0, 0).
-    print "waiting in escape 134".
-    wait 10000.
+    // add node(hl:arrivalTime, 0, 0, 0).
+    // print "waiting in escape 137".
+    // wait 10000.
 
     nodeExecute().
+    print " Waiting in travelEscapeTo to escape " + body:name.
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
 
     travelIntoSatOrbit(ctx, tgtBody, hl:arrivalTime).
@@ -177,16 +178,20 @@ function travelIntoSatOrbit {
         nodeExecute().
     }
 
+    print " Waiting in travelIntoSatOrbit".
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
 }
 
 function travelCaptureToInc {
     parameter ctx.
+    print "Capture into orbit around " + body:print.
 
     if not ctx:haskey("altitude") {
+        print " Using default altitude".
         set ctx:altitude to kWarpHeights[body].
     }
     if not ctx:haskey("inclination") {
+        print " Using default inclination".
         set ctx:inclination to 0.
     }
     local norm to inclinationToNorm(ctx:inclination).

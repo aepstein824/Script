@@ -62,10 +62,10 @@ function ballistic {
         return (target:position - ship:position):mag.
     }
     local floatDist to kRndvParams:floatDist.
-    if distance() < floatDist {
+    local currentSpeed to (target:velocity:orbit - ship:velocity:orbit):mag.
+    if distance() < floatDist and currentSpeed < 2 {
         return.
     }
-    local currentSpeed to (target:velocity:orbit - ship:velocity:orbit):mag.
     local shortestHalftime to sqrt((distance() - floatDist) / shipAccel()).
     local maxAccel to 0.5. // accel for 1/4 total
     local infFuelSpd to shipAccel() * shortestHalftime * maxAccel.
@@ -130,6 +130,7 @@ function ballistic {
 }
 
 function rcsNeutralize {
+    print "Neutralize relative velocity with RCS".
     lock throttle to 0.
     lock steering to ship:position - target:position.
 

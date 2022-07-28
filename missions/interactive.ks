@@ -53,6 +53,9 @@ function doSomething {
         local travelCtx to lexicon(
             "dest", target 
         ).
+        if a1 = "polar" {
+            set travelCtx:inclination to 90.
+        } 
         travelTo(travelCtx).
     } else if it = "dock" {
         set target to a0.

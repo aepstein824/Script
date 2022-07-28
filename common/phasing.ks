@@ -8,3 +8,8 @@ function shouldPhase {
     parameter p.
     return kPhases:startInc <= p and p <= kPhases:stopInc.
 }
+
+function clearAll {
+    clearscreen.
+    sas off.
+}

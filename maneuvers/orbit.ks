@@ -123,12 +123,12 @@ function escapeEllipseDeflect {
     parameter a, r, e.
 
     local num to a * (1 - e^2) / r.
-    print "num " + num.
+    // print "num " + num.
     local cosTanly to (num - 1) / e.
-    print "cosTanly " + cosTanly.
+    // print "cosTanly " + cosTanly.
     local tanly to arcCos(cosTanly).
     local flightPath to arctan(e * sin(tanly) / (1 + e * cos(tanly))).
-    print "flightPath " + flightPath.
+    // print "flightPath " + flightPath.
     return tanly - flightPath.
 } 
 
@@ -151,16 +151,18 @@ function escapeWith {
     // print "a / soi " + (a / body:soiradius).
     // print "a correct " + (body:soiradius + r0) / 2.
     local e to 1 - r0 / a.
-    print "e " + e.
+    // print "e " + e.
     local deflectAngle to 0.
     if (e > 1) {
         set deflectAngle to escapeHyperDeflect(e).
     } else {
-        print "r? " + a * (1 - e^2) / (1 - e) / body:soiradius.
-        print "r? " + a * (1 + e) / body:soiradius.
+        set a to 1 / (2 / body:soiradius  - v_x:mag ^ 2 / body:mu).
+        // print "a " + a.
+        set e to 1 - r0 / a.
+        // print "e " + e.
         set deflectAngle to escapeEllipseDeflect(a, body:soiradius, e).
     }
-    print "deflectAngle " + deflectAngle.
+    // print "deflectAngle " + deflectAngle.
 
     local i_n to shipnorm().
     local i_x to v_x:normalized.
@@ -250,18 +252,18 @@ function hyperPe {
 
     local e to 1 / sin(turn / 2).
     local a to rPe / (1 - e).
-    print "a " + a.
+    // print "a " + a.
     // local b to -a / tan(turn / 2).
     // print "b " + b.
     // local realB to -a. //(b - a) / 2.
     // local tanly to -1 * (45 + arcCos(realB / r)).
     // local tanly to -131.
     local tanly to -1 * arccos((a * (1 - e^2) - r) / e / r).
-    print "tanly " + tanly.
+    // print "tanly " + tanly.
     local spd to sqrt(body:mu * (2 / r - 1 / a)).
-    print "spd " + spd.
+    // print "spd " + spd.
     local flightA to arcTan2(e * sin(tanly), 1 + e * cos(tanly)).
-    print "flightA " + flightA.
+    // print "flightA " + flightA.
 
     local around to vCrs(shipPos, norm):normalized.
     local out to shipPos:normalized.

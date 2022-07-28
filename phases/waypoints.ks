@@ -159,5 +159,5 @@ function vacClimb {
         wait 0.
     }
     lock throttle to 0.
-    wait until altitude > 3100.
+    wait 1.
 }
