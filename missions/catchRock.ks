@@ -38,13 +38,12 @@ if shouldPhase(1) {
     local hl to hlIntercept(ship, target).
     add hl:burnNode.
     nodeExecute().
-    for i in range(3) {
+    for i in range(1) {
         print "Refining Intercept " + i.
         local tClose to closestApproach(ship, target).
         local flightDuration to tClose - time:seconds.
-        local il to informedLambert(ship, target, flightDuration).
-        add il:burnNode.
-        nodeRcs().
+        local il to courseCorrect(target, flightDuration).
+        nodeExecute().
     }
 
 }
@@ -64,8 +63,8 @@ if shouldPhase(5) {
     // nodeExecute(). // exercise for the miner.
     // changeApAtPe(kerbin:soiradius * 0.9).
     // nodeExecute().
-    matchPlanesAndSemi(normOf(mun), kAsteroidStorage).
-    nodeExecute().
+    // matchPlanesAndSemi(normOf(mun), kAsteroidStorage).
+    // nodeExecute().
     circleNextExec(kAsteroidStorage).
 }
 if shouldPhase(6) {
@@ -84,19 +83,3 @@ function targetAsteroid {
     }
 }
 
-function bestNorm {
-    local tPos to target:obt:position - body:position.
-    local tVel to target:obt:velocity:orbit.
-    local tNorm to vCrs(tVel, tPos).
-    local ourPos to -body:position.
-    local inPlane to removeComp(tNorm, ourPos):normalized.
-    return inPlane.
-}
-
-function launchHeading {
-    local norm to bestNorm().
-    local pos to -body:position.
-    local launchDir to vCrs(pos, norm).
-    local headingAngle to vectorAngleAround(launchDir, pos, v(0, 1, 0)).
-    return headingAngle.
-}

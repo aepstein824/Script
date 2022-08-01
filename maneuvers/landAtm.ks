@@ -13,7 +13,7 @@ set kLandAtm:BurnAlt to 55000.
 set kLandAtm:ReturnTanly to 100.
 set kLandAtm:Winged to true.
 set kLandAtm:Coast to true.
-set kLandAtm:SurrenderQ to .05.
+set kLandAtm:SurrenderH to 20000.
 set kLandAtm:CoastReserve to 120.
 set kLandAtm:CoastH to 80.
 set kLandAtm:CoastSpd to 5.
@@ -24,6 +24,7 @@ function landFromDeorbit {
     unlock steering.
 
     getToAtm().
+    brakes on.
     
     if kLandAtm:Winged { 
         print "Winged Descent".
@@ -34,13 +35,12 @@ function landFromDeorbit {
     }
 
 
-    wait until ship:q > kLandAtm:SurrenderQ.
+    wait until altitude < kLandAtm:SurrenderH.
     print "Surrender and Slow".
     kuniverse:timewarp:cancelwarp().
     
     lock throttle to 0.
     unlock steering.
-    brakes on.
     chutes on.
     stageTo(0).
 
@@ -50,7 +50,6 @@ function landFromDeorbit {
     gear on.
     if (kLandAtm:Coast) {
         kuniverse:timewarp:cancelwarp().
-        brakes off.
         coast(kLandAtm:CoastSpd).
     }
 
@@ -70,7 +69,7 @@ function getToAtm {
 
 function wingedDescent {
     lock throttle to 0.
-    lock steering to heading(90, 25, kLandAtm:Roll).
+    lock steering to heading(90, 10, kLandAtm:Roll).
 }
 
 function burnExtraFuel {

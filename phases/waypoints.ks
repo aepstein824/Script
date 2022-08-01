@@ -8,6 +8,8 @@ runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/lambert.ks").
 runOncePath("0:maneuvers/orbit.ks").
 
+global kWaypointsClimbAngle to 23.
+
 function doWaypoints {
     local minInc to 360.
     local minW to false.
@@ -33,6 +35,27 @@ function doWaypoints {
         }
     }
 }
+
+function waitForRotation {
+    parameter wGeo.
+
+    local norm to shipNorm().
+    local spinningNorm to removeComp(norm, cosmicNorth).
+    local wPos to wGeo:position - body:position.
+    local spinningPos to removeComp(wPos, cosmicNorth).
+
+    local bodyRadSpd to body:angularvel:y.
+    local waitRad to vectorAngleAroundR(spinningPos, -sgn(bodyRadSpd) * cosmicNorth, 
+        spinningNorm).
+    if waitRad > constant:pi {
+        set waitRad to waitRad - constant:pi / 2.
+    } else {
+        set waitRad to waitRad + constant:pi / 2.
+    }
+    local waitDur to waitRad / abs(bodyRadSpd).
+    set waitDur to posmod(waitDur - orbit:period, 2 * constant:pi / bodyRadSpd).
+    waitWarp(waitDur + time).
+} 
 
 function matchGeoPlane {
     parameter wGeo.
@@ -108,6 +131,10 @@ function planCutAtWaypoint {
 
 function vacDescendToward {
     parameter wGeo.
+
+    if abs(obt:inclination) > 45 {
+        waitForRotation(wGeo).
+    }
    
     matchGeoPlane(wGeo).
 
@@ -151,8 +178,9 @@ function vacLand {
 
 function vacClimb {
     parameter height.
-    verticalLeapTo(100).
-    lock steering to heading(90, 45, 0).
+    parameter compass to 90.
+    verticalLeapTo(120).
+    lock steering to heading(compass, kWaypointsClimbAngle, 0).
     lock throttle to 1.
     until apoapsis > height {
         nodeStage().

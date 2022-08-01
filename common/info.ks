@@ -13,6 +13,7 @@ set kWarpHeights[eeloo] to 5000.
 
 global sToDays to 1 / 6 / 60 / 60.
 global sToHours to 1 / 60 / 60.
+global cosmicNorth to v(0, 1, 0).
 
 function polarScannerAltitude {
     parameter b.

@@ -16,7 +16,7 @@ clearAll().
 set kPhases:startInc to 1.
 set kPhases:stopInc to 2.
 
-local lz to latlng(90, 0).
+local lz to latlng(20, -21).
 
 local home to vessel("hive").
 
@@ -29,21 +29,20 @@ if shouldPhase(0) {
     lights off.
 }
 if shouldPhase(1) {
+    setTargetTo(home).
+
     lights off.
     print "Lifting off " + body:name.
-    local alti to 1.2 * home:altitude.
-    vacClimb(alti).
+    local alti to 1.1 * home:altitude.
+    waitForTargetPlane(home).
+    vacClimb(alti, launchHeading()).
     circleNextExec(alti).
 }
 if shouldPhase(2) {
     print "Rndv with " + home:name.
 
-    setTargetTo(home).
-    local hl to hlIntercept(ship, target).
-    add hl:burnNode.
-    nodeRcs().
-    waitWarp(closestApproach(ship, target) - 60).
-    doubleBallisticRcs().
+    local travelCtx to lexicon("dest", home).
+    travelTo(travelCtx).
 
     rcsApproach().
 }

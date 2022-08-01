@@ -47,6 +47,8 @@ function vectorAngleR {
 
 function vectorAngleAround {
     parameter base, upRef, x.
+    set base to removeComp(base, upRef).
+    set x to removeComp(x, upRef).
     local ang to vang(base, x).
     if vDot(x, vCrs(base, upRef)) < 0 {
         return 360 - ang.
@@ -56,6 +58,8 @@ function vectorAngleAround {
 
 function vectorAngleAroundR {
     parameter base, upRef, x.
+    set base to removeComp(base, upRef).
+    set x to removeComp(x, upRef).
     local ang to vectorAngleR(base, x).
     if vDot(x, vCrs(base, upRef)) < 0 {
         return 2 * constant:pi - ang.

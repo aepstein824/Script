@@ -9,9 +9,9 @@ runOncePath("0:common/math.ks").
 
 global kRndvParams to Lexicon().
 set kRndvParams:floatDist to 200.
-set kRndvParams:maxSpeed to 100.
+set kRndvParams:maxSpeed to 50.
 set kRndvParams:thrustAng to 5.
-set kRndvParams:rcsSpd to 5.
+set kRndvParams:rcsSpd to 3.
 
 
 function planIntercept {
@@ -36,24 +36,6 @@ function planIntercept {
         local nd to best:burnNode.
         add nd.
     }
-}
-
-function catchInCircle {
-    local vChange to 5.
-    if vdot(target:position, ship:prograde:vector) > 0 {
-       // go slower, fall into a faster orbit, catch up 
-       set vChange to -1 * vChange.
-    }
-    add node(time + 60, 0, 0, vChange).
-    nodeExecute().
-    function planetAngle {
-        return abs(vectorAngleAround(-1 * body:position,
-            vCrs(ship:prograde:vector, -1 * body:position),
-            target:position - body:position)).
-    }
-    set kuniverse:timewarp:rate to 50.
-    wait until planetAngle() < 3.
-    kuniverse:timewarp:cancelwarp().
 }
 
 function ballistic {
@@ -150,6 +132,7 @@ function rcsNeutralize {
 }
 
 function rcsApproach {
+    print "RCS Approach".
     local ourPort to ship:dockingports[0].
     ourPort:getmodule("ModuleDockingNode"):doevent("Control From Here").
     local tgtPort to target.
@@ -163,7 +146,7 @@ function rcsApproach {
 
     rcs on.
     local approachStart to time.
-    local halfway to (tgtPort:position - ourPort:position):mag.
+    local halfway to (tgtPort:position - ourPort:position):mag * 1.
     until false {
         local towards to tgtPort:position - ourPort:position.
         local tr to target:velocity:orbit - ship:velocity:orbit.
@@ -176,7 +159,7 @@ function rcsApproach {
         setRcs(delta).
     }
     local approachDur to time - approachStart.
-    local reverseDist to approachDur * kRndvParams:rcsSpd / 2 + 10.
+    local reverseDist to approachDur * kRndvParams:rcsSpd / 2 + 15.
     wait until (tgtPort:position - ourPort:position):mag < reverseDist.
 
     until false {
@@ -191,7 +174,7 @@ function rcsApproach {
         if towards:mag < 2 {
             break.
         }
-        setRcs(delta).
+        setRcs(2 * delta).
     }
     setRcs(v(0, 0, 0)).
     rcs off.
@@ -204,4 +187,47 @@ function doubleBallisticRcs {
         ballistic().
         rcsNeutralize().
     }
+}
+
+function bestNorm {
+    local tNorm to normOf(target).
+    local ourPos to -body:position.
+    local inPlane to removeComp(tNorm, ourPos):normalized.
+    return inPlane.
+}
+
+function launchHeading {
+    local norm to bestNorm().
+    local pos to -body:position.
+    local launchDir to vCrs(pos, norm).
+    // vecdraw(body:position, norm:normalized * 2 * body:radius, rgb(0, 0, 1), 
+    //     "p1", 1.0, true).
+    // vecdraw(body:position, launchDir:normalized * 2 * body:radius, rgb(0, 1, 0),
+    //     "p2", 1.0, true).
+
+    local headingAngle to vectorAngleAround(launchDir, pos, v(0, 1, 0)).
+    return headingAngle.
+}
+
+function waitForTargetPlane {
+    parameter planeOf.
+
+    local norm to normOf(planeOf).
+    local spinningNorm to removeComp(norm, cosmicNorth).
+    local planetPos to shipPAt(time).
+    local spinningPos to removeComp(planetPos, cosmicNorth).
+
+    local bodyRadSpd to body:angularvel:y.
+    local waitRad to vectorAngleAroundR(spinningPos, -sgn(bodyRadSpd) * cosmicNorth, 
+        spinningNorm).
+    if abs(waitRad - constant:pi/2) < 0.1 or abs(waitRad - 3*constant:pi/2) < 0.1 {
+        return.
+    }
+    if waitRad > constant:pi {
+        set waitRad to waitRad - constant:pi / 2.
+    } else {
+        set waitRad to waitRad + constant:pi / 2.
+    }
+    local waitDur to waitRad / abs(bodyRadSpd).
+    waitWarp(waitDur + time).
 }

@@ -132,7 +132,7 @@ function travelEscapeTo {
 
     local hl to hlIntercept(body, tgtBody).
     // print hl:burnNode.
-    escapeWith(hl:burnVec, hl:when).
+    escapeOmni(hl).
     // add node(hl:arrivalTime, 0, 0, 0).
     // print "waiting in escape 137".
     // wait 10000.
@@ -184,7 +184,7 @@ function travelIntoSatOrbit {
 
 function travelCaptureToInc {
     parameter ctx.
-    print "Capture into orbit around " + body:print.
+    print "Capture into orbit around " + body:name.
 
     if not ctx:haskey("altitude") {
         print " Using default altitude".

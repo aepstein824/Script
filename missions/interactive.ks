@@ -49,7 +49,9 @@ function doSomething {
     parameter it, a0, a1.
 
     if it = "travel" {
-        setTargetTo(a0).
+        if not hasTarget {
+            setTargetTo(a0).
+        }
         local travelCtx to lexicon(
             "dest", target 
         ).
@@ -58,7 +60,9 @@ function doSomething {
         } 
         travelTo(travelCtx).
     } else if it = "dock" {
-        set target to a0.
+        if not hasTarget {
+            set target to a0.
+        }
         rcsApproach().
     } else if it = "launch" {
         launchQuicksave("interactive").

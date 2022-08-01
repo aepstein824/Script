@@ -11,7 +11,7 @@ global spaceScienceParts to list(
 ).
 
 global useOnceScienceParts to list(
-     "goo",
+    "goo",
     "science.module"
 ).
 
@@ -96,7 +96,7 @@ function scienceModules {
 function waitWarp {
     parameter endTime.
     set kuniverse:timewarp:mode to "RAILS".
-    kuniverse:timewarp:warpto(endTime).
+    kuniverse:timewarp:warpto(detimestamp(endTime)).
     wait until time:seconds > endTime.
     wait until ship:unpacked.
 }

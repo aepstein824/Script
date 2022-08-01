@@ -12,4 +12,5 @@ function shouldPhase {
 function clearAll {
     clearscreen.
     sas off.
+    clearVecDraws().
 }

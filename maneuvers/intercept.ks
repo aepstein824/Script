@@ -76,10 +76,15 @@ function hlIntercept {
     parameter obtable1, obtable2. 
 
     local hi to hohmannIntercept(obtable1:orbit, obtable2:orbit).
+    set hi:dest to obtable2.
 
     local roughT to hi:start.
     local roughDur to hi:duration.
     local di to obtable1:obt:period * 0.1.
+    until roughT - di * kIntercept:StartSpan > time {
+        print " advancing roughT".
+        set roughT to roughT + di.
+    }
     local dj to hi:duration * 0.3.
 
     local rough to lambertGrid(obtable1, obtable2, roughT, roughDur, di, dj).
@@ -87,6 +92,11 @@ function hlIntercept {
     local fineT to rough:start.
     local fineDur to rough:duration.
     set di to di / (kIntercept:StartSpan + 1) / 2.
+    until fineT - di * kIntercept:StartSpan > time {
+        print " advancing fineT".
+        set fineT to fineT + di.
+    }
+
     set dj to dj / (kIntercept:DurSpan + 1) / 2.
 
     local fine to lambertGrid(obtable1, obtable2, fineT, fineDur, di, dj).
@@ -102,14 +112,6 @@ function hlIntercept {
         // rgb(0, 1, 0), "p2", 1.0, true).
 
     return merged.
-}
-
-function informedLambert {
-    parameter obtable1, obtable2, guessDur.
-    
-    local dt to .05 * guessDur.
-    local startTime to time:seconds + dt * kIntercept:StartSpan + 5 * 60.
-    return lambertGrid(obtable1, obtable2, startTime, guessDur, dt, dt).
 }
 
 function lambertGrid {

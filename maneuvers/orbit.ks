@@ -9,7 +9,7 @@ runOncePath("0:maneuvers/node.ks").
 // Works by applying a pro/norm burn based on angle difference.
 function matchPlanes {
     parameter targetNorm.
-    print "Target Norm " + targetNorm.
+    // print "Target Norm " + targetNorm.
     local norm to shipNorm().
     local crs to vCrs(targetNorm, norm):normalized.
 
@@ -123,12 +123,12 @@ function escapeEllipseDeflect {
     parameter a, r, e.
 
     local num to a * (1 - e^2) / r.
-    // print "num " + num.
+    print "num " + num.
     local cosTanly to (num - 1) / e.
-    // print "cosTanly " + cosTanly.
+    print "cosTanly " + cosTanly.
     local tanly to arcCos(cosTanly).
     local flightPath to arctan(e * sin(tanly) / (1 + e * cos(tanly))).
-    // print "flightPath " + flightPath.
+    print "flightPath " + flightPath.
     return tanly - flightPath.
 } 
 
@@ -141,28 +141,34 @@ function escapeWith {
 
     local startTime to time + delay.
     local r0 to altitude + body:radius.
-    local escapeRIntegral to 1 / r0 - 1 / body:soiradius.
+    local soirad to body:soiradius.
+    local escapeRIntegral to 1 / r0 - 1 / soirad.
     // print "escape integral " + (escapeRIntegral * r0).
 
     local spd0 to sqrt(v_x:mag ^ 2 + 2 * body:mu * escapeRIntegral).
-    // print "v0 " + spd0.
+    print "v0 " + spd0.
     local a to 1 / (2 / r0 - spd0 ^ 2 / body:mu).
-    // print "a " + a.
-    // print "a / soi " + (a / body:soiradius).
-    // print "a correct " + (body:soiradius + r0) / 2.
+    print "a " + a.
+    print "a / soi " + (a / body:soiradius).
     local e to 1 - r0 / a.
-    // print "e " + e.
+    print "e " + e.
     local deflectAngle to 0.
     if (e > 1) {
         set deflectAngle to escapeHyperDeflect(e).
     } else {
-        set a to 1 / (2 / body:soiradius  - v_x:mag ^ 2 / body:mu).
-        // print "a " + a.
+        local aMin to (body:soiradius + r0) / 2.
+        print "a minimum " + aMin.
+        local minExit to 1.05 * sqrt(body:mu * (2 / soirad - 1 / aMin)).
+        print "min speed " + minExit.
+        local ellipseExit to max(minExit, v_x:mag). 
+        set a to 1 / (2 / body:soiradius  - ellipseExit ^ 2 / body:mu).
+        print "a " + a.
         set e to 1 - r0 / a.
-        // print "e " + e.
+        print "e " + e.
+        set spd0 to sqrt(body:mu * (2 / r0 - 1 / a)).
         set deflectAngle to escapeEllipseDeflect(a, body:soiradius, e).
     }
-    // print "deflectAngle " + deflectAngle.
+    print "deflectAngle " + deflectAngle.
 
     local i_n to shipnorm().
     local i_x to v_x:normalized.
@@ -170,9 +176,9 @@ function escapeWith {
     // print "norm dot " + ix_dot_in.
     local spdNorm to spd0 * (ix_dot_in / cos(deflectAngle)).
     // print "spdNorm " + spdNorm.
-    // if spdNorm > spd0 {
-        // set spdNorm to 0.
-    // }
+    if abs(spdNorm) > spd0 {
+        return false.
+    }
     local spdPro to sqrt(spd0 ^ 2 - spdNorm ^ 2).
 
     // print "spdPro " + spdPro.
@@ -196,6 +202,45 @@ function escapeWith {
 
     add node(startTime + alignDur, 0, spdNorm,
         spdPro - ship:velocity:orbit:mag).
+    return true.
+}
+
+function escapeOmni {
+    parameter hl.
+
+    print "Escaping " + body:name + " to " + hl:dest:name.
+    local incNodeP to vcrs(normOf(hl:dest:obt), normOf(body:obt)):normalized.
+    local bodyP to positionAt(body, hl:start) - body:obt:body:position.
+    // clearVecDraws().
+    // vecdraw(kerbin:position, bodyP, red, "body", 1, true).
+    // vecdraw(kerbin:position, incNodeP * mun:altitude, blue, "an", 1, true).
+    // vecdraw(kerbin:position, normOf(body:obt) * mun:altitude, green, "mun", 1, true).
+    // vecdraw(kerbin:position, normOf(minmus:obt) * mun:altitude, yellow, "min", 1, true).
+    local kNodeAllow to 10.
+    local nodeAng to vang(bodyP, incNodeP).
+    print " AN is " + round(nodeAng) + " away".
+    if nodeAng < kNodeAllow or nodeAng > (180 - kNodeAllow) {
+        print " Attempting single burn transfer".
+        local canEscapeWith to escapeWith(hl:burnVec, hl:when).
+        if canEscapeWith {
+            return.
+        }
+    }
+
+    local hi to hohmannIntercept(obt, hl:dest:obt).
+    local bv to velocityAt(body, hi:start):orbit.
+    local normVsPro to vang(shipNorm(), bv).
+    print " Considering a hohmann escape, normVsPro " + normVsPro.
+    if abs(normVsPro - 90) < kNodeAllow {
+        print " Doing hohmann".
+        escapeWith(hi:vd * bv:normalized, hi:when).
+    } else {
+        print " Just getting out".
+        local bestPro to removeComp(body:obt:velocity:orbit, shipNorm()).
+        local escapeV to bestPro:normalized * 40 * sgn(hi:vd).
+        // vecdraw(kerbin:position, bestPro * mun:altitude, green, "esc", 1, true).
+        escapeWith(escapeV, 0).
+    }
 }
 
 function refinePe {
