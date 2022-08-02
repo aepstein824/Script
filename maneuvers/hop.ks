@@ -101,6 +101,7 @@ function verticalLeapTo {
 
 function suicideBurn {
     parameter safeH.
+    parameter finalV to 5.
 
     set kuniverse:timewarp:mode to "PHYSICS".
     set kuniverse:timewarp:rate to 4.
@@ -153,12 +154,10 @@ function suicideBurn {
     local currentV to startV.
 
     print "Burn!".
-    until vDot(startV, currentV) < 0 {
+    until vDot(startV:normalized, currentV) < finalV {
         set currentV to -1 * ship:velocity:surface.
-        lock steering to 0.1 * startV:normalized() + currentV:normalized().
-        // lock throttle to 1.
-        local timeTo to shipTimeToDV(currentV:mag).
-        lock throttle to max(timeTo, 0.5).
+        lock steering to currentV:normalized().
+        lock throttle to max(currentV:mag / 10, 0.5).
     }
 
     lock throttle to 0.

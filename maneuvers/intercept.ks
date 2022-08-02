@@ -67,7 +67,7 @@ function hohmannIntercept {
     set hi:when to t.
     set hi:start to t + time.
     set hi:arrivalTime to time + hi:when + hi:duration.
-    // print hi.
+    print hi.
 
     return hi.
 }
@@ -81,11 +81,31 @@ function hlIntercept {
     local roughT to hi:start.
     local roughDur to hi:duration.
     local di to obtable1:obt:period * 0.1.
+    local dj to hi:duration * 0.3.
+
+    local fine to doubleLambert(obtable1, obtable2, roughT, roughDur, di, dj).
+
+    local merged to mergeLex(hi, fine).
+
+    // clearVecDraws().
+    // local bodyPos to obtable1:obt:body:position.
+    // vecdraw(bodyPos, positionAt(obtable1, merged:start) - bodyPos,
+        // rgb(0, 0, 1), "p1", 1.0, true).
+    // vecdraw(bodyPos, positionAt(obtable2, merged:arrivalTime) - bodyPos,
+        // rgb(0, 1, 0), "p2", 1.0, true).
+
+    return merged.
+}
+
+function doubleLambert {
+    parameter obtable1, obtable2, guessT, guessDur, di, dj.
+
+    local roughT to guessT.
+    local roughDur to guessDur.
     until roughT - di * kIntercept:StartSpan > time {
         print " advancing roughT".
         set roughT to roughT + di.
     }
-    local dj to hi:duration * 0.3.
 
     local rough to lambertGrid(obtable1, obtable2, roughT, roughDur, di, dj).
 
@@ -100,18 +120,7 @@ function hlIntercept {
     set dj to dj / (kIntercept:DurSpan + 1) / 2.
 
     local fine to lambertGrid(obtable1, obtable2, fineT, fineDur, di, dj).
-
-    local merged to mergeLex(hi, fine).
-    set merged:arrivalTime to merged:start + merged:duration.
-
-    // clearVecDraws().
-    // local bodyPos to obtable1:obt:body:position.
-    // vecdraw(bodyPos, positionAt(obtable1, merged:start) - bodyPos,
-        // rgb(0, 0, 1), "p1", 1.0, true).
-    // vecdraw(bodyPos, positionAt(obtable2, merged:arrivalTime) - bodyPos,
-        // rgb(0, 1, 0), "p2", 1.0, true).
-
-    return merged.
+    return fine.
 }
 
 function lambertGrid {
@@ -154,11 +163,10 @@ function lambertGrid {
 
 function courseCorrect {
     parameter dest, duration.
-    parameter offset to v(0, 0, 0).
 
     local dt to .1 * duration.
     local startTime to time + dt * kIntercept:StartSpan + 5 * 60.
-    local correction to lambertGrid(ship, dest, startTime, duration, dt, dt, offset).
+    local correction to doubleLambert(ship, dest, startTime, duration, dt, dt).
     add correction:burnNode.
     return correction.
 }

@@ -7,7 +7,10 @@ runOncePath("0:phases/travel.ks").
 runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/launchToOrbit.ks").
 
-local buttonNames to list("exit", "travel", "dock", "launch", "land", "node").
+local buttonNames to list(
+    "exit", "travel", "dock", "launch", 
+    "land", "node", "circle"
+    ).
 clearGuis().
 local gui to gui(0).
 createButtons().
@@ -69,6 +72,12 @@ function doSomething {
         ensureHibernate().
         launchToOrbit().
     } else if it = "node" {
+        nodeExecute().
+    } else if it = "circle" {
+        local alti to a0:tonumber(kWarpHeights[body]).
+        circleNextExec(alti).
+        local inc to a1:tonumber(obt:inclination).
+        matchPlanes(inclinationToNorm(inc)).
         nodeExecute().
     }
 }

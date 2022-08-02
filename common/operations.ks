@@ -4,15 +4,22 @@ global anytimeScienceParts to list(
     "sensorBarometer",
     "sensorThermometer",
     "sensorAccelerometer",
-    "sensorGravimeter"
+    "sensorGravimeter",
+    "cupola-telescope"
 ).
 global spaceScienceParts to list(
-    "magnetometer"
+    "magnetometer",
+    "InfraredTelescope"
 ).
 
 global useOnceScienceParts to list(
     "goo",
-    "science.module"
+    "science.module",
+    "greenhouse"
+).
+
+global labs to list(
+    "lab"
 ).
 
 function doAG1To45Science {

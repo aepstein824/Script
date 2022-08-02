@@ -227,7 +227,7 @@ function escapeOmni {
         }
     }
 
-    local hi to hohmannIntercept(obt, hl:dest:obt).
+    local hi to hohmannIntercept(body:obt, hl:dest:obt).
     local bv to velocityAt(body, hi:start):orbit.
     local normVsPro to vang(shipNorm(), bv).
     print " Considering a hohmann escape, normVsPro " + normVsPro.
