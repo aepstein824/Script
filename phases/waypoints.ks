@@ -53,7 +53,7 @@ function waitForRotation {
         set waitRad to waitRad + constant:pi / 2.
     }
     local waitDur to waitRad / abs(bodyRadSpd).
-    set waitDur to posmod(waitDur - orbit:period, 2 * constant:pi / bodyRadSpd).
+    set waitDur to posmod(waitDur - orbit:period / 2, 2 * constant:pi / bodyRadSpd).
     waitWarp(waitDur + time).
 } 
 
@@ -135,36 +135,64 @@ function vacDescendToward {
     if abs(obt:inclination) > 45 {
         waitForRotation(wGeo).
     }
-   
-    matchGeoPlane(wGeo).
+
+    local r to periapsis + body:radius.
+    local a to r * 1.05 / 2.
+    local ecc to r / a - 1.
+    // print "ecc " + ecc.
+    local landR to body:radius + wGeo:terrainHeight.
+    local cosTanly to ((a / landR) * (1 - ecc ^ 2) - 1) / ecc.
+    // print "cosTanly " + cosTanly.
+    local tanly to arcCos(cosTanly).
+    // print "tanly " + tanly.
+
+    local eanly to arcCos((ecc + cosTanly) / (1 + ecc * cosTanly)).
+    local manly to eanly - ecc * sin(eanly).
+    local mm to constant:radtodeg * sqrt(body:mu / a ^ 3).
+    local landDur to (180 - manly) / mm.
+    local planeDur to (tanly - 90) * obt:period / 360.
+    local postDur to planeDur + landDur.
+    // print "post burn time " + postTime * sToHours + "h".
 
     local norm to shipNorm().
-    local wPos to groundPosition(wGeo).
-    local pePos to shipPAtPe().
-    local wTanly to vectorAngleAround(pePos, norm, wPos).
-    local deorbitAngle to 20.
-    local deorbitTanly to mod(wTanly - deorbitAngle + 360, 360).
-    // print "wTanly = " + wTanly.
-    // print "deorbitTanly = " + deorbitTanly.
-    local deorbitDur to timeBetweenTanlies(obt:trueanomaly, deorbitTanly, obt).
-    print "deorbitDur " + deorbitDur * sToHours.
-    local passoverDur to timeBetweenTanlies(obt:trueanomaly, wTanly, obt).
-    print "passoverDur " + passoverDur * sToHours.
-    local landDur to 2 * passoverDur - deorbitDur.
-
-    local mm to 360 / obt:period.
-    // print "mm " + mm.
-    // bodyMm is right handed
     local bodyMm to -body:angularvel:y * constant:radtodeg.
-    // print "bdmm " + bodyMm.
-    // positive norm and bodymm mean body is moving in same direction, deorbit later
-    local timeFactor to (mm + bodyMm * norm:y) / mm.
-    // print "timeFactor " + timeFactor.
-    set deorbitDur to deorbitDur. // * timeFactor.
-    local p2 to rotateVecAround(wPos, v(0, 1, 0), bodyMm * landDur).
-    
-    local deorbitTime to time + deorbitDur.
-    local res to lambertLanding(ship, p2, deorbitTime).
+    local wPosNow to groundPosition(wGeo).
+
+    local early to detimestamp(time + 30).
+    local late to detimestamp(early + obt:period).
+    local mid to 0.
+    local burnPos to ship:position.
+    local wPosMid to wPosNow.
+    for i in range(12) {
+        set mid to (early + late) / 2.
+        local landTimeMid to mid + postDur.
+        local nowTillLand to landTimeMid - time:seconds.
+        set wPosMid to rotateVecAround(wPosNow, cosmicNorth, bodyMm * nowTillLand).
+        set burnPos to vCrs(norm, wPosMid).
+        local burnTanly to posToTanly(burnPos + body:position, obt).
+        local burnTime to timeBetweenTanlies(obt:trueanomaly, burnTanly, obt).
+        // print "Off by " + (burnTime + time - mid):seconds.
+        if burnTime + time < mid {
+            set late to mid.
+        } else {
+            set early to mid.
+        }
+        // clearVecDraws().
+        // vecdraw(body:position, wPosMid * 2, red, "body", 1, true).
+        // vecdraw(body:position, burnPos * 2, blue, "an", 1, true).
+    }
+
+    local dt to 90 - vectorAngleAround(wPosMid, burnPos, norm).
+    print dt.
+    local burnStartSpd to shipVAt(mid):mag.
+    local dv to 2 * burnStartSpd * sin(dt / 2).
+    add node(mid, 0, dv * cos(dt / 2), -dv * sin(dt / 2)).
+    nodeExecute().
+
+    set wPosNow to groundPosition(wGeo).
+    local wPosLand to rotateVecAround(wPosNow, cosmicNorth, bodyMm * postDur).
+    local deorbitTime to time + planeDur.
+    local res to lambertLanding(ship, wPosLand, deorbitTime).
     add res:burnNode.
     nodeExecute().
 }

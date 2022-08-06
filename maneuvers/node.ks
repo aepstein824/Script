@@ -15,12 +15,12 @@ function nodeExecute {
 
     wait 0.
     local nd to nextnode.
-    print "Node in: " + round(nd:eta) 
+    print " Node in: " + round(nd:eta) 
         + ", DeltaV: " + round(nd:deltav:mag).
     local dv to nd:deltav:mag.
     
     if dv < 0.1 {
-        print "Removing small node with dv " + dv.
+        print " Removing small node with dv " + dv.
         remove nd.
         wait 1.
         return.

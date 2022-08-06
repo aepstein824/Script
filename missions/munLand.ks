@@ -18,12 +18,11 @@ set kPhases:stopInc to 4.
 
 local dest to minmus.
 local kMunPeLow to kWarpHeights[dest].
-local kMunPeHigh to kMunPeLow * 3.
-local kInterStg to 0.
-local kLanderStg to 0.
+local kInterStg to 4.
+local kLanderStg to 4.
 set kClimb:Turn to 5.
 set kClimb:ClimbAp to 80000.
-local lz to latlng(-89, -113).
+local lz to latlng(45, 0).
 
 wait until ship:unpacked.
 
@@ -57,8 +56,8 @@ if shouldPhase(3) {
     print "Landed at " + ship:geoposition.
 }
 if shouldPhase(4) {
-    verticalLeapTo(100).
-    wait until ship:velocity:surface:mag < 2.
+    verticalLeapTo(200).
+    wait until abs(ship:velocity:surface:y) < 2.
     hopBestTo(lz:altitudeposition(100)).
     suicideBurn(100).
     coast(5).

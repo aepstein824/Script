@@ -18,7 +18,7 @@ function travelTo {
 
     until false {
         local strat to travelStratTo(dest).
-        // print strat.
+        print strat.
 
         if strat[0] = stratOrbiting {
             break.
@@ -145,7 +145,7 @@ function travelEscapeTo {
     if planeOf = tgtBody {
         travelCaptureToInc(ctx).
     } else {
-        travelCaptureToPlaneOf(planeOf).
+        travelCaptureToPlaneOf(ctx, planeOf).
     }
 }
 
@@ -154,6 +154,8 @@ function travelSatellite {
 
     local hl to hlIntercept(ship, tgtBody).
     add hl:burnNode.
+    // print "Waiting in 157".
+    // wait(100000).
     nodeExecute().
     travelIntoSatOrbit(ctx, tgtBody, hl:arrivalTime).
     travelCaptureToPlaneOf(ctx, planeOf).
@@ -207,12 +209,10 @@ function travelCaptureToPlaneOf {
     parameter ctx, tgt.
 
     // TODO efficient plane change.
-    local pe to tgt:obt:periapsis * 1.1.
+    local pe to tgt:obt:periapsis * 1.5.
     local norm to normOf(tgt:obt).
     hyperPe(pe, norm).
     nodeExecute().
-    if periapsis < pe {
-        hyperPe(pe, norm).
-    }
     circleNextExec(pe).
+
 }

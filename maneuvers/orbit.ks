@@ -7,26 +7,37 @@ runOncePath("0:maneuvers/node.ks").
 
 // Match planes at closest node preserving radius.
 // Works by applying a pro/norm burn based on angle difference.
-function matchPlanes {
+function matchPlanesNode {
     parameter targetNorm.
     // print "Target Norm " + targetNorm.
     local norm to shipNorm().
-    local crs to vCrs(targetNorm, norm):normalized.
-
-    // take sooner one
-    if vdot(ship:prograde:vector, crs) < 0 {
-        set crs to -1 * crs.
-    }
+    local asc to vCrs(targetNorm, norm):normalized.
 
     local shipPos to shipPAt(time).
-    local delayFromPe to timeBetweenTanlies(obt:trueanomaly, 
-        vectorAngleAround(shipPos, norm, crs), obt).
-    local burnTime to time + obt:eta:periapsis + delayFromPe.
+    local pToAscAngle to vectorAngleAround(shipPos, norm, asc).
+    // take sooner one
+    local pToNAscAngle to vectorAngleAround(shipPos, norm, -asc).
+    if pToAscAngle > pToNAscAngle {
+        set asc to -1 * asc.
+        set pToAscAngle to pToNAscAngle.
+    }
+    // print "tanly " + obt:trueanomaly.
+    // print "tanlyA " + (obt:trueanomaly + pToAscAngle).
+
+    local delayToNode to timeBetweenTanlies(obt:trueanomaly, 
+        obt:trueanomaly + pToAscAngle, obt).
+    local burnTime to time + delayToNode.
     local burnStartSpd to velocityAt(ship, burnTime):orbit:mag.
-    local dt to vectorAngleAround(norm, crs, targetNorm).
+    local dt to vectorAngleAround(norm, asc, targetNorm).
 
     local dv to 2 * burnStartSpd * sin(dt / 2).
-    add node(burnTime, 0, dv * cos(dt / 2), -dv * sin(dt / 2)).  
+    local nd to node(burnTime, 0, dv * cos(dt / 2), -dv * sin(dt / 2)).  
+    return nd.
+}
+
+function matchPlanes {
+    parameter targetNorm.
+    add matchPlanesNode(targetNorm).
 }
 
 // Match planes at closest node, killing radial v and setting opposite alt.
@@ -123,12 +134,12 @@ function escapeEllipseDeflect {
     parameter a, r, e.
 
     local num to a * (1 - e^2) / r.
-    print "num " + num.
+    // print "num " + num.
     local cosTanly to (num - 1) / e.
-    print "cosTanly " + cosTanly.
+    // print "cosTanly " + cosTanly.
     local tanly to arcCos(cosTanly).
     local flightPath to arctan(e * sin(tanly) / (1 + e * cos(tanly))).
-    print "flightPath " + flightPath.
+    // print "flightPath " + flightPath.
     return tanly - flightPath.
 } 
 
@@ -146,25 +157,25 @@ function escapeWith {
     // print "escape integral " + (escapeRIntegral * r0).
 
     local spd0 to sqrt(v_x:mag ^ 2 + 2 * body:mu * escapeRIntegral).
-    print "v0 " + spd0.
+    // print "v0 " + spd0.
     local a to 1 / (2 / r0 - spd0 ^ 2 / body:mu).
-    print "a " + a.
-    print "a / soi " + (a / body:soiradius).
+    // print "a " + a.
+    // print "a / soi " + (a / body:soiradius).
     local e to 1 - r0 / a.
-    print "e " + e.
+    // print "e " + e.
     local deflectAngle to 0.
     if (e > 1) {
         set deflectAngle to escapeHyperDeflect(e).
     } else {
         local aMin to (body:soiradius + r0) / 2.
-        print "a minimum " + aMin.
+        // print "a minimum " + aMin.
         local minExit to 1.05 * sqrt(body:mu * (2 / soirad - 1 / aMin)).
-        print "min speed " + minExit.
+        // print "min speed " + minExit.
         local ellipseExit to max(minExit, v_x:mag). 
         set a to 1 / (2 / body:soiradius  - ellipseExit ^ 2 / body:mu).
-        print "a " + a.
+        // print "a " + a.
         set e to 1 - r0 / a.
-        print "e " + e.
+        // print "e " + e.
         set spd0 to sqrt(body:mu * (2 / r0 - 1 / a)).
         set deflectAngle to escapeEllipseDeflect(a, body:soiradius, e).
     }
@@ -218,7 +229,7 @@ function escapeOmni {
     // vecdraw(kerbin:position, normOf(minmus:obt) * mun:altitude, yellow, "min", 1, true).
     local kNodeAllow to 10.
     local nodeAng to vang(bodyP, incNodeP).
-    print " AN is " + round(nodeAng) + " away".
+    print " AN is " + round(nodeAng) + " away, want 0 or 180".
     if nodeAng < kNodeAllow or nodeAng > (180 - kNodeAllow) {
         print " Attempting single burn transfer".
         local canEscapeWith to escapeWith(hl:burnVec, hl:when).
@@ -230,7 +241,7 @@ function escapeOmni {
     local hi to hohmannIntercept(body:obt, hl:dest:obt).
     local bv to velocityAt(body, hi:start):orbit.
     local normVsPro to vang(shipNorm(), bv).
-    print " Considering a hohmann escape, normVsPro " + normVsPro.
+    print " Considering a hohmann escape, normVsPro " + round(normVsPro) + ", want 90".
     if abs(normVsPro - 90) < kNodeAllow {
         print " Doing hohmann".
         escapeWith(hi:vd * bv:normalized, hi:when).

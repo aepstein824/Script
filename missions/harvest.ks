@@ -16,8 +16,7 @@ clearAll().
 set kPhases:startInc to 1.
 set kPhases:stopInc to 2.
 
-local lz to latlng(15, 44).
-
+local lz to latlng(-29, -160).
 local home to vessel("hive").
 
 if shouldPhase(0) {

@@ -87,16 +87,16 @@ function verticalLeapTo {
 
     local v0 to 1000000000.
     until ship:velocity:surface:mag > v0 {
-    set v0 to sqrt(2 * (h - groundAlt()) * g).
+        set v0 to sqrt(2 * (h - groundAlt()) * g).
 
-    lock steering to lookDirUp(-body:position, v(0, 1, 0)).
-    lock throttle to 1.
+        lock steering to lookDirUp(-body:position, v(0, 1, 0)).
+        lock throttle to 1.
     }
 
 
     lock throttle to 0.
 
-    wait until groundAlt() > .95 * h.
+    wait until groundAlt() > .90 * h.
 }
 
 function suicideBurn {

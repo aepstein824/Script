@@ -67,7 +67,8 @@ function hohmannIntercept {
     set hi:when to t.
     set hi:start to t + time.
     set hi:arrivalTime to time + hi:when + hi:duration.
-    print hi.
+    set hi:burnNode to node(hi:start, 0, 0, hi:vd).
+    // print hi.
 
     return hi.
 }
@@ -77,11 +78,33 @@ function hlIntercept {
 
     local hi to hohmannIntercept(obtable1:orbit, obtable2:orbit).
     set hi:dest to obtable2.
+    
+    if obtable1:obt:eccentricity < 0.2 and obtable1:obt:eccentricity < 0.2 { 
+        local norm1 to normOf(obtable1:obt).
+        local norm2 to normOf(obtable2:obt).
+
+        local incNodeP to vcrs(norm1, norm2):normalized.
+        local bodyP to positionAt(obtable1, hi:start) - obtable1:obt:body:position.
+
+        local kNodeAllow to 10.
+        local nodeAng to vang(bodyP, incNodeP).
+        print " AN is " + round(nodeAng) + " away, want 0 or 180".
+        if nodeAng > kNodeAllow and nodeAng < (180 - kNodeAllow) {
+            if vang(norm1, norm2) > 2 {
+                print " Changing planes first".
+                local nd to matchPlanesNode(norm2).
+                set hi:burnNode to nd.
+                return hi.
+            }
+            // print " Circular orbits, far from AN/DN, using hohmann intercept".
+            // return hi.
+        }
+    }
 
     local roughT to hi:start.
     local roughDur to hi:duration.
     local di to obtable1:obt:period * 0.1.
-    local dj to hi:duration * 0.3.
+    local dj to hi:duration * 0.1.
 
     local fine to doubleLambert(obtable1, obtable2, roughT, roughDur, di, dj).
 
@@ -102,21 +125,12 @@ function doubleLambert {
 
     local roughT to guessT.
     local roughDur to guessDur.
-    until roughT - di * kIntercept:StartSpan > time {
-        print " advancing roughT".
-        set roughT to roughT + di.
-    }
 
     local rough to lambertGrid(obtable1, obtable2, roughT, roughDur, di, dj).
 
     local fineT to rough:start.
     local fineDur to rough:duration.
     set di to di / (kIntercept:StartSpan + 1) / 2.
-    until fineT - di * kIntercept:StartSpan > time {
-        print " advancing fineT".
-        set fineT to fineT + di.
-    }
-
     set dj to dj / (kIntercept:DurSpan + 1) / 2.
 
     local fine to lambertGrid(obtable1, obtable2, fineT, fineDur, di, dj).
@@ -125,28 +139,43 @@ function doubleLambert {
 
 function lambertGrid {
     parameter obtable1, obtable2, guessT, guessDur, di, dj.
-    parameter offset to v(0, 0, 0).
 
-    print ("LGrid to " + obtable2:name + " in "
+    print (" LGrid to " + obtable2:name + " in "
         + round((guessT - time):seconds * sToDays) + "d, " 
         + round(detimestamp(guessDur) * sToDays) + "d long").
 
     local best to lexicon().
     set best:totalV to 10 ^ 20.
+    
+    local extra to choose 2 if (obtable1:obt:body = sun) else 1.
+    local lowI to -kIntercept:StartSpan * extra.
+    local highI to kIntercept:StartSpan * extra + 1.
+    local lowJ to -kIntercept:DurSpan * extra.
+    local highJ to kIntercept:DurSpan * extra + 1.
+    local slantFactor to 0.5 * detimestamp(dj) / detimestamp(di) / highI. 
 
-    for i in range(-kIntercept:StartSpan, kIntercept:StartSpan + 1) {
-        for j in range (-kIntercept:DurSpan, kIntercept:DurSpan + 1) {
+    until guessT + di * lowI > time {
+        print " advancing guess time".
+        set guessT to guessT + di.
+    }
+    until guessDur + dj * lowJ > 0 {
+        print " advancing guess dur".
+        set guessDur to guessDur + dj.
+    }
+
+    for i in range(lowI, highJ) {
+        for j in range (lowJ, highJ) {
             local startTime to guessT + i * di.
-            local flightDuration to guessDur + j * dj.
-            local results to lambertIntercept(obtable1, obtable2, offset,
+            local flightDuration to guessDur + j * dj - slantFactor * i * di.
+            local results to lambertIntercept(obtable1, obtable2, v(0,0,0),
                 startTime, flightDuration).
             // print "Duration " + round(flightDuration * sToDays).
             if results:ok {
                 set results:totalV to results:burnVec:mag. 
                 set results:totalV to results:totalV + results:matchVec:mag.
-                // print "(" + i + ", " + j + ") "
-                    // + round(results:burnVec:mag) + " -> "
-                    // + round(results:matchVec:mag).
+                print "(" + i + ", " + j + ") "
+                    + round(results:burnVec:mag) + " -> "
+                    + round(results:matchVec:mag).
                 if results:totalV < best:totalV {
                     set results:start to startTime.
                     set results:when to startTime - time.

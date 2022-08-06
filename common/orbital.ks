@@ -100,10 +100,13 @@ function eanlyToTanly {
 function timeBetweenTanlies {
     parameter x, y, argOrbit.
 
+    set x to posmod(x, 360).
+    set y to posmod(y, 360).
+
     local manlyX to eanlyToManly(argOrbit, tanlyToEanly(argOrbit, x)).
     local manlyY to eanlyToManly(argOrbit, tanlyToEanly(argOrbit, y)).
 
-    if x > y {
+    if manlyX > manlyY {
         set manlyX to manlyX - 360.
     }
     // print manlyX + ", " + manlyY.
