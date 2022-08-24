@@ -1,6 +1,5 @@
 @LAZYGLOBAL OFF.
 
-clearscreen.
 runOncePath("0:common/math.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
@@ -158,6 +157,7 @@ function suicideBurn {
         set currentV to -1 * ship:velocity:surface.
         lock steering to currentV:normalized().
         lock throttle to max(currentV:mag / 10, 0.5).
+        wait 0.
     }
 
     lock throttle to 0.
@@ -177,7 +177,8 @@ function coast {
     local throt to 0.
     lock throttle to throt.
 
-    lock steering to -ship:velocity:surface.
+    lock steering to -(0.1 * ship:velocity:surface:normalized 
+        + body:position:normalized).
     until ship:status = "LANDED"  or ship:status = "SPLASHED" {
         local vDown to vDot(body:position:normalized, ship:velocity:surface).
         set throt to pid:update(time:seconds, vDown).

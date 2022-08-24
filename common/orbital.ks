@@ -158,6 +158,9 @@ function closestApproach {
 
     local lr to .5.
     local t to time:seconds.
+    if obt:eccentricity < 1 {
+        set t to t + obt:period.
+    }
     local dt to 10.
     local dxSignLast to 0.
     local tEarly to t.

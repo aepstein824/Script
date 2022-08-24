@@ -16,8 +16,8 @@ clearAll().
 set kPhases:startInc to 1.
 set kPhases:stopInc to 2.
 
-local lz to latlng(-29, -160).
-local home to vessel("hive").
+local lz to latlng(0,0).
+local home to vessel("Casino").
 
 if shouldPhase(0) {
     print "Landing".

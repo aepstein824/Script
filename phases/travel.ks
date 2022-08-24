@@ -198,10 +198,10 @@ function travelCaptureToInc {
     }
     local norm to inclinationToNorm(ctx:inclination).
     hyperPe(ctx:altitude, norm).
-    nodeExecute().
     if periapsis < ctx:altitude {
         hyperPe(ctx:altitude, norm).
     }
+    nodeExecute().
     circleNextExec(ctx:altitude).
 }
 

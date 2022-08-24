@@ -48,6 +48,7 @@ function ballistic {
     if distance() < floatDist and currentSpeed < 2 {
         return.
     }
+    local halfDistance to distance() / 2.
     local shortestHalftime to sqrt((distance() - floatDist) / shipAccel()).
     local maxAccel to 0.5. // accel for 1/4 total
     local infFuelSpd to shipAccel() * shortestHalftime * maxAccel.
@@ -59,6 +60,7 @@ function ballistic {
         parameter approach.
         local retro to target:velocity:orbit.
         local toward to (target:position - ship:position):normalized.
+        set approach to min(approach, distance() / halfDistance).
         local closeIn to approach * maxSpeed * toward.
         //print  (retro + closeIn - ship:velocity:orbit).
         return (retro + closeIn - ship:velocity:orbit).
@@ -121,7 +123,7 @@ function rcsNeutralize {
     rcs on.
     until false {
         local tr to target:velocity:orbit - ship:velocity:orbit.
-        if (tr:mag < 0.1){
+        if (tr:mag < 0.3){
             break.
         }
         setRcs(tr).
@@ -133,12 +135,12 @@ function rcsNeutralize {
 
 function rcsApproach {
     print "RCS Approach".
-    local ourPort to ship:dockingports[0].
+    local ourPort to getPort(ship).
     ourPort:getmodule("ModuleDockingNode"):doevent("Control From Here").
     local tgtPort to target.
     local tgtPorts to target:dockingports.
     if not tgtPorts:empty() {
-        set tgtPort to tgtPorts[0].
+        set tgtPort to getPort(target).
     }
     lock steering to tgtPort:position - ship:position.
     lock throttle to 0.

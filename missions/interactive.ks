@@ -6,13 +6,14 @@ runOncePath("0:maneuvers/node.ks").
 runOncePath("0:phases/travel.ks").
 runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/launchToOrbit.ks").
+runOncePath("0:phases/waypoints.ks").
 
 local buttonNames to list(
     "exit", "travel", "dock", "launch", 
-    "land", "node", "circle"
+    "land", "node", "circle", "ground"
     ).
 clearGuis().
-local gui to gui(0).
+local gui to gui(300).
 createButtons().
 gui:show().
 
@@ -51,12 +52,14 @@ function createButtons {
 function doSomething {
     parameter it, a0, a1.
 
+    sas off.
     if it = "travel" {
         if not hasTarget {
             setTargetTo(a0).
         }
+        local dest to choose target if hasTarget else body(a0).
         local travelCtx to lexicon(
-            "dest", target 
+            "dest", dest 
         ).
         if a1 = "polar" {
             set travelCtx:inclination to 90.
@@ -79,6 +82,8 @@ function doSomething {
         // local inc to a1:tonumber(obt:inclination).
         // matchPlanes(inclinationToNorm(inc)).
         // nodeExecute().
+    } else if it = "ground" {
+        vacLand(). 
     }
 }
 

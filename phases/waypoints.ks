@@ -4,6 +4,7 @@ runOncePath("0:common/info.ks").
 runOncePath("0:common/math.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
+runOncePath("0:maneuvers/hop.ks").
 runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/lambert.ks").
 runOncePath("0:maneuvers/orbit.ks").

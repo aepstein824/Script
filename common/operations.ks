@@ -174,6 +174,7 @@ function setTargetTo {
             set target to c:name.
         }
     }
+    wait 0.
 }
 
 function cleanModule {
@@ -234,4 +235,13 @@ function detimestamp {
         return t:seconds.
     }
     return t.
+}
+
+function getPort {
+    parameter s.
+    local primarySearch to s:partstagged("primaryport"). 
+    if primarySearch:length() > 0 {
+        return primarySearch[0].
+    }
+    return s:dockingPorts[0].
 }

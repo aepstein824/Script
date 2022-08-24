@@ -13,8 +13,8 @@ runOncePath("0:phases/travel.ks").
 runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/waypoints.ks").
 
-set kPhases:startInc to 4.
-set kPhases:stopInc to 4.
+set kPhases:startInc to 5.
+set kPhases:stopInc to 5.
 
 local dest to minmus.
 local kMunPeLow to kWarpHeights[dest].

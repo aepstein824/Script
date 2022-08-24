@@ -78,6 +78,7 @@ function hlIntercept {
 
     local hi to hohmannIntercept(obtable1:orbit, obtable2:orbit).
     set hi:dest to obtable2.
+    local deviations to obtable2:typename = "Body".
     
     if obtable1:obt:eccentricity < 0.2 and obtable1:obt:eccentricity < 0.2 { 
         local norm1 to normOf(obtable1:obt).
@@ -89,7 +90,7 @@ function hlIntercept {
         local kNodeAllow to 10.
         local nodeAng to vang(bodyP, incNodeP).
         print " AN is " + round(nodeAng) + " away, want 0 or 180".
-        if nodeAng > kNodeAllow and nodeAng < (180 - kNodeAllow) {
+        if nodeAng > kNodeAllow and nodeAng < (180 - kNodeAllow) and deviations {
             if vang(norm1, norm2) > 2 {
                 print " Changing planes first".
                 local nd to matchPlanesNode(norm2).
