@@ -215,3 +215,9 @@ function closestApproach {
 
     return t.
 }
+
+function gat {
+    parameter h.
+
+    return body:mu / (body:radius + h) ^ 2. 
+}
