@@ -13,16 +13,16 @@ runOncePath("0:phases/travel.ks").
 runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/waypoints.ks").
 
-set kPhases:startInc to 5.
-set kPhases:stopInc to 5.
+set kPhases:startInc to 0.
+set kPhases:stopInc to 6.
 
-local dest to minmus.
+local dest to mun.
 local kMunPeLow to kWarpHeights[dest].
-local kInterStg to 4.
-local kLanderStg to 4.
+local kInterStg to 2.
+local kLanderStg to 2.
 set kClimb:Turn to 5.
 set kClimb:ClimbAp to 80000.
-local lz to latlng(45, 0).
+local lz to latlng(0, 0).
 
 wait until ship:unpacked.
 
@@ -44,7 +44,6 @@ if shouldPhase(1) {
 }
 if shouldPhase(2) {
     print "Circling " + dest:name.
-    circleNextExec(kMunPeLow).
     doAG13To45Science().
 }
 if shouldPhase(3) {
@@ -55,7 +54,7 @@ if shouldPhase(3) {
     vacLand().
     print "Landed at " + ship:geoposition.
 }
-if shouldPhase(4) {
+if false and shouldPhase(4) {
     verticalLeapTo(200).
     wait until abs(ship:velocity:surface:y) < 2.
     hopBestTo(lz:altitudeposition(100)).
@@ -76,12 +75,8 @@ if shouldPhase(6) {
     print "Rndv with lab".
     setTargetTo("KLab").
 
-    local hl to hlIntercept(ship, target).
-    add hl:burnNode.
-
-    nodeRcs().
-    waitWarp(closestApproach()).
-    doubleBallisticRcs().
+    local travelCtx to lexicon("dest", target).
+    travelTo(travelCtx).
 }
 if shouldPhase(7) {
     print "Dock with lab".

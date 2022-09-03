@@ -74,6 +74,7 @@ function doSomething {
         launchQuicksave("interactive").
         ensureHibernate().
         launchToOrbit().
+    } else if it = "land" {
     } else if it = "node" {
         nodeExecute().
     } else if it = "circle" {
