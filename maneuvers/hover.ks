@@ -23,33 +23,40 @@ global hoverParams to lexicon(
     "rzone", 50,
 
     // shared values
-    "face", facing:forevector,
-    "forward", -facing:topvector,
+    "travel", facing,
+    "face", facing,
 
     // cached values
     "throttlePid", hoverPid(),
     "prevTime", time:seconds,
-    "prevA", 0,
+    "prevA", v(0, 0, 0), // in travel frame, z unused 
     "bounds", ship:bounds
 ).
 
+// params:travel = x is around, y is away from target, z is up.
+// params:face = x is right, y is up, z is facing direction.
+// Far away from the target, these will line up. Close to the target,
+// the face direction will be locked in place, but travel will keep updating. 
+
+stage.
 lock steering to hoverSteering(hoverParams).
 lock throttle to hoverThrottle(hoverParams).
 
-local hoverHeight to 50.
+local hoverHeight to 120.
 set hoverParams:radar to hoverHeight.
 set hoverParams:mode to kHover.
 print "Ascent".
 wait until hoverParams:bounds:bottomaltradar > hoverHeight - 5. 
 print "Fly".
 set hoverParams:mode to kFly.
-wait 20.
+// wait 120.
+wait until abs((hoverParams:travel:inverse * hoverParams:tgt:position):y) < 0.5.
 print "Reduce Hspd".
 set hoverParams:mode to kHover.
-wait 10.
+wait 5.
 print "Descent".
 set hoverParams:radar to 5.
-wait until hoverParams:bounds:bottomaltradar < 5.1. 
+wait until hoverParams:bounds:bottomaltradar < 7. 
 set hoverParams:radar to 0.
 wait until hoverParams:bounds:bottomaltradar < 1.0.
 print "Landing".
@@ -59,16 +66,25 @@ wait 3.
 function hoverSteering {
     parameter params.
 
-    return lookDirUp(params:face, -params:forward).
+    return params:face.
 }
 
 function hoverThrottle {
     parameter params.
     
     if params:mode = kLand {
-        set params:theta to 0.
         return 0.
     }
+
+    set params:face to hoverForward(params).
+
+    local prevAOldSpace to params:prevA.
+    local travel to lookDirUp(-body:position, -params:tgt:position).
+    // doesn't account for change in world frame, but that should be slow
+    local prevAWorldSpace to params:travel * prevAOldSpace.
+    set params:prevA to travel:inverse * prevAWorldSpace.
+    set params:prevA:z to 0.
+    set params:travel to travel.
 
     local hacc to hoverHAccel(params).
 
@@ -83,9 +99,11 @@ function hoverThrottle {
     local g to gat(altitude).
     local gv to max(g + vacc, 0.01).
     local out to -body:position:normalized.
-    local face to gv * out + hacc * params:forward.
-    set params:face to face.
-    local totalAcc to sqrt(gv ^ 2 + hacc ^ 2).
+    local worldThrust to params:travel * hacc + out * gv.
+    set params:face to lookDirUp(worldThrust, params:face:upvector).
+
+    // local totalAcc to sqrt(gv ^ 2 + hacc:mag ^ 2).
+    local totalAcc to worldThrust:mag.
     local throt to totalAcc / (ship:maxthrust / ship:mass). 
 
     set throt to clamp(throt, 0, 1).
@@ -113,75 +131,43 @@ function hoverForward {
     local out to -body:position:normalized.
     local towards to removeComp(params:tgt:position, out).
     if towards:mag > kLockDist {
-        return towards:normalized.
+        return lookDirUp(out, -towards).
     } else {
-        return params:forward.
+        return params:face.
     }
 }
 
 function hoverHAccel {
     parameter params.
 
-    local forward to hoverForward(params).
-    set params:forward to forward. 
+    local travel to params:travel.
+    local toTgt to removeComp(travel:inverse * params:tgt:position, v(0, 0, 1)).
+    local travelV to removeComp(travel:inverse * velocity:surface, v(0, 0, 1)).
 
-    local timeDiff to min(time:seconds - params:prevTime, 0.05).
-    local absFrameJerk to kJerkH * timeDiff.
     local curA to params:prevA.
-    local dist to removeComp(params:tgt:position, body:position).
-    local curHspd to vdot(ship:velocity:surface, dist:normalized).
-    local positive to sgn(curA * curHspd) > 0. 
-    local slowJerk to -1 * absFrameJerk * sgn(curA).
-    local absA to abs(curA).
-    local promisedDV to (curA ^ 2) / kJerkH / 2.
+    local promisedDV to curA * curA:mag / kJerkH / 2.
+    local promisedV to travelV + promisedDV.
 
-    local reasoning to "uninit".
-    local frameJerk to 0.
-    if absA > 2 * sqrt(kJerkH * (abs(curHspd) + 1)) and positive {
-        // too much acceleration to slow without bounce
-        set frameJerk to slowJerk.
-        set reasoning to "moderate".
-    } else if curHspd > kMaxSpd or 
-        absA > 2 * sqrt(kJerkH * (kMaxSpd - abs(curHspd))) {
-        // too much acceleration to stop at max speed
-        set frameJerk to slowJerk.
-        set reasoning to "speedlim".
-    } else if params:mode = kHover {
-        if abs(curHspd) <  promisedDV {
-            // we already have too much deceleration
-            set frameJerk to slowJerk.
-            set reasoning to "toodecel".
-        } else {
-            // move to decelerate
-            set frameJerk to absFrameJerk * sgn(-curHspd).
-            set reasoning to "stpdecel".
-        }
-    } else if params:mode = kFly {
-        // calculate stopping distance
-        local vMax to curHspd + sgn(curA) * promisedDV.
-        // this stop time assumes currently accelerating
-        local dA to abs(curA) / kJerkH.
-        local dD to (2 * vMax ^ 2) / kJerkH.
-        local stopDist to dA + dD.
-        // print "dA " + round(dA) + " dD " + round(dD, 4)
-            // + " vMax " + round(vMax, 4).
-
-        if stopDist >  dist:mag {
-            set frameJerk to -absFrameJerk * sgn(curHspd).
-            set reasoning to "stopdist".
-        } else {
-            set frameJerk to absFrameJerk.
-            set reasoning to "gotoward".
-        }
+    local desiredV to v(0, 0, 0).
+    if params:mode = kFly {
+        local spd2 to toTgt:y * kJerkH - curA:y.
+        local spd to sgnSqrt(spd2 / 2).
+        set desiredV:y to clamp(spd, -kMaxSpd, kMaxSpd).
     }
 
-    local hacc to curA + frameJerk.
-    set hacc to clamp(hacc, -kMaxAccel, kMaxAccel).
+    local desiredA to desiredV - promisedV.
+    local errorA to desiredA - curA.
+    local timeDiff to min(time:seconds - params:prevTime, 0.05).
+    local deltaA to errorA:normalized * kJerkH * timeDiff.
+    local newA to curA + deltaA.
+    set newA to vecClampMag(newA, kMaxAccel).
     set params:prevTime to time:seconds.
-    set params:prevA to hacc.
-    // print reasoning + " hacc " + round(hacc, 5) 
-        // + " frameJerk " + round(sgn(frameJerk)).
-    return hacc.
+    set params:prevA to newA.
+
+    print "promisedV " + vecRound(promisedV, 2) + " desiredV " + vecRound(desiredV, 2)
+        + " desiredA " + vecRound(desiredA, 2) + " newA " + vecRound(newA, 2).
+
+    return newA.
 }
 
 function hoverPid {

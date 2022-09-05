@@ -124,3 +124,23 @@ function arcCosHR {
     parameter x.
     return ln(x + sqrt(x^2 - 1)).
 }
+
+function vecClampMag {
+    parameter vec, mag.
+    if vec:mag > mag {
+        return vec:normalized * mag.
+    }
+    else {
+        return vec.
+    }
+}
+
+function sgnSqrt {
+    parameter x.
+    return sgn(x) * sqrt(abs(x)).
+}
+
+function vecRound {
+    parameter a, n.
+    return V(round(a:x, n), round(a:y, n), round(a:z, n)).
+}
