@@ -2,25 +2,34 @@
 
 runOncePath("0:common/info.ks").
 runOncePath("0:common/math.ks").
+runOncePath("0:common/operations.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 
 local kSpdV to 0.3.
-local kJerkH to 0.2.
+local kJerkH to 0.5.
 local kMaxAccel to 1.
-local kMaxSpd to 30.
+local kMaxSpd to 50.
+local kMaxSpdV to 30.
 local kLockDist to 50.
-local kLand to "LAND".
+local kAhead to 2.
+local kAheadDistance to 30.
+local kStop to "STOP".
 local kHover to "HOVER".
-local kFly to "FLY".
+local kDescend to "DESCEND".
 
 global hoverParams to lexicon(
     // adjust these
-    // "tgt", waypoint("vab main building"),
-    "tgt", waypoint("ksc"),
-    "radar", 0,
-    "mode", kLand,
-    "rzone", 50,
+    // "tgt", target,
+    "tgt", vessel("helipad"),
+    // "tgt", waypoint("ksc"),
+    // "tgt", waypoint("island airfield"),
+    "mode", kStop,
+    "seek", false,
+    "minAGL", 10,
+    "minAMSL", 50,
+    "favAAT", 30,
+    "minG", 0.8,
 
     // shared values
     "travel", facing,
@@ -29,7 +38,7 @@ global hoverParams to lexicon(
     // cached values
     "throttlePid", hoverPid(),
     "prevTime", time:seconds,
-    "prevA", v(0, 0, 0), // in travel frame, z unused 
+    "prevA", v(0, 0, 0), // in world frame, z unused 
     "bounds", ship:bounds
 ).
 
@@ -38,30 +47,34 @@ global hoverParams to lexicon(
 // Far away from the target, these will line up. Close to the target,
 // the face direction will be locked in place, but travel will keep updating. 
 
-stage.
-lock steering to hoverSteering(hoverParams).
-lock throttle to hoverThrottle(hoverParams).
+// stage.
+// sas off.
+// lock steering to hoverSteering(hoverParams).
+// lock throttle to hoverThrottle(hoverParams).
 
-local hoverHeight to 120.
-set hoverParams:radar to hoverHeight.
-set hoverParams:mode to kHover.
-print "Ascent".
-wait until hoverParams:bounds:bottomaltradar > hoverHeight - 5. 
-print "Fly".
-set hoverParams:mode to kFly.
-// wait 120.
-wait until abs((hoverParams:travel:inverse * hoverParams:tgt:position):y) < 0.5.
-print "Reduce Hspd".
-set hoverParams:mode to kHover.
-wait 5.
-print "Descent".
-set hoverParams:radar to 5.
-wait until hoverParams:bounds:bottomaltradar < 7. 
-set hoverParams:radar to 0.
-wait until hoverParams:bounds:bottomaltradar < 1.0.
-print "Landing".
-set hoverParams:mode to kLand.
-wait 3.
+// set hoverParams:mode to kHover.
+// print "Ascent".
+// wait until hoverParams:bounds:bottomaltradar > 5. 
+// print "Fly".
+// set hoverParams:seek to true.
+// // wait 120.
+// wait until abs((hoverParams:travel:inverse * hoverParams:tgt:position):y) < 0.1.
+// print "Reduce Hspd".
+// wait 5.
+// print "Descent".
+// set hoverParams:mode to kDescend.
+// wait until hoverParams:bounds:bottomaltradar < 0.2.
+// set hoverParams:mode to kStop.
+// set hoverParams:seek to false.
+// set hoverParams:tgt to waypoint("ksc").
+// wait 1.
+// set hoverParams:seek to true.
+// wait until abs((hoverParams:travel:inverse * hoverParams:tgt:position):y) < 0.1.
+// set hoverParams:mode to kDescend.
+// wait until hoverParams:bounds:bottomaltradar < 0.3.
+// set hoverParams:mode to kStop.
+
+
 
 function hoverSteering {
     parameter params.
@@ -72,34 +85,36 @@ function hoverSteering {
 function hoverThrottle {
     parameter params.
     
-    if params:mode = kLand {
+    if params:mode = kStop {
         return 0.
     }
 
     set params:face to hoverForward(params).
 
-    local prevAOldSpace to params:prevA.
     local travel to lookDirUp(-body:position, -params:tgt:position).
-    // doesn't account for change in world frame, but that should be slow
-    local prevAWorldSpace to params:travel * prevAOldSpace.
-    set params:prevA to travel:inverse * prevAWorldSpace.
-    set params:prevA:z to 0.
     set params:travel to travel.
 
     local hacc to hoverHAccel(params).
 
     local pid to params:throttlePid.
-    local h to params:radar - params:bounds:bottomaltradar.
+    local h to hoverAlt(params).
     local tgtVspd to sgn(h) * hoverSpdCurve(abs(h) * kSpdV).
-    local curVspd to vDot(ship:velocity:surface, -body:position:normalized).
+    set tgtVspd to clamp(tgtVspd, -kMaxSpdV, kMaxSpdV).
+    local out to -body:position:normalized.
+    local curVspd to vDot(ship:velocity:surface, out).
+    // print tgtVspd + ", " + curVspd.
     set pid:setpoint to tgtVspd.
     local vacc to pid:update(time:seconds, curVspd).
 
 
     local g to gat(altitude).
-    local gv to max(g + vacc, 0.01).
-    local out to -body:position:normalized.
-    local worldThrust to params:travel * hacc + out * gv.
+    local gv to g + vacc.
+    local minA to g * params:minG.
+    if gv < minA {
+        set gv to minA.
+        pid:reset().
+    }
+    local worldThrust to hacc + out * gv.
     set params:face to lookDirUp(worldThrust, params:face:upvector).
 
     // local totalAcc to sqrt(gv ^ 2 + hacc:mag ^ 2).
@@ -123,6 +138,42 @@ function hoverSpdCurve {
 
 function hoverAlt {
     parameter params.
+    // expected to be positive
+    local radar to params:bounds:bottomaltradar.
+    local radarOffset to (altitude - params:bounds:bottomalt).
+    local position to ship:position.
+
+    if params:mode = kDescend {
+        return 0.1 - radar.
+    }
+
+    local positions to list(position, params:tgt:position).
+    for i in range(1, kAhead + 1) {
+        local deltaGrid to v(0, -i * kAheadDistance, 0).
+        local deltaWorld to params:travel * deltaGrid.
+        positions:add(position + deltaWorld).
+    }
+    local maxGround to -10000.
+    local avgGround to 0.
+    local grounds to list().
+    for p in positions {
+        local g to terrainHAt(p).
+        grounds:add(g).
+        set maxGround to max(maxGround, g).
+        set avgGround to avgGround + g / positions:length.
+    }
+ 
+    // altitude
+    local seaAlt to params:minAMSL.
+    // clear obstacles
+    local clearAlt to maxGround + radarOffset + params:minAGL.
+    local avgAlt to avgGround + radarOffset + params:favAAT.
+    local safeAlt to max(seaAlt, max(clearAlt, avgAlt)).
+    // clearScreen.
+    // print grounds.
+    // print seaAlt + ", " + round(clearAlt, 2) + ", " + round(avgAlt, 2).
+
+    return safeAlt - (altitude - radarOffset).
 }
 
 function hoverForward {
@@ -141,15 +192,20 @@ function hoverHAccel {
     parameter params.
 
     local travel to params:travel.
-    local toTgt to removeComp(travel:inverse * params:tgt:position, v(0, 0, 1)).
-    local travelV to removeComp(travel:inverse * velocity:surface, v(0, 0, 1)).
+    local travelInv to travel:inverse.
+    local curAWorld to params:prevA.
+    local curA to travelInv * curAWorld.
+    local toTgt to travelInv * params:tgt:position.
+    local travelV to travelInv * velocity:surface.
+    set curA:z to 0.
+    set toTgt:z to 0.
+    set travelV:z to 0.
 
-    local curA to params:prevA.
     local promisedDV to curA * curA:mag / kJerkH / 2.
     local promisedV to travelV + promisedDV.
 
     local desiredV to v(0, 0, 0).
-    if params:mode = kFly {
+    if params:seek = true {
         local spd2 to toTgt:y * kJerkH - curA:y.
         local spd to sgnSqrt(spd2 / 2).
         set desiredV:y to clamp(spd, -kMaxSpd, kMaxSpd).
@@ -162,12 +218,13 @@ function hoverHAccel {
     local newA to curA + deltaA.
     set newA to vecClampMag(newA, kMaxAccel).
     set params:prevTime to time:seconds.
-    set params:prevA to newA.
+    local worldA to travel * newA.
+    set params:prevA to worldA.
 
-    print "promisedV " + vecRound(promisedV, 2) + " desiredV " + vecRound(desiredV, 2)
-        + " desiredA " + vecRound(desiredA, 2) + " newA " + vecRound(newA, 2).
+    // print "promisedV " + vecRound(promisedV, 2) + " desiredV " + vecRound(desiredV, 2)
+        // + " desiredA " + vecRound(desiredA, 2) + " newA " + vecRound(newA, 2).
 
-    return newA.
+    return worldA.
 }
 
 function hoverPid {

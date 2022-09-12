@@ -245,3 +245,17 @@ function getPort {
     }
     return s:dockingPorts[0].
 }
+
+function groundAlt {
+    local galt to altitude - terrainHAt(ship:position).
+    return galt.
+}
+
+function terrainHAt {
+    parameter p.
+    local ground to body:geopositionof(p):terrainheight.
+    if body:hasOcean() {
+        set ground to max(ground, 0).
+    }
+    return ground.
+}

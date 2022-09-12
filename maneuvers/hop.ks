@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 
 runOncePath("0:common/math.ks").
+runOncePath("0:common/operations.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 
@@ -60,19 +61,6 @@ function hopBestTo {
     lock throttle to 0.
 }
 
-function groundAlt {
-    local galt to altitude - terrainHAt(ship:position).
-    return galt.
-}
-
-function terrainHAt {
-    parameter p.
-    local ground to body:geopositionof(p):terrainheight.
-    if body:hasOcean() {
-        set ground to max(ground, 0).
-    }
-    return ground.
-}
 
 function verticalLeapTo {
     parameter h.
