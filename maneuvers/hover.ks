@@ -6,17 +6,19 @@ runOncePath("0:common/operations.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 
+global kHover to lexicon().
+set kHover:Stop to "STOP".
+set kHover:Hover to "HOVER".
+set kHover:Descend to "DESCEND".
+
 local kSpdV to 0.3.
-local kJerkH to 0.5.
+local kJerkH to 0.2.
 local kMaxAccel to 1.
 local kMaxSpd to 50.
 local kMaxSpdV to 30.
 local kLockDist to 50.
 local kAhead to 2.
 local kAheadDistance to 30.
-local kStop to "STOP".
-local kHover to "HOVER".
-local kDescend to "DESCEND".
 
 global hoverParams to lexicon(
     // adjust these
@@ -24,11 +26,12 @@ global hoverParams to lexicon(
     "tgt", vessel("helipad"),
     // "tgt", waypoint("ksc"),
     // "tgt", waypoint("island airfield"),
-    "mode", kStop,
+    "mode", kHover:Stop,
     "seek", false,
     "minAGL", 10,
     "minAMSL", 50,
-    "favAAT", 30,
+    "favAAT", 12,
+    "altOffset", 0,
     "minG", 0.8,
 
     // shared values
@@ -62,17 +65,17 @@ global hoverParams to lexicon(
 // print "Reduce Hspd".
 // wait 5.
 // print "Descent".
-// set hoverParams:mode to kDescend.
+// set hoverParams:mode to kHover:Descend.
 // wait until hoverParams:bounds:bottomaltradar < 0.2.
-// set hoverParams:mode to kStop.
+// set hoverParams:mode to kHover:Stop.
 // set hoverParams:seek to false.
 // set hoverParams:tgt to waypoint("ksc").
 // wait 1.
 // set hoverParams:seek to true.
 // wait until abs((hoverParams:travel:inverse * hoverParams:tgt:position):y) < 0.1.
-// set hoverParams:mode to kDescend.
+// set hoverParams:mode to kHover:Descend.
 // wait until hoverParams:bounds:bottomaltradar < 0.3.
-// set hoverParams:mode to kStop.
+// set hoverParams:mode to kHover:Stop.
 
 
 
@@ -85,7 +88,7 @@ function hoverSteering {
 function hoverThrottle {
     parameter params.
     
-    if params:mode = kStop {
+    if params:mode = kHover:Stop {
         return 0.
     }
 
@@ -119,7 +122,10 @@ function hoverThrottle {
 
     // local totalAcc to sqrt(gv ^ 2 + hacc:mag ^ 2).
     local totalAcc to worldThrust:mag.
-    local throt to totalAcc / (ship:maxthrust / ship:mass). 
+    local throt to 0.
+    if ship:maxthrust <> 0 {
+        set throt to totalAcc / (ship:maxthrust / ship:mass). 
+    }
 
     set throt to clamp(throt, 0, 1).
 
@@ -143,7 +149,7 @@ function hoverAlt {
     local radarOffset to (altitude - params:bounds:bottomalt).
     local position to ship:position.
 
-    if params:mode = kDescend {
+    if params:mode = kHover:Descend {
         return 0.1 - radar.
     }
 
@@ -172,6 +178,9 @@ function hoverAlt {
     // clearScreen.
     // print grounds.
     // print seaAlt + ", " + round(clearAlt, 2) + ", " + round(avgAlt, 2).
+    if params:mode = kHover:Hover {
+        set safeAlt to safeAlt + params:altOffset.
+    }
 
     return safeAlt - (altitude - radarOffset).
 }

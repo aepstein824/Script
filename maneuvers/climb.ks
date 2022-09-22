@@ -2,14 +2,14 @@
 
 declare global kClimb to lexicon().
 
-set kClimb:Turn to 4.
+set kClimb:Turn to 2.
 set kClimb:VertV to 60.
 set kClimb:SteerV to 150.
 set kClimb:ClimbAp to 75000.
 set kClimb:ClimbPe to 73000.
 set kClimb:LastStage to 0.
 set kClimb:ClimbA to 1.5.
-set kClimb:TLimAlt to 15000.
+set kClimb:TLimAlt to 10000.
 set kClimb:Heading to 90.
 set kClimb:Roll to 0.
 

@@ -75,6 +75,11 @@ function doSomething {
         ensureHibernate().
         launchToOrbit().
     } else if it = "land" {
+        local l0 to a0:tonumber(0).
+        local l1 to a1:tonumber(0).
+        local lz to latlng(l0, l1).
+        vacDescendToward(lz).
+        vacLand(). 
     } else if it = "node" {
         nodeExecute().
     } else if it = "circle" {
