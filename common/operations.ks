@@ -259,3 +259,10 @@ function terrainHAt {
     }
     return ground.
 }
+
+function clearAll {
+    clearscreen.
+    sas off.
+    clearVecDraws().
+    clearGuis().
+}

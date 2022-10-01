@@ -9,8 +9,8 @@ runOncePath("0:maneuvers/orbit.ks").
 runOncePath("0:phases/launchToOrbit.ks").
 runOncePath("0:phases/travel.ks").
 
-set kPhases:startInc to 0.
-set kPhases:stopInc to 0.
+set kPhases:startInc to 3.
+set kPhases:stopInc to 3.
 
 set kClimb:Turn to 2.
 set kClimb:ClimbA to 1.3.
