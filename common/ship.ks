@@ -79,3 +79,20 @@ function nextNodeOverBudget {
 
     return ship:deltav:current - nextNode:deltav:mag < budget.
 }
+
+function printPids {
+    print "total angle error: " + vecround(v(
+        steeringManager:pitcherror,
+        steeringManager:yawerror,
+        steeringManager:rollerror
+    ), 5).
+    function printOnePid {
+        parameter name, pid.
+        print name + ": e=" + round(pid:error * constant:radtodeg, 2)
+            + " out=" + pid:output * constant:radtodeg.
+            // + " chg=" + round(pid:changerate * constant:radtodeg, 2).
+    }
+    printOnePid("pitch", steeringManager:pitchpid).
+    printOnePid("yaw  ", steeringManager:yawpid).
+    printOnePid("roll ", steeringManager:rollpid).
+}

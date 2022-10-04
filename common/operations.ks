@@ -142,13 +142,29 @@ function mergeList {
     return merged.
 }
 
+function maxPartStage {
+    local allparts to list().
+    list parts in allparts.
+    local maxPart to 0.
+    for p in allparts {
+        if p:stage > maxPart {
+            set maxPart to p:stage.
+        }
+    }
+    return maxPart.
+}
+
 function stageTo {
     parameter limit.
     until ship:stagenum <= limit {
-        wait 0.5.
+        wait 0.1.
         stage.
-        wait 0.5.
+        wait 0.1.
     }
+}
+
+function stageToMax {
+    stageTo(maxPartStage()).
 }
 
 function setTargetTo {
