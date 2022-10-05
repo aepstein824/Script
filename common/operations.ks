@@ -282,3 +282,31 @@ function clearAll {
     clearVecDraws().
     clearGuis().
 }
+
+function setFlaps {
+    parameter val.
+
+    local all to list().
+    list parts in all.
+    local controlMod to "FARControllableSurface".
+    local setting to "flap setting".
+    local inc to "increase flap deflection".
+    local dec to "decrease flap deflection".
+    for i in range(3) {
+        for p in all {
+            if p:hasmodule(controlMod) {
+                local mod to p:getmodule(controlMod).
+                if mod:hasfield(setting) {
+                    local cur to mod:getfield(setting).
+                    if cur > val {
+                        mod:doaction(dec, true).
+                    }
+                    if cur < val {
+                        mod:doaction(inc, true).
+                    }
+                }
+            }
+        }
+        wait 0.
+    }
+}

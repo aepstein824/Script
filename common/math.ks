@@ -1,6 +1,9 @@
 @LAZYGLOBAL OFF.
 
 local eul to constant:e.
+global unitX to v(1, 0, 0).
+global unitY to v(0, 1, 0).
+global unitZ to v(0, 0, 1).
 
 function sgn {
     parameter x.

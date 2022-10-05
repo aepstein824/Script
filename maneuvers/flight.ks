@@ -12,6 +12,9 @@ set kFlight:AoAKp to 2. // 1 m/s vertical = X degree
 set kFlight:Park to "PARK".
 set kFlight:Takeoff to "TAKEOFF".
 set kFlight:Level to "LEVEL".
+set kFlight:Landing to "LANDING".
+set kFlight:Smooth to "SMOOTH".
+set kFlight:Rough to "ROUGH".
 
 // requires the far addon for info
 local far to addons:far.
@@ -22,6 +25,7 @@ global flightParams to lexicon(
     "vspd", 0,
     "hspd", 43,
     "xacc", 0.0,
+    "landStyle", kFlight:Rough,
 
     // calculations
     "level", ship:facing,
@@ -36,18 +40,21 @@ global flightParams to lexicon(
     "arrowVec", v(0, 0, 0),
 
     // constants
-    "takeoffV", 30,
     "takeoffAoA", 10,
-    "takeoffHeading", 90
+    "takeoffHeading", 90,
+    "landV", 28,
+    "cruiseV", 43,
+    "descentV", -2,
+    "smoothV", -1,
+    "brakeWait", 3
 ).
-set flightParams:arrow to flightArrow(flightParams).
 
-// flightCalcLevel().
+set flightParams:arrow to flightArrow(flightParams).
 
 function flightSteering {
     parameter params.
 
-    if params:mode = "LEVEL" {
+    if params:mode = "LEVEL" or params:mode = "LANDING" {
         // We have to recalc every time since we're spinning
         local out to -body:position.
         local lev to removeComp(velocity:surface, out).
@@ -100,6 +107,8 @@ function flightIter {
         flightTakeoff(params).
     } else if params:mode = kFlight:Level {
         flightLevel(params).
+    } else if params:mode = kFlight:Landing {
+        flightLanding(params).
     }
 }
 
@@ -123,7 +132,7 @@ function flightLevel {
     local levV to v(0, params:vspd, params:hspd).
     local levUp to v(params:xacc, grav, 0).
     // for now travel is a based on level
-    local travel to lookDirUp(levV, v(0, 1, 0)).
+    local travel to lookDirUp(levV, unitY).
     local travelV to travel:inverse * levV.
     local rolled to lookDirUp(levV, levUp).
 
@@ -149,7 +158,7 @@ function flightLevel {
         set A:x to 0. // assume no side force
         set T to -1 * (A + G).
 
-        local tPitch to vectorAngleAround(v(0, 0, 1), v(1, 0, 0), T).
+        local tPitch to vectorAngleAround(unitZ, unitX, T).
         if tPitch > 180 {
             set tPitch to tPitch - 360.
         }
@@ -158,7 +167,7 @@ function flightLevel {
         if abs(diff) < .4 {
             // print "setting aoa to " + round(pitch, 3).
             local aoaRots to flightEulerR(pitch + aoaOffset, 0).
-            local levFace to rolled * aoaRots * v(0, 0, 1).
+            local levFace to rolled * aoaRots * unitZ.
             set flight to lookDirUp(levFace, levUp). 
             // set flight to level * rolled * attackRot.
             break.
@@ -170,7 +179,7 @@ function flightLevel {
         set pitchInc to pitchInc * 0.5.
         if i > 15 {
             print "Failed to find aero force, raising hspd".
-            set params:hspd to params:hspd + 2.
+            // set params:hspd to params:hspd + 2.
             return.
         }
         set i to i + 1.
@@ -189,6 +198,30 @@ function flightLevel {
     set params:throttle to max(idealThrot + throtAdj, 0.05).
 }
 
+function flightLanding {
+    parameter params.
+
+    local rough to params:landStyle = kFlight:Rough.
+    if status = "LANDED" {
+        if groundspeed < (params:hspd - params:brakeWait) or rough {
+            brakes on.
+        }
+        set params:throttle to 0.
+        set params:steering to params:level:inverse * facing.
+        return.
+    }
+
+    if groundAlt < 5 {
+        // Causes a slight throttle increase and AoA rise
+        if rough { 
+            set params:vspd to params:descentV.
+        } else {
+            set params:vspd to params:smoothV.
+        }
+    }
+    flightLevel(params).
+}
+
 function flightEulerR {
     parameter pitch, slip.
 
@@ -196,6 +229,77 @@ function flightEulerR {
     return r(0, -slip, 0) * r(-pitch, 0, 0).
 }
 
+function flightBeginTakeoff {
+    parameter params.
+
+    if params:mode <> kFlight:Takeoff {
+        set params:mode to kFlight:Takeoff.
+
+        setFlaps(2).
+        brakes off.
+    }
+}
+
+function flightBeginLevel {
+    parameter params.
+
+    if status <> "FLYING" {
+        return.
+    }
+    if params:mode <> kFlight:Level {
+        set params:mode to kFlight:Level.
+        set params:steering to r(0, 0, 0).
+
+        flightResetSpds(params, params:cruiseV).
+        setFlaps(0).
+        brakes off.
+        gear off.
+    }
+}
+
+function flightBeginLanding {
+    parameter params.
+
+    if status <> "FLYING" {
+        return.
+    }
+    if params:mode <> kFlight:Landing {
+        set params:mode to kFlight:Landing.
+        set params:steering to r(0, 0, 0).
+
+        flightResetSpds(params, params:landV).
+        set params:vspd to -1.
+        setFlaps(3).
+        brakes off.
+        gear on.
+    }
+}
+
+function flightResetSpds {
+    parameter params, hspd.
+
+    set params:hspd to hspd.
+    set params:vspd to 0.
+    set params:xacc to 0.
+}
+
+function flightThrottlePid {
+    local pid to pidloop(kFlight:ThrotKp, 0, 0).
+    set pid:maxoutput to 0.1.
+    set pid:minoutput to -0.1.
+    return pid.
+}
+
+function flightAoAPid {
+    local pid to pidloop(kFlight:AoAKp, 0, 0).
+    set pid:maxoutput to 1.
+    set pid:minoutput to -1.
+    return pid.
+}
+
+// Document the process of calculating aero effects at current situation.
+// Without FAR providing IAS, we would need temp and pres sensors to get the
+// same values.
 function flightCalcLevel {
     local out to -body:position.
     local lev to removeComp(facing:forevector, out).
@@ -258,43 +362,4 @@ function flightCalcLevel {
     print "Guess IAS " + ias.
     print "Check IAS " + far:ias.
 
-}
-
-function flightBeginTakeoff {
-    parameter params.
-
-    if params:mode <> kFlight:Takeoff {
-        set params:mode to kFlight:Takeoff.
-
-        brakes off.
-    }
-}
-
-function flightBeginLevel {
-    parameter params.
-
-    if status <> "FLYING" {
-        return.
-    }
-    if params:mode <> kFlight:Level {
-        set params:mode to kFlight:Level.
-        set params:steering to r(0, 0, 0).
-
-        brakes off.
-        gear off.
-    }
-}
-
-function flightThrottlePid {
-    local pid to pidloop(kFlight:ThrotKp, 0, 0).
-    set pid:maxoutput to 0.1.
-    set pid:minoutput to -0.1.
-    return pid.
-}
-
-function flightAoAPid {
-    local pid to pidloop(kFlight:AoAKp, 0, 0).
-    set pid:maxoutput to 1.
-    set pid:minoutput to -1.
-    return pid.
 }

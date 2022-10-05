@@ -96,3 +96,9 @@ function printPids {
     printOnePid("yaw  ", steeringManager:yawpid).
     printOnePid("roll ", steeringManager:rollpid).
 }
+
+function compass {
+    local northPole to latlng(90,0).
+    local comp to mod(360 - northPole:bearing,360).
+    return comp.
+}

@@ -93,12 +93,17 @@ function pilotFlight {
         local pTrans to ship:control:pilottranslation.
 
         if pRot:y < -0.5 {
+            // press W
             flightBeginTakeoff(params).
+        } else if pRot:y > 0.5 {
+            // press S
+            flightBeginLanding(params).
         } else if pRot:z < -0.5 {
+            // press Q
             flightBeginLevel(params).
         } else if pRot:z > 0.5 {
-            set params:xacc to 0.
-            set params:vspd to 0.
+            // press E
+            flightResetSpds(params, params:cruiseV).
         }
 
         set params:xacc to params:xacc + 2.5 * pTrans:x * timeDiff.

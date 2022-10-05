@@ -1,0 +1,21 @@
+{
+    "entries": [
+        {
+            "value": "landV",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 28,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        },
+        {
+            "value": "cruiseV",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 43,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        }
+    ],
+    "$type": "kOS.Safe.Encapsulation.Lexicon"
+}
