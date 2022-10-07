@@ -40,7 +40,7 @@ global flightParams to lexicon(
     "arrowVec", v(0, 0, 0),
 
     // constants
-    "takeoffAoA", 10,
+    "takeoffAoA", 8,
     "takeoffHeading", 90,
     "landV", 28,
     "cruiseV", 43,
@@ -117,19 +117,28 @@ function flightTakeoff {
 
     set params:steering to heading(params:takeoffHeading, params:takeoffAoA).
     set params:throttle to 1.
+
+    if status = "LANDED" {
+        set params:landV to max(params:landV, groundspeed + 2).
+        set params:cruiseV to max(params:cruiseV, groundspeed * 1.4).
+    }
 }
 
 function flightLevel {
     parameter params.
 
     local level to params:level.
+
+    // Despite my best efforts, we dip a bit when turning. This little boost
+    // to vspd should keep us at about the target.
+    local vspd to params:vspd + abs(params:xacc) / 7.
     
     local grav to gat(altitude).
     local liftFactor to sqrt(params:xacc^2 + grav^2) / grav.
     // Units of force, since aero doesn't care about mass
     local G to v(0, -1, 0) * grav * liftFactor * ship:mass.
     local presFactor to (far:ias / velocity:surface:mag) ^ 2.
-    local levV to v(0, params:vspd, params:hspd).
+    local levV to v(0, vspd, params:hspd).
     local levUp to v(params:xacc, grav, 0).
     // for now travel is a based on level
     local travel to lookDirUp(levV, unitY).
@@ -138,6 +147,7 @@ function flightLevel {
 
     local levelSurf to level:inverse * velocity:surface.
     local aoaPid to params:aoaPid.
+    // do not apply the correction for the AoA
     set aoaPid:setpoint to params:vspd.
     local aoaOffset to aoaPid:update(time:seconds, levelSurf:y).
 
@@ -164,7 +174,7 @@ function flightLevel {
         }
         // print "pitch: " + round(pitch, 3) + " tPitch: " + round(tPitch, 3).
         local diff to tPitch - pitch.
-        if abs(diff) < .4 {
+        if abs(diff) < 1 or i > 15 {
             // print "setting aoa to " + round(pitch, 3).
             local aoaRots to flightEulerR(pitch + aoaOffset, 0).
             local levFace to rolled * aoaRots * unitZ.
@@ -177,11 +187,6 @@ function flightLevel {
             set pitch to pitch - pitchInc.
         }
         set pitchInc to pitchInc * 0.5.
-        if i > 15 {
-            print "Failed to find aero force, raising hspd".
-            // set params:hspd to params:hspd + 2.
-            return.
-        }
         set i to i + 1.
     }
     
@@ -211,7 +216,7 @@ function flightLanding {
         return.
     }
 
-    if groundAlt < 5 {
+    if groundAlt() < 5 {
         // Causes a slight throttle increase and AoA rise
         if rough { 
             set params:vspd to params:descentV.
@@ -295,6 +300,22 @@ function flightAoAPid {
     set pid:maxoutput to 1.
     set pid:minoutput to -1.
     return pid.
+}
+
+function flightSetSteeringManager {
+    steeringManager:resettodefault().
+    set steeringmanager:showsteeringstats to false.
+    // Setting the roll range to 180 forces roll control everywhere
+    set steeringmanager:rollcontrolanglerange to 180.
+    // The stop time calc doesn't work for planes
+    set steeringmanager:maxstoppingtime to 100.
+    // kp defaults to be 1, but we need to be sure for a hack in our steering
+    set steeringmanager:yawpid:kp to 1.
+    set steeringmanager:pitchpid:kp to 1.
+    // we don't want to accumulate anything in level flight
+    set steeringmanager:pitchpid:ki to 0.
+    set steeringmanager:rollpid:ki to 0.
+    set steeringmanager:yawpid:ki to 0.
 }
 
 // Document the process of calculating aero effects at current situation.

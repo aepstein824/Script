@@ -61,19 +61,7 @@ function pilotHover {
 function pilotFlight {
     stageToMax().
 
-    steeringManager:resettodefault().
-    set steeringmanager:showsteeringstats to false.
-    // Setting the roll range to 180 forces roll control everywhere
-    set steeringmanager:rollcontrolanglerange to 180.
-    // The stop time calc doesn't work for planes
-    set steeringmanager:maxstoppingtime to 100.
-    // kp defaults to be 1, but we need to be sure for a hack in our steering
-    set steeringmanager:yawpid:kp to 1.
-    set steeringmanager:pitchpid:kp to 1.
-    // we don't want to accumulate anything in level flight
-    set steeringmanager:pitchpid:ki to 0.
-    set steeringmanager:rollpid:ki to 0.
-    set steeringmanager:yawpid:ki to 0.
+    flightSetSteeringManager().
 
     local params to flightParams.
     set params:arrow:show to false.
