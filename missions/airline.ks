@@ -25,7 +25,9 @@ airlineLanding().
 
 function airlineInit {
     stageToMax().
+    clearAll().
     flightSetSteeringManager().
+    flightCreateReport(params).
     lock steering to flightSteering(params).
     lock throttle to flightThrottle(params).
     brakes on.
@@ -43,6 +45,8 @@ function airlineTakeoff {
 
 function airlineLoop {
     flightBeginLevel(params).
+    setFlaps(1).
+    set params:hspd to params:maneuverV.
 
     local startLevel to time:seconds.
     set params:vspd to 1.8.
@@ -53,6 +57,7 @@ function airlineLoop {
     print "Uturn starting heading " + compass().
     set params:vspd to 0.
     until abs(compass() - uturnHeading) < 1 {
+        airlineVControl(params, 350).
         if abs(compass() - uturnHeading) < 10 {
             set params:xacc to -2.
         } else {
@@ -60,20 +65,22 @@ function airlineLoop {
         }
         airlineIterWait().
     }
-    set params:xacc to 0.
-    set params:vspd to 1.
 
+    set params:xacc to 0.
     local approach to heading(landHeading, 0).
     print "Back down runway".
     until vdot(runway:position, approach:forevector) > 5000 {
         // print "Down runway " + vdot(runway:position, approach:forevector).
+        airlineVControl(params, 350).
         airlineIterWait().
     }
     print "Far from runway, current heading " + round(compass(), 1).
 
     set params:vspd to 0.
     print "Land starting heading " + compass().
+    set params:hspd to params:maneuverV.
     until abs(compass() - landHeading) < 1 {
+        airlineVControl(params, 350).
         if abs(compass() - landHeading) < 10 {
             set params:xacc to -2.
         } else {
@@ -92,15 +99,19 @@ function airlineLanding {
             // approaching runway
             local tanTheta to runwayLev:y / runwayLev:z.
             local descent to params:hspd * tanTheta.
-            set params:vspd to max(descent, -5).
+            local desLimit to min(5, groundspeed/10).
+            set params:vspd to max(descent, -desLimit).
 
             local approach to heading(landHeading, 0).
             // negative
             local apv to approach:inverse * velocity:surface.
             local app to approach:inverse * runway:position.
-            local tgtX to 3 * apv:z * app:x / app:z.
+            local closeFactor to lerp(app:z/1000, 0.1, 3).
+            // print vecRound(app, 2).
+            // print closeFactor.
+            local tgtX to closeFactor * apv:z * app:x / app:z.
             local xdiff to tgtX - apv:x.
-            set params:xacc to clamp(xdiff, -2, 2).
+            set params:xacc to clamp(xdiff, -1, 1).
         } else {
             // close to or past runway
             set params:vspd to params:descentV.
@@ -109,6 +120,12 @@ function airlineLanding {
 
         airlineIterWait().
     }
+}
+
+function airlineVControl {
+    parameter params, alti.
+    local vDiff to alti - altitude.
+    set params:vspd to clamp(vDiff / 30, -3, 3).
 }
 
 function airlineIterWait {

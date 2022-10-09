@@ -5,6 +5,7 @@ runOncePath("0:common/math.ks").
 runOncePath("0:common/operations.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
+runOncePath("0:common/report.ks").
 
 global kFlight to lexicon().
 set kFlight:ThrotKp to 0.1. // Caps at even 1m/s off
@@ -25,7 +26,7 @@ global flightParams to lexicon(
     "vspd", 0,
     "hspd", 43,
     "xacc", 0.0,
-    "landStyle", kFlight:Rough,
+    "landStyle", kFlight:Smooth,
 
     // calculations
     "level", ship:facing,
@@ -38,11 +39,13 @@ global flightParams to lexicon(
 
     // vis
     "arrowVec", v(0, 0, 0),
+    "report", false,
 
     // constants
     "takeoffAoA", 8,
     "takeoffHeading", 90,
     "landV", 28,
+    "maneuverV", 35,
     "cruiseV", 43,
     "descentV", -2,
     "smoothV", -1,
@@ -103,6 +106,13 @@ function flightIter {
     local lev to removeComp(velocity:surface, out).
     set params:level to lookDirUp(lev, out).
 
+    if not params:report:istype("BOOLEAN") {
+        for k in params:report:keyToVal:keys {
+            set params:report["keyToVal"][k]:text 
+                to round(params[k], 2):tostring().
+        }
+    }
+
     if params:mode = kFlight:Takeoff {
         flightTakeoff(params).
     } else if params:mode = kFlight:Level {
@@ -121,6 +131,7 @@ function flightTakeoff {
     if status = "LANDED" {
         set params:landV to max(params:landV, groundspeed + 2).
         set params:cruiseV to max(params:cruiseV, groundspeed * 1.4).
+        set params:maneuverV to max(params:maneuverV, groundspeed * 1.2).
     }
 }
 
@@ -286,6 +297,16 @@ function flightResetSpds {
     set params:hspd to hspd.
     set params:vspd to 0.
     set params:xacc to 0.
+}
+
+function flightCreateReport {
+    parameter params.   
+
+    set params:report to reportCreate(list(
+        "vspd", "hspd", "xacc", 
+        "landV", "maneuverV", "cruiseV")).
+
+    params:report:gui:show().
 }
 
 function flightThrottlePid {

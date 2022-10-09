@@ -76,6 +76,12 @@ function rotateVecAround {
     return vec * cos(x) + across * sin(x).
 }
 
+function lerp {
+    parameter x, lower, upper.
+    local scale to upper - lower.
+    local unclamped to x * scale + lower. 
+    return clamp(unclamped, lower, upper).
+}
 function invLerp {
     parameter x, lower, upper.
     local diff to upper - lower.
