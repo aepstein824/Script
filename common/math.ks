@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 
 local eul to constant:e.
+global zeroV to v(0, 0, 0).
 global unitX to v(1, 0, 0).
 global unitY to v(0, 1, 0).
 global unitZ to v(0, 0, 1).
@@ -61,19 +62,19 @@ function vectorAngleAround {
 
 function vectorAngleAroundR {
     parameter base, upRef, x.
-    set base to removeComp(base, upRef).
-    set x to removeComp(x, upRef).
-    local ang to vectorAngleR(base, x).
-    if vDot(x, vCrs(base, upRef)) < 0 {
-        return 2 * constant:pi - ang.
-    }
-    return ang.
+    return vectorAngleAround(base, upRef, x) * 0.017453.
 }
 
 function rotateVecAround {
     parameter vec, upRef, x.
-    local across to vCrs(vec, upRef).
-    return vec * cos(x) + across * sin(x).
+    local dir to  angleAxis(-x, upRef).
+    return dir * vec.
+}
+
+function removeComp {
+    parameter x, orth.
+    set orth to orth:normalized.
+    return x - vDot(x, orth) * orth.
 }
 
 function lerp {
@@ -88,13 +89,7 @@ function invLerp {
     if diff = 0 {
         return 1.
     }
-    return min((x - lower) / diff, 1).
-}
-
-function removeComp {
-    parameter x, orth.
-    set orth to orth:normalized.
-    return x - vDot(x, orth) * orth.
+    return clamp((x - lower) / diff, 0, 1).
 }
 
 function clamp {
@@ -119,7 +114,7 @@ function posmod {
     parameter dividend, divisor.
     local badmod to mod(dividend, divisor).
     if dividend < 0 {
-        return divisor + badmod.
+        return badmod + divisor.
     }
     return badmod.
 }
