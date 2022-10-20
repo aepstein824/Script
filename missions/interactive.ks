@@ -28,6 +28,8 @@ until false {
         break.
     }
     doSomething(todo, arg0, arg1).
+    unlock steering.
+    unlock throttle.
     set todo to "".
     gui:show().
 }
@@ -71,6 +73,9 @@ function doSomething {
         }
         rcsApproach().
     } else if it = "launch" {
+        if a0 = "polar" {
+            set kClimb:Heading to -20.
+        }
         launchQuicksave("interactive").
         ensureHibernate().
         launchToOrbit().

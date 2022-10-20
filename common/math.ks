@@ -5,6 +5,8 @@ global zeroV to v(0, 0, 0).
 global unitX to v(1, 0, 0).
 global unitY to v(0, 1, 0).
 global unitZ to v(0, 0, 1).
+global zeroR to r(0, 0, 0).
+global leftR to r(0, 0, 180).
 
 function sgn {
     parameter x.

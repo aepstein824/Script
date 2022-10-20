@@ -144,7 +144,7 @@ function suicideBurn {
     until vDot(startV:normalized, currentV) < finalV {
         set currentV to -1 * ship:velocity:surface.
         lock steering to currentV:normalized().
-        lock throttle to max(currentV:mag / 10, 0.5).
+        lock throttle to max(currentV:mag / 5, 0.5).
         wait 0.
     }
 

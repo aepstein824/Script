@@ -16,14 +16,14 @@ local runway to waypoint("ksc 09").
 local uturnHeading to 270.
 local landHeading to 90.
 
-local params to flightParams.
+local params to defaultFlightParams.
 
-airlineInit().
-airlineTakeoff().
-airlineLoop().
-airlineLanding().
+airportInit().
+airportTakeoff().
+airportLoop().
+airportLanding().
 
-function airlineInit {
+function airportInit {
     stageToMax().
     clearAll().
     flightSetSteeringManager().
@@ -33,17 +33,17 @@ function airlineInit {
     brakes on.
 }
 
-function airlineTakeoff {
+function airportTakeoff {
     print "Begin takeoff".
     set params:takeoffHeading to landHeading.
     flightBeginTakeoff(params).
     until groundAlt() > 50 {
-        airlineIterWait().
+        airportIterWait().
     }
     print "Achieved takeoff, vspd " + verticalSpeed.
 }
 
-function airlineLoop {
+function airportLoop {
     flightBeginLevel(params).
     setFlaps(1).
     set params:hspd to params:maneuverV.
@@ -51,19 +51,19 @@ function airlineLoop {
     local startLevel to time:seconds.
     set params:vspd to 1.8.
     until  time:seconds - startLevel > 5 {
-        airlineIterWait().
+        airportIterWait().
     }
 
     print "Uturn starting heading " + compass().
     set params:vspd to 0.
     until abs(compass() - uturnHeading) < 1 {
-        airlineVControl(params, 350).
+        airportVControl(params, 350).
         if abs(compass() - uturnHeading) < 10 {
             set params:xacc to -2.
         } else {
             set params:xacc to -4.
         }
-        airlineIterWait().
+        airportIterWait().
     }
 
     set params:xacc to 0.
@@ -71,8 +71,8 @@ function airlineLoop {
     print "Back down runway".
     until vdot(runway:position, approach:forevector) > 5000 {
         // print "Down runway " + vdot(runway:position, approach:forevector).
-        airlineVControl(params, 350).
-        airlineIterWait().
+        airportVControl(params, 350).
+        airportIterWait().
     }
     print "Far from runway, current heading " + round(compass(), 1).
 
@@ -80,18 +80,18 @@ function airlineLoop {
     print "Land starting heading " + compass().
     set params:hspd to params:maneuverV.
     until abs(compass() - landHeading) < 1 {
-        airlineVControl(params, 350).
+        airportVControl(params, 350).
         if abs(compass() - landHeading) < 10 {
             set params:xacc to -2.
         } else {
             set params:xacc to -4.
         }
-        airlineIterWait().
+        airportIterWait().
     }
     set params:xacc to 0.
 }
 
-function airlineLanding {
+function airportLanding {
     flightBeginLanding(params).
     until groundspeed < 1 {
         local runwayLev to params:level:inverse * runway:position. 
@@ -118,17 +118,17 @@ function airlineLanding {
             set params:xacc to 0.
         }
 
-        airlineIterWait().
+        airportIterWait().
     }
 }
 
-function airlineVControl {
+function airportVControl {
     parameter params, alti.
     local vDiff to alti - altitude.
     set params:vspd to clamp(vDiff / 30, -3, 3).
 }
 
-function airlineIterWait {
+function airportIterWait {
     flightIter(params).
     wait 0.1.
 }

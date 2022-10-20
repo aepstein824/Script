@@ -16,32 +16,32 @@ local tests to lexicon(
 testRun(tests).
 
 function testSgn {
-    local results to list().
-    results:add(testEq(sgn(1), 1)).
-    results:add(testEq(sgn(100), 1)).
-    results:add(testEq(sgn(0.1), 1)).
-    results:add(testEq(sgn(-1), -1)).
-    results:add(testEq(sgn(-100), -1)).
-    results:add(testEq(sgn(-0.1), -1)).
-    return results.
+    local r to list().
+    r:add(testEq(sgn(1), 1)).
+    r:add(testEq(sgn(100), 1)).
+    r:add(testEq(sgn(0.1), 1)).
+    r:add(testEq(sgn(-1), -1)).
+    r:add(testEq(sgn(-100), -1)).
+    r:add(testEq(sgn(-0.1), -1)).
+    return r.
 }
 
 function testVAA {
-    local results to list().
+    local r to list().
     local pi2 to constant:pi / 2.
-    results:add(testEq(vectorAngleAround(unitX, unitY, unitZ), 90)).
-    results:add(testEq(vectorAngleAround(2 * unitX, unitY, unitZ), 90)).
-    results:add(testEq(vectorAngleAround(unitX, 2 * unitY, unitZ), 90)).
-    results:add(testEq(vectorAngleAround(unitX, unitY, unitX), 0)).
-    results:add(testEq(vectorAngleAround(unitX, unitY, -1 * unitX), 180)).
-    results:add(testEq(vectorAngleAround(unitX, unitY, -1 * unitZ), 270)).
-    results:add(testEq(vectorAngleAround(unitY, unitX, unitZ), 270)).
-    results:add(testEq(vectorAngleAround(unitX, -1 * unitY, unitZ), 270)).
-    results:add(testEq(vectorAngleAround(unitX + unitY, unitY, unitZ), 90)).
-    results:add(testEq(vectorAngleAround(unitX + unitY, unitY, 
+    r:add(testEq(vectorAngleAround(unitX, unitY, unitZ), 90)).
+    r:add(testEq(vectorAngleAround(2 * unitX, unitY, unitZ), 90)).
+    r:add(testEq(vectorAngleAround(unitX, 2 * unitY, unitZ), 90)).
+    r:add(testEq(vectorAngleAround(unitX, unitY, unitX), 0)).
+    r:add(testEq(vectorAngleAround(unitX, unitY, -1 * unitX), 180)).
+    r:add(testEq(vectorAngleAround(unitX, unitY, -1 * unitZ), 270)).
+    r:add(testEq(vectorAngleAround(unitY, unitX, unitZ), 270)).
+    r:add(testEq(vectorAngleAround(unitX, -1 * unitY, unitZ), 270)).
+    r:add(testEq(vectorAngleAround(unitX + unitY, unitY, unitZ), 90)).
+    r:add(testEq(vectorAngleAround(unitX + unitY, unitY, 
         unitZ - unitY), 90)).
-    results:add(testEq(vectorAngleAroundR(unitX, unitY, unitZ), pi2)).
-    return results.
+    r:add(testEq(vectorAngleAroundR(unitX, unitY, unitZ), pi2)).
+    return r.
 }
 
 function testRVA {

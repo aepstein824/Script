@@ -17,15 +17,15 @@ function testEq {
     local yname to y:typename.
 
     local errorString to 
-        "X(" + X + ", " + xname + ") " +
-        "Y(" + Y + ", " + yname + ")".
+        "X[" + X + ", " + xname + "] " +
+        "Y[" + Y + ", " + yname + "]".
     if xname <> yname {
         return testError("Type mismatch " + errorString).
     }
     if xname = "Scalar" {
         local diff to y - x.
         if abs(diff) > eps {
-            return testError("Unequal (" + diff + ") " + errorString).
+            return testError("Unequal [" + diff + "] " + errorString).
         } else {
             return testOk().
         }
@@ -33,7 +33,7 @@ function testEq {
     if xname = "Vector" {
         local diff to y - x.
         if diff:mag > eps {
-            return testError("Unequal (" + diff + ") " + errorString).
+            return testError("Unequal [" + diff:mag + "] " + errorString).
         } else {
             return testOk().
         }
@@ -42,6 +42,14 @@ function testEq {
         return testError("Unequal " + errorString).
     }
     return testOk().
+}
+
+function testGr {
+    parameter x, y.
+    if x > y {
+        return testOk().
+    }
+    return testError("Y (" + y + ") >= X (" + x + ")").
 }
 
 function testRun {

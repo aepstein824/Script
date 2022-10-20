@@ -20,7 +20,7 @@ set kFlight:Rough to "ROUGH".
 // requires the far addon for info
 local far to addons:far.
 
-global flightParams to lexicon(
+global defaultFlightParams to lexicon(
     // maintain
     "mode", kFlight:Park,
     "vspd", 0,
@@ -52,7 +52,7 @@ global flightParams to lexicon(
     "brakeWait", 3
 ).
 
-set flightParams:arrow to flightArrow(flightParams).
+set defaultFlightParams:arrow to flightArrow(defaultFlightParams).
 
 function flightSteering {
     parameter params.
@@ -72,8 +72,8 @@ function flightSteering {
         // direction. This hack adds additional rotation error to trigger
         // equivalent rotational velocity. Because kp = 1, I believe this is an
         // exact solution.
-        local turnOmega to params:xacc / max(params:hspd, 10)
-             * constant:radtodeg.
+        local spd to max(groundspeed, 10).
+        local turnOmega to flightSpdToOmega(spd, params:xacc).
         local hack to r(0, turnOmega, 0).
         local steer to level * params:steering * hack.
         set params:arrowvec to steer:forevector.
@@ -321,6 +321,16 @@ function flightAoAPid {
     set pid:maxoutput to 1.
     set pid:minoutput to -1.
     return pid.
+}
+
+function flightSpdToOmega {
+    parameter spd, a.
+    return a / spd * constant:radtodeg.
+}
+
+function flightSpdToRadius {
+    parameter spd, a.
+    return spd ^ 2 / a.
 }
 
 function flightSetSteeringManager {
