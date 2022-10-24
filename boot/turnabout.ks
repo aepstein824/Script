@@ -1,3 +1,4 @@
+@LAZYGLOBAL OFF.
 
 wait until ship:unpacked.
 wait until ship <> kuniverse:activevessel.

@@ -49,7 +49,15 @@ function testGr {
     if x > y {
         return testOk().
     }
-    return testError("Y (" + y + ") >= X (" + x + ")").
+    return testError("Expected greater, but X (" + x + ") <= Y (" + y + ")").
+}
+
+function testLs {
+    parameter x, y.
+    if x < y {
+        return testOk().
+    }
+    return testError("Expected lesser, but X (" + x + ") >= Y (" + y + ")").
 }
 
 function testRun {

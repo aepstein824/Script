@@ -147,6 +147,15 @@ function sgnSqrt {
 }
 
 function vecRound {
-    parameter a, n.
+    parameter a, n to 2.
     return V(round(a:x, n), round(a:y, n), round(a:z, n)).
+}
+
+function smallAng {
+    parameter x.
+    set x to posmod(x, 360).
+    if x > 180 {
+        set x to x - 360.
+    }
+    return x.
 }

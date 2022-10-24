@@ -9,6 +9,7 @@ runOncePath("0:common/report.ks").
 
 global kFlight to lexicon().
 set kFlight:ThrotKp to 0.1. // Caps at even 1m/s off
+set kFlight:ThrotMaxA to 0.2. 
 set kFlight:AoAKp to 2. // 1 m/s vertical = X degree
 set kFlight:Park to "PARK".
 set kFlight:Takeoff to "TAKEOFF".
@@ -83,6 +84,7 @@ function flightSteering {
     return params:steering.
 
 }
+
 
 function flightThrottle {
     parameter params.
@@ -211,7 +213,7 @@ function flightLevel {
 
     local idealThrot to T:mag / max(ship:maxThrust, 0.01).
     // Keep throttle above 0 to keep it ready for throttling up.
-    set params:throttle to max(idealThrot + throtAdj, 0.05).
+    set params:throttle to max(idealThrot + throtAdj, 0.02).
 }
 
 function flightLanding {
@@ -306,13 +308,17 @@ function flightCreateReport {
         "vspd", "hspd", "xacc", 
         "landV", "maneuverV", "cruiseV")).
 
+
+    wait 0.
+    set params:report:gui:x to 300.
+    set params:report:gui:y to -300.
     params:report:gui:show().
 }
 
 function flightThrottlePid {
     local pid to pidloop(kFlight:ThrotKp, 0, 0).
-    set pid:maxoutput to 0.1.
-    set pid:minoutput to -0.1.
+    set pid:maxoutput to kFlight:ThrotMaxA.
+    set pid:minoutput to -kFlight:ThrotMaxA.
     return pid.
 }
 
@@ -331,6 +337,11 @@ function flightSpdToOmega {
 function flightSpdToRadius {
     parameter spd, a.
     return spd ^ 2 / a.
+}
+
+function flightSpdToXacc {
+    parameter spd, radius.
+    return spd ^ 2 / radius.
 }
 
 function flightSetSteeringManager {
