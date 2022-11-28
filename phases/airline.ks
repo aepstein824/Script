@@ -33,13 +33,13 @@ function airlineTurnError {
 }
 
 function airlineTurnErrorToXacc {
-    parameter error, dimlessR, turnXacc, ccw to false.
+    parameter error, dimlessR, turnXacc, ccw.
 
     local errorX to clamp(-error / kAirline:MaxTurnAngle, -1, 1). 
 
     local rDist to dimlessR - 1.
     if rDist < kAirline:TurnR {
-        return (choose -1 if ccw else 0) * turnXacc + errorX.
+        return (choose -1 if ccw else 1) * turnXacc + errorX.
     }
     return errorX * (turnXacc + 1).
 }

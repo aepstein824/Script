@@ -65,6 +65,7 @@ function pilotFlight {
 
     local params to defaultFlightParams.
     set params:arrow:show to false.
+    flightCreateReport(params).
 
     lock steering to flightSteering(params).
     lock throttle to flightThrottle(params).
@@ -83,15 +84,19 @@ function pilotFlight {
         if pRot:y < -0.5 {
             // press W
             flightBeginTakeoff(params).
+            print "Takeoff".
         } else if pRot:y > 0.5 {
             // press S
             flightBeginLanding(params).
+            print "Landing".
         } else if pRot:z < -0.5 {
             // press Q
             flightBeginLevel(params).
+            print "Level".
         } else if pRot:z > 0.5 {
             // press E
             flightResetSpds(params, params:cruiseV).
+            print "Reset Spds".
         }
 
         set params:xacc to params:xacc + 2.5 * pTrans:x * timeDiff.

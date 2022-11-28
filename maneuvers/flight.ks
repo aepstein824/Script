@@ -27,7 +27,7 @@ global defaultFlightParams to lexicon(
     "vspd", 0,
     "hspd", 43,
     "xacc", 0.0,
-    "landStyle", kFlight:Smooth,
+    "landStyle", kFlight:Rough,
 
     // calculations
     "level", ship:facing,
@@ -221,10 +221,20 @@ function flightLanding {
 
     local rough to params:landStyle = kFlight:Rough.
     if status = "LANDED" {
+        set params:throttle to 0.
         if groundspeed < (params:hspd - params:brakeWait) or rough {
             brakes on.
         }
-        set params:throttle to 0.
+
+        if groundspeed > 5 {
+            local reverser to setThrustReverser(kReverse).
+            if reverser {
+                set params:throttle to 100.
+            }
+        } else {
+            setThrustReverser(kForward).
+        }
+
         set params:steering to params:level:inverse * facing.
         return.
     }
@@ -254,6 +264,7 @@ function flightBeginTakeoff {
         set params:mode to kFlight:Takeoff.
 
         setFlaps(2).
+        setThrustReverser(kForward).
         brakes off.
     }
 }
@@ -270,6 +281,7 @@ function flightBeginLevel {
 
         flightResetSpds(params, params:cruiseV).
         setFlaps(0).
+        setThrustReverser(kForward).
         brakes off.
         gear off.
     }
@@ -278,7 +290,7 @@ function flightBeginLevel {
 function flightBeginLanding {
     parameter params.
 
-    if status <> "FLYING" {
+    if status <> "FLYING" and status <> "LANDED" {
         return.
     }
     if params:mode <> kFlight:Landing {
@@ -286,6 +298,7 @@ function flightBeginLanding {
         set params:steering to r(0, 0, 0).
 
         flightResetSpds(params, params:landV).
+        setThrustReverser(kForward).
         set params:vspd to -1.
         setFlaps(3).
         brakes off.

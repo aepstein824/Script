@@ -310,3 +310,45 @@ function setFlaps {
         wait 0.
     }
 }
+
+global kUnset to "UNSET".
+global kForward to "FORWARD".
+global kReverse to "REVERSE".
+// local reverserState to kUnset.
+local allReverserCache to false.
+function setThrustReverser {
+    parameter state.
+
+    // if reverserState = state {
+    //     return allReverserCache.
+    // }
+    // set reverserState to state.
+
+    local allReversers to true.
+    local all to list().
+    list engines in all.
+    local reverseMod to "ModuleAnimateGeneric".
+    for p in all {
+        if p:hasmodule(reverseMod) {
+            local mod to p:getmodule(reverseMod).
+            if state = kForward {
+                local event to "forward thrust".
+                if mod:hasevent(event) {
+                    mod:doevent(event).
+                }
+            }
+            if state = kReverse {
+                local event to "reverse thrust".
+                if mod:hasevent(event) {
+                    mod:doevent(event).
+                }
+            }
+        } else {
+            set allReversers to false.
+        }
+    }
+    set allReverserCache to allReversers.
+    return allReversers.
+}
+
+setThrustReverser(kForward).
