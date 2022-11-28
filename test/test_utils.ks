@@ -38,6 +38,20 @@ function testEq {
             return testOk().
         }
     }
+    if xname = "Lexicon" {
+        for k in y:keys {
+            if not x:haskey(k) {
+                return testError("Missing key " + k).
+            }
+            local xv to x[k].
+            local yv to y[k].
+            local diff to yv - xv.
+            if abs(diff) > eps {
+                return testError("Difference in key " + k + " " + errorString).
+            }
+        }
+        return testOk().
+    }
     if x <> y {
         return testError("Unequal " + errorString).
     }
@@ -62,6 +76,7 @@ function testLs {
 
 function testRun {
     parameter tests.
+    clearScreen.
 
     for t in tests:keys {
         print "Testing " + t.

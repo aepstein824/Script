@@ -101,8 +101,11 @@ function clamp {
 
 function quadraticFormula {
     parameter a, b, c, sign.
-
-    return (-b + sign * sqrt(b^2 - 4 * a * c)) / 2 / a.
+    local det to b^2 - 4 * a * c.
+    if det <= 0 {
+        // print "Quadratic det <= 0".
+    }
+    return (-b + sign * sqrt(abs(det))) / 2 / a.
 }
 
 function qfMax {

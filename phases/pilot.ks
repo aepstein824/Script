@@ -63,7 +63,7 @@ function pilotFlight {
 
     flightSetSteeringManager().
 
-    local params to flightParams.
+    local params to defaultFlightParams.
     set params:arrow:show to false.
 
     lock steering to flightSteering(params).

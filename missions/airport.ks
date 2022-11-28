@@ -14,8 +14,8 @@ runOncePath("0:phases/airline").
 set kPhases:startInc to 0.
 set kPhases:stopInc to 0.
 
-// local runway to waypoint("island 09").
 local runway to waypoint("island 09").
+// local runway to waypoint("ksc 09").
 local landHeading to 90.
 local glideAngle to 3.
 local turnXacc to 4.
@@ -101,10 +101,10 @@ function airportLoop {
             local towards to lookDirUp(along, turn:d:upvector).
             local app to towards:inverse * (path2d - nowPos2d).
             local apv to towards:inverse * nowVel.
-            print "P2d " + vecround(nowPos2d) 
-                + " along " + vecround(along)
-                + " App " + vecround(app)
-                + " Apv " + vecround(apv).
+            // print "P2d " + vecround(nowPos2d) 
+            //     + " along " + vecround(along)
+            //     + " App " + vecround(app)
+            //     + " Apv " + vecround(apv).
             set params:xacc to airlineStraightErrorToXacc(app, apv).
         } else if path[0][0] = "turn" {
             local turn to path[0][2].
@@ -113,11 +113,11 @@ function airportLoop {
             local nowXacc to flightSpdToXacc(groundspeed, turn:r).
             set params:xacc to airlineTurnErrorToXacc(turnError, dimlessR,
                 nowXacc, true).
-            print "P2d " + vecround(nowPos2d) 
-                + " toOut " + vecround(path[0][1])
-                + " turnError " + round(turnError)
-                + " dimlessR " + round(dimlessR, 2)
-                + " nowXacc " + round(nowXacc, 1).
+            // print "P2d " + vecround(nowPos2d) 
+            //     + " toOut " + vecround(path[0][1])
+            //     + " turnError " + round(turnError)
+            //     + " dimlessR " + round(dimlessR, 2)
+            //     + " nowXacc " + round(nowXacc, 1).
         }
 
         airportIterWait().
@@ -138,7 +138,7 @@ function airportLanding {
             // approaching runway
             local tanTheta to 1.5 * runwayLev:y / runwayLev:z.
             local descent to groundspeed * tanTheta.
-            local desLimit to min(5, groundspeed/10).
+            local desLimit to max(5, groundspeed/10).
             set params:vspd to max(descent, -desLimit).
 
             local approach to heading(landHeading, 0).
