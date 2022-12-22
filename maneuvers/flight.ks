@@ -21,39 +21,42 @@ set kFlight:Rough to "ROUGH".
 // requires the far addon for info
 local far to addons:far.
 
-global defaultFlightParams to lexicon(
-    // maintain
-    "mode", kFlight:Park,
-    "vspd", 0,
-    "hspd", 43,
-    "xacc", 0.0,
-    "landStyle", kFlight:Rough,
+function flightDefaultParams { 
+    local params to lexicon(
+        // maintain
+        "mode", kFlight:Park,
+        "vspd", 0,
+        "hspd", 0,
+        "xacc", 0.0,
+        "landStyle", kFlight:Rough,
 
-    // calculations
-    "level", ship:facing,
-    "throttlePid", flightThrottlePid(),
-    "aoaPid", flightAoAPid(),
+        // calculations
+        "level", ship:facing,
+        "throttlePid", flightThrottlePid(),
+        "aoaPid", flightAoAPid(),
 
-    // output
-    "steering", ship:facing,
-    "throttle", 0,
+        // output
+        "steering", ship:facing,
+        "throttle", 0,
 
-    // vis
-    "arrowVec", v(0, 0, 0),
-    "report", false,
+        // vis
+        "arrowVec", v(0, 0, 0),
+        "report", false,
 
-    // constants
-    "takeoffAoA", 8,
-    "takeoffHeading", 90,
-    "landV", 28,
-    "maneuverV", 35,
-    "cruiseV", 43,
-    "descentV", -2,
-    "smoothV", -1,
-    "brakeWait", 3
-).
-
-set defaultFlightParams:arrow to flightArrow(defaultFlightParams).
+        // constants
+        "takeoffAoA", 8,
+        "takeoffHeading", 90,
+        "landV", 28,
+        "maneuverV", 35,
+        "cruiseV", 43,
+        "descentV", -2,
+        "smoothV", -1,
+        "brakeWait", 3
+    ).
+    local arrow to flightArrow(params).
+    set params:arrow to arrow.
+    return params.
+}
 
 function flightSteering {
     parameter params.

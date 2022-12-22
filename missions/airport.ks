@@ -15,15 +15,15 @@ set kPhases:startInc to 0.
 set kPhases:stopInc to 0.
 
 // local runway to waypoint("island 09").
-// local runway to waypoint("ksc 09").
-local runway to waypoint("ksc 27").
+local runway to waypoint("ksc 09").
+// local runway to waypoint("ksc 27").
 local takeoffHeading to 90.
-local landHeading to 270.
+local landHeading to 90.
 local glideAngle to 3.
 local turnXacc to 4.
 local endRadius to 3.
 
-local params to defaultFlightParams.
+local params to flightDefaultParams().
 
 airportInit().
 airportTakeoff().

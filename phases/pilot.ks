@@ -8,12 +8,29 @@ runOncePath("0:common/ship.ks").
 runOncePath("0:maneuvers/flight.ks").
 runOncePath("0:maneuvers/hover.ks").
 
-clearAll().
-// pilotHover().
-pilotFlight().
+
+pilotHybrid().
+
+function pilotHybrid {
+    local flyNext to status = "FLYING".
+
+    until false {
+        if flyNext {
+            clearAll().
+            pilotFlight().
+            set flyNext to false.
+        } else {
+            clearAll().
+            pilotHover().
+            set flyNext to true.
+        }
+        wait 1.
+    }
+}
 
 function setTarget {
     parameter params.
+
     if hasTarget {
         set params:tgt to target:geoposition.
     } else {
@@ -28,8 +45,9 @@ function setTarget {
 
 function pilotHover {
     sas off.
+    stageToMax().
 
-    local params to hoverParams.
+    local params to hoverDefaultParams().
 
     setTarget(params).
     set params:mode to kHover:Hover.
@@ -43,17 +61,28 @@ function pilotHover {
         local pTrans to ship:control:pilottranslation.
         local pRot  to ship:control:pilotrotation.
 
-        set params:altOffset to params:altOffset + 3 * pTrans:z * timeDiff.
+        set params:vspdCtrl to params:vspdCtrl + 3 * pTrans:z * timeDiff.
 
         if pRot:y > 0.5 {
+            // press S
             setTarget(params).
             set params:seek to true.
         } else if pRot:y < -0.5 {
+            // press W
             set params:seek to false.
+        } else if pRot:z < -0.5 {
+            // press Q
+            set params:mode to kHover:Vspd.
+        } else if pRot:x < -0.5 {
+            // press A
+            set params:mode to kHover:Hover.
+        } else if pRot:x > 0.5 {
+            // press D
+            return.
         }
 
-        print params.
-
+        // print params.
+        hoverIter(params).
         wait timeDiff.
     }
 }
@@ -63,7 +92,7 @@ function pilotFlight {
 
     flightSetSteeringManager().
 
-    local params to defaultFlightParams.
+    local params to flightDefaultParams().
     set params:arrow:show to false.
     flightCreateReport(params).
 
@@ -97,6 +126,9 @@ function pilotFlight {
             // press E
             flightResetSpds(params, params:cruiseV).
             print "Reset Spds".
+        } else if pRot:x > 0.5 {
+            // press D
+            return.
         }
 
         set params:xacc to params:xacc + 2.5 * pTrans:x * timeDiff.
