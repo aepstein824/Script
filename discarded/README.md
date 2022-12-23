@@ -1,0 +1,1 @@
+In this folder is code that I have discarded for one reason or another.
