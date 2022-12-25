@@ -216,6 +216,7 @@ function closestApproach {
     return t.
 }
 
+// acceleration
 function gat {
     parameter h.
 

@@ -12,7 +12,7 @@ runOncePath("0:maneuvers/hover.ks").
 pilotHybrid().
 
 function pilotHybrid {
-    local flyNext to status = "FLYING".
+    local flyNext to status = "FLYING" or brakes.
 
     until false {
         if flyNext {
