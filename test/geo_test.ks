@@ -16,7 +16,8 @@ local tests to lexicon(
     "turnDrafted", testTurnDrafted@,
     "turnLRL", testTurnPathLRLSimple@,
     "turnRLR", testTurnPathRLRSimple@,
-    "turnTooFar", testTurnPathCCTooFar@
+    "turnTooFar", testTurnPathCCTooFar@,
+    "turnPointToPoint", testTurnPointToPoint@
 ).
 
 testRun(tests).
@@ -53,11 +54,13 @@ function testTurnCircles {
     r:add(testEq(right:d:forevector, v(0, 0, 1))).
     r:add(testEq(right:d:upvector, v(0, -1, 0))).
     r:add(testEq(right:d:rightvector, v(-1, 0, 0))).
+    r:add(testEq(turnOut(right), zeroV)).
     local left to turnFromPoint(zeroV, zeroR, 10, -1). 
     r:add(testEq(left:p, v(-10, 0, 0))).
     r:add(testEq(left:d:forevector, v(0, 0, 1))).
     r:add(testEq(left:d:upvector, v(0, 1, 0))).
     r:add(testEq(left:d:rightvector, v(1, 0, 0))).
+    r:add(testEq(turnOut(left), zeroV)).
     return r.
 }
 
@@ -90,9 +93,9 @@ function testTurnIntersectPoint {
 
 function testTurnPathLLSimple {
    local r to list().
-   local left0 to turn2d(v(1,0,0), 1, leftR).
-   local left1 to turn2d(v(1,0,5), 1, leftR).
-   local path to turnToTurn(left1, left0).
+   local left0 to turn2d(v(1,0,5), 1, leftR).
+   local left1 to turn2d(v(1,0,0), 1, leftR).
+   local path to turnToTurn(left0, left1).
    r:add(testEq(path[0][0], "start")).
    r:add(testEq(path[0][1], v(0, 0, 5))).
    r:add(testEq(path[1][0], "turn")).
@@ -101,14 +104,15 @@ function testTurnPathLLSimple {
    r:add(testEq(path[2][1], v(2, 0, 0))).
    r:add(testEq(path[3][0], "turn")).
    r:add(testEq(path[3][1], v(0, 0, 0))).
+   r:add(testEq(turnPathDistance(path), 5 + 2 * constant:pi)).
    return r.
 }
 
 function testTurnPathRRSimple {
    local r to list().
-   local right0 to turn2d(v(1,0,0), 1, zeroR).
-   local right1 to turn2d(v(1,0,5), 1, zeroR).
-   local path to turnToTurn(right1, right0).
+   local right0 to turn2d(v(1,0,5), 1, zeroR).
+   local right1 to turn2d(v(1,0,0), 1, zeroR).
+   local path to turnToTurn(right0, right1).
    r:add(testEq(path[0][0], "start")).
    r:add(testEq(path[0][1], v(2, 0, 5))).
    r:add(testEq(path[1][0], "turn")).
@@ -122,9 +126,9 @@ function testTurnPathRRSimple {
 
 function testTurnPathLRSimple {
    local r to list().
-   local right0 to turn2d(v(1,0,0), 1, zeroR).
-   local left1 to turn2d(v(-1,0,5), 1, leftR).
-   local path to turnToTurn(left1, right0).
+   local left0 to turn2d(v(-1,0,5), 1, leftR).
+   local right1 to turn2d(v(1,0,0), 1, zeroR).
+   local path to turnToTurn(left0, right1).
    r:add(testEq(path[0][0], "start")).
    r:add(testEq(path[0][1], v(-2, 0, 5))).
    r:add(testEq(path[1][0], "turn")).
@@ -138,9 +142,9 @@ function testTurnPathLRSimple {
 
 function testTurnPathRLSimple {
    local r to list().
-   local left0 to turn2d(v(-1,0,0), 1, leftR).
-   local right1 to turn2d(v(1,0,5), 1, zeroR).
-   local path to turnToTurn(right1, left0).
+   local right0 to turn2d(v(1,0,5), 1, zeroR).
+   local left1 to turn2d(v(-1,0,0), 1, leftR).
+   local path to turnToTurn(right0, left1).
    r:add(testEq(path[0][0], "start")).
    r:add(testEq(path[0][1], v(2, 0, 5))).
    r:add(testEq(path[1][0], "turn")).
@@ -248,5 +252,41 @@ function testTurnPathCCTooFar {
     local far to turn2d(unitZ, 0.1, zeroR).
     local fail to turnToTurnCC(near, far).
     r:add(testEq(fail:length(), 0)).
+    return r.
+}
+
+function testTurnPointToPoint {
+    local r to list().
+    local path to list().
+
+
+    set path to turnPointToPoint(v(-0.0001,0,5), 1, leftR, v(0,0,0), 1, leftR).
+    r:add(testEq(path[0][0], "start")).
+    r:add(testEq(path[0][1], v(0, 0, 5))).
+    r:add(testEq(path[1][0], "turn")).
+    r:add(testEq(path[1][1], v(2, 0, 5))).
+    r:add(testEq(path[2][0], "straight")).
+    r:add(testEq(path[2][1], v(2, 0, 0))).
+    r:add(testEq(path[3][0], "turn")).
+    r:add(testEq(path[3][1], v(0, 0, 0))).
+    r:add(testEq(turnPathDistance(path), 5 + 2 * constant:pi)).
+
+    set path to turnPointToPoint(v(2,0,5), 1, zeroR, v(-2,0,0), 1, leftR).
+    r:add(testEq(path[0][0], "start")).
+    r:add(testEq(path[0][1], v(2, 0, 5))).
+    r:add(testEq(path[1][0], "turn")).
+    r:add(testEq(path[1][1], v(0, 0, 5))).
+    r:add(testEq(path[2][0], "straight")).
+    r:add(testEq(path[2][1], v(0, 0, 0))).
+    r:add(testEq(path[3][0], "turn")).
+    r:add(testEq(path[3][1], v(-2, 0, 0))).
+
+    local start to turn2d(unitX, 1, leftR).
+    local end to turn2d(-unitX, 1, leftR).
+    local uturn to turnToTurnCC(start, end).
+    set path to turnPointToPoint(zeroV, 1, zeroR, zeroV, 1, r(0, 180, 0)).
+    r:add(testEq(uturn[1][1], v(0.5, 0, sqrt(3/4)))).
+    r:add(testEq(uturn[2][1], v(-0.5, 0, sqrt(3/4)))).
+    r:add(testEq(uturn[2][2]:p, v(0, 0, sqrt(3)))).
     return r.
 }

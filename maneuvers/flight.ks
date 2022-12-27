@@ -1,16 +1,20 @@
 @LAZYGLOBAL OFF.
 
+runOncePath("0:common/filters.ks").
 runOncePath("0:common/info.ks").
 runOncePath("0:common/math.ks").
 runOncePath("0:common/operations.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 runOncePath("0:common/report.ks").
+runOncePath("0:deps/kLA-ks/src/kla").
 
 global kFlight to lexicon().
 set kFlight:ThrotKp to 0.1. // Caps at even 1m/s off
 set kFlight:ThrotMaxA to 0.2. 
 set kFlight:AoAKp to 2. // 1 m/s vertical = X degree
+set kFlight:AeroCount to 10.
+
 set kFlight:Park to "PARK".
 set kFlight:Takeoff to "TAKEOFF".
 set kFlight:Level to "LEVEL".
@@ -18,47 +22,52 @@ set kFlight:Landing to "LANDING".
 set kFlight:Smooth to "SMOOTH".
 set kFlight:Rough to "ROUGH".
 
-// requires the far addon for info
-local far to addons:far.
+function flightDefaultParams { 
+    local params to lexicon(
+        // maintain
+        "mode", kFlight:Park,
+        "vspd", 0,
+        "hspd", 0,
+        "xacc", 0.0,
+        "landStyle", kFlight:Rough,
 
-global defaultFlightParams to lexicon(
-    // maintain
-    "mode", kFlight:Park,
-    "vspd", 0,
-    "hspd", 43,
-    "xacc", 0.0,
-    "landStyle", kFlight:Smooth,
+        // calculations
+        "level", ship:facing,
+        "throttlePid", flightThrottlePid(),
+        "aoaPid", flightAoAPid(),
+        "aero", flightAeroState(),
 
-    // calculations
-    "level", ship:facing,
-    "throttlePid", flightThrottlePid(),
-    "aoaPid", flightAoAPid(),
+        // output
+        "steering", ship:facing,
+        "throttle", 0,
 
-    // output
-    "steering", ship:facing,
-    "throttle", 0,
+        // vis
+        "arrowVec", v(0, 0, 0),
+        "report", false,
 
-    // vis
-    "arrowVec", v(0, 0, 0),
-    "report", false,
-
-    // constants
-    "takeoffAoA", 8,
-    "takeoffHeading", 90,
-    "landV", 28,
-    "maneuverV", 35,
-    "cruiseV", 43,
-    "descentV", -2,
-    "smoothV", -1,
-    "brakeWait", 3
-).
-
-set defaultFlightParams:arrow to flightArrow(defaultFlightParams).
+        // constants
+        "takeoffAoA", 8,
+        "takeoffHeading", 90,
+        "landV", 28,
+        "maneuverV", 35,
+        "cruiseV", 43,
+        "descentV", -2,
+        "smoothV", -1,
+        "brakeWait", 3
+    ).
+    local arrow to flightArrow(params).
+    set params:arrow to arrow.
+    local differ to flightDifferCreate(params).
+    set params:differ to differ.
+    return params.
+}
 
 function flightSteering {
     parameter params.
 
     if params:mode = "LEVEL" or params:mode = "LANDING" {
+        flightDifferUpdate(params).
+
         // We have to recalc every time since we're spinning
         local out to -body:position.
         local lev to removeComp(velocity:surface, out).
@@ -76,7 +85,7 @@ function flightSteering {
         local spd to max(groundspeed, 10).
         local turnOmega to flightSpdToOmega(spd, params:xacc).
         local hack to r(0, turnOmega, 0).
-        local steer to level * params:steering * hack.
+        local steer to level * hack * params:steering.
         set params:arrowvec to steer:forevector.
 
         return steer.
@@ -84,7 +93,6 @@ function flightSteering {
     return params:steering.
 
 }
-
 
 function flightThrottle {
     parameter params.
@@ -137,82 +145,193 @@ function flightTakeoff {
     }
 }
 
+function flightDifferCreate {
+    parameter params.
+    local newValues to flightDifferValues(params).
+    return differCreate(newValues, time:seconds).
+}
+
+function flightDifferValues {
+    parameter params.
+    local srfRolled to lookDirUp(srfPrograde:forevector, facing:upvector).
+    return list(
+        velocity:surface
+    ).
+}
+
+function flightDifferUpdate {
+    parameter params.
+    local newValues to flightDifferValues(params).
+    return differUpdate(params:differ, newValues, time:seconds).
+}
+
+function flightAeroState {
+    return lexicon(
+        "In", klaOnes(kFlight:AeroCount, 2), 
+        "Out", klaZeros(kFlight:AeroCount, 2),
+        "LastTick", 0,
+        "Iter", 0,
+        "Aoa", 0,
+        "Thrust", 0,
+        "LandingSpd", 0
+    ).
+}
+
+function flightLevelAoaLinear {
+    parameter aero, vspd, hspd, grav, acc.
+
+    local x to aero:In.
+    local y to aero:Out.
+    local i to aero:Iter.
+    local lastTick to aero:LastTick.
+    local nowTick to time:seconds.
+    set aero:LastTick to nowTick.
+    set aero:Iter to mod(i + 1, kFlight:AeroCount).
+ 
+    local air2 to airspeed ^ 2.
+
+    local srfRolled to lookDirUp(srfPrograde:forevector, facing:upvector).
+
+    local totalThrust to 0.
+    local engs to list().
+    list engines in engs.
+    for e in engs {
+        set totalThrust to totalThrust + e:thrust. 
+    }
+    local thrustAccRaw to ship:facing:forevector * totalThrust / ship:mass.
+    local gravAccRaw to gat(altitude) * body:position:normalized.
+    local aeroAcc to srfRolled:inverse * (acc - thrustAccRaw - gravAccRaw).
+    local aeroforceDiff to aeroAcc * ship:mass.
+    local aeroforce to aeroforceDiff.
+
+    local aoa to smallAng(vectorAngleAround(
+        srfRolled:forevector, 
+        facing:rightvector,
+        facing:forevector)).
+    local lift to aeroforce:y.
+    local drag to aeroforce:z.
+    local cl to lift / air2.
+    local cd to drag / air2.
+
+    klaSet(x, i + 1, 2, aoa).
+    klaSet(y, i + 1, 1, cl).
+    klaSet(y, i + 1, 2, cd).    
+
+    if i = kFlight:AeroCount - 1 {
+        local solution to klaBackslash(x, y).
+        clearScreen.
+        local b to klaGet(solution, 1, 1).
+        local m to klaGet(solution, 2, 1).
+        local bd to klaGet(solution, 1, 2).
+        local md to klaGet(solution, 2, 2).
+        local aoaPred to (cl - b) / m.
+        local aoaPredD to (cd - bd) / md.
+        local zeroAoA to -b / m.
+        local liftPred to (m * aoa + b) * air2.
+        local dragPred to (md * aoa + bd) * air2.
+
+        local spd2 to vspd ^ 2 + hspd ^ 2.
+        local vmag to sqrt(spd2).
+        local sinP to vspd / vmag.
+        local cosP to hspd / vmag.
+        local Gmag to grav * ship:mass.
+        local prevThrust to aero:Thrust.
+        local GdotL to -Gmag * cosP.
+        local GdotD to Gmag * sinP.
+        
+        // small angle approximation of thrust * sin(aoa).
+        local stable to ((-GdotL) / (spd2) - b) / (m + prevThrust / spd2).
+        local stableDrag to -1 * (md * stable + bd) * spd2.
+        local stableThrust to (1 / cos(stable)) * (stableDrag + GdotD).
+
+        // klaPrint(x).
+        // print " -- ".
+        // klaPrint(y).
+        // print " -- ".
+        // klaPrint(solution).
+        // print " -- ".
+        // print i.
+        print "tickms " + ((nowTick - lastTick) * 1000).
+        print "energy " + (0.5 * airspeed ^ 2 + 9.8 * altitude).
+        print "aoa " + aoa.
+        print "lift / G " + round(lift / Gmag, 2).
+        print "cl " + cl.
+        print "cd " + cd.
+        print "pitch angle " + round(arcsin(sinP), 2).
+        print "stable aoa at " + round(hspd) + " = " + stable.
+        print "stable thrust " + stableThrust.
+        // print "aoapred " + aoaPred.
+        // print "error " + round((aoaPred - aoa) / aoa, 4).
+        // print "aoapredD " + aoaPredD.
+        // print "error " + round((aoaPredD - aoa) / aoa, 4).
+        // print "lift pred " + liftPred.
+        // print "error " + round((liftPred - lift) / lift, 4).
+        // print "drag pred " + dragPred.
+        // print "error " + round((dragPred - drag) / drag, 4).
+        print "Diff " + vecround(aeroforceDiff, 2).
+
+        local sevCl to m * (zeroAoA + 10) + b.
+        local sevSpd to sgnsqrt(Gmag / sevCl) + 5.
+        print "stall speed " + sevSpd.
+        print "zero aoa " + round(zeroAoA, 2).
+
+        set aero:Aoa to stable.
+        set aero:Thrust to stableThrust.
+        set aero:LandingSpd to sevSpd.
+    }
+
+    return v(aero:Aoa, aero:Thrust, 0).
+
+}
+
+
 function flightLevel {
     parameter params.
 
     local level to params:level.
 
-    // Despite my best efforts, we dip a bit when turning. This little boost
-    // to vspd should keep us at about the target.
-    local vspd to params:vspd + abs(params:xacc) / 7.
-    
-    local grav to gat(altitude).
-    local liftFactor to sqrt(params:xacc^2 + grav^2) / grav.
-    // Units of force, since aero doesn't care about mass
-    local G to v(0, -1, 0) * grav * liftFactor * ship:mass.
-    local presFactor to (far:ias / velocity:surface:mag) ^ 2.
-    local levV to v(0, vspd, params:hspd).
-    local levUp to v(params:xacc, grav, 0).
-    // for now travel is a based on level
-    local travel to lookDirUp(levV, unitY).
-    local travelV to travel:inverse * levV.
-    local rolled to lookDirUp(levV, levUp).
-
     local levelSurf to level:inverse * velocity:surface.
+    local vspd to params:vspd.
+    local hspd to params:hspd.
+
+    // roll
+    local grav to gat(altitude).
+    local rollUp to v(params:xacc, grav, 0).
+    local rollGrav to rollUp:mag.
+
+    local acc to params:differ:D[0].
+    local aoaThrust to flightLevelAoaLinear(params:aero, vspd, hspd, rollGrav, acc).
+    local aoa to aoaThrust:x.
+    local thrust to aoaThrust:y.
+    if params:aero:LandingSpd > 10 {
+        set params:landV to params:aero:LandingSpd.
+    }
+
+    // PIDs
     local aoaPid to params:aoaPid.
     // do not apply the correction for the AoA
-    set aoaPid:setpoint to params:vspd.
-    local aoaOffset to aoaPid:update(time:seconds, levelSurf:y).
-
-    local pitchInc to 5.
-    local pitch to 0.
-    local A to v(0, 0, 0).
-    local T to v(0, 0, 0).
-    local i to 0.
-    local flight to facing.
-    until false {
-        local attackRot to flightEulerR(pitch, 0).
-        local evalV to attackRot:inverse * travelV.
-
-        local vSurf to facing * evalV.
-        set A to attackRot * travel * facing:inverse 
-            * far:aeroforceat(0, vSurf).
-        set A to A * presFactor.
-        set A:x to 0. // assume no side force
-        set T to -1 * (A + G).
-
-        local tPitch to vectorAngleAround(unitZ, unitX, T).
-        if tPitch > 180 {
-            set tPitch to tPitch - 360.
-        }
-        // print "pitch: " + round(pitch, 3) + " tPitch: " + round(tPitch, 3).
-        local diff to tPitch - pitch.
-        if abs(diff) < 1 or i > 15 {
-            // print "setting aoa to " + round(pitch, 3).
-            local aoaRots to flightEulerR(pitch + aoaOffset, 0).
-            local levFace to rolled * aoaRots * unitZ.
-            set flight to lookDirUp(levFace, levUp). 
-            // set flight to level * rolled * attackRot.
-            break.
-        } else if diff > 0 {
-            set pitch to pitch + pitchInc.
-        } else {
-            set pitch to pitch - pitchInc.
-        }
-        set pitchInc to pitchInc * 0.5.
-        set i to i + 1.
-    }
-    
-    set params:steering to flight.
-
+    set aoaPid:setpoint to params:vspd - hspd / 5.
+    local aoaOffset to aoaPid:update(time:seconds, 
+        levelSurf:y - levelSurf:z / 5).
     // calculate a throttle adjustment, but remember to count falling as -spd
     local throttlePid to params:throttlePid.
-    set throttlePid:setpoint to levV:z + 5 * levV:y.
+    set throttlePid:setpoint to hspd + 5 * vspd.
     local signedSurf to levelSurf:z + 5 * levelSurf:y.
     local throtAdj to throttlePid:update(time:seconds, signedSurf).
+    // print "a " + round(aoaOffset, 2) + " t " + round(throtAdj, 2).
 
-    local idealThrot to T:mag / max(ship:maxThrust, 0.01).
+    // pitch
+    local pitchA to arcTan2(vspd, hspd).
+    local travel to flightPitch(pitchA).
+    local aoaRots to flightPitch(aoa + aoaOffset).
+    local rolled to lookDirUp(unitZ, rollUp).
+    local flight to travel * rolled * aoaRots.
+    set params:steering to flight.
+
+    // throttle
+    local idealThrot to thrust / max(ship:maxThrust, 0.01).
     // Keep throttle above 0 to keep it ready for throttling up.
+    // set throtAdj to 0.
     set params:throttle to max(idealThrot + throtAdj, 0.02).
 }
 
@@ -221,10 +340,20 @@ function flightLanding {
 
     local rough to params:landStyle = kFlight:Rough.
     if status = "LANDED" {
+        set params:throttle to 0.
         if groundspeed < (params:hspd - params:brakeWait) or rough {
             brakes on.
         }
-        set params:throttle to 0.
+
+        if groundspeed > 5 {
+            local reverser to setThrustReverser(kReverse).
+            if reverser {
+                set params:throttle to 100.
+            }
+        } else {
+            setThrustReverser(kForward).
+        }
+
         set params:steering to params:level:inverse * facing.
         return.
     }
@@ -240,11 +369,11 @@ function flightLanding {
     flightLevel(params).
 }
 
-function flightEulerR {
-    parameter pitch, slip.
+function flightPitch {
+    parameter pitch.
 
     // args are right hand, R() is left hand
-    return r(0, -slip, 0) * r(-pitch, 0, 0).
+    return r(-pitch, 0, 0).
 }
 
 function flightBeginTakeoff {
@@ -254,6 +383,7 @@ function flightBeginTakeoff {
         set params:mode to kFlight:Takeoff.
 
         setFlaps(2).
+        setThrustReverser(kForward).
         brakes off.
     }
 }
@@ -270,6 +400,7 @@ function flightBeginLevel {
 
         flightResetSpds(params, params:cruiseV).
         setFlaps(0).
+        setThrustReverser(kForward).
         brakes off.
         gear off.
     }
@@ -278,7 +409,7 @@ function flightBeginLevel {
 function flightBeginLanding {
     parameter params.
 
-    if status <> "FLYING" {
+    if status <> "FLYING" and status <> "LANDED" {
         return.
     }
     if params:mode <> kFlight:Landing {
@@ -286,6 +417,7 @@ function flightBeginLanding {
         set params:steering to r(0, 0, 0).
 
         flightResetSpds(params, params:landV).
+        setThrustReverser(kForward).
         set params:vspd to -1.
         setFlaps(3).
         brakes off.
@@ -358,71 +490,4 @@ function flightSetSteeringManager {
     set steeringmanager:pitchpid:ki to 0.
     set steeringmanager:rollpid:ki to 0.
     set steeringmanager:yawpid:ki to 0.
-}
-
-// Document the process of calculating aero effects at current situation.
-// Without FAR providing IAS, we would need temp and pres sensors to get the
-// same values.
-function flightCalcLevel {
-    local out to -body:position.
-    local lev to removeComp(facing:forevector, out).
-    local level to lookDirUp(lev, out).
-    local vSurf to velocity:surface.
-
-    local vRaw to vSurf.
-
-    local A to level:inverse * far:aeroforceat(0, vRaw).
-    local Alevel to level:inverse * far:aeroforce.
-
-    local atm to body:atm.
-
-    local tas to vSurf:mag.
-    local gamma to atm:adbidx.
-    local staticPres to ship:sensors:pres * 1000.
-    local temp to ship:sensors:temp.
-    // rho is mass density = number density * molar mass
-    // number density = p / RT
-    local numberDensity to staticPres / constant:IdealGas / temp.
-    local molarMass to atm:molarmass.
-    local rho to numberDensity * molarMass.
-    // a = sart(gamma * p / rho)
-    local soundSpd to sqrt(gamma * staticPres / rho).
-    local mach to tas / soundSpd.
-    // q = M^2 * (1/2) * gamma * p
-    // factor of 1000 to convert back to kpa
-    local q to (mach ^ 2) * 0.5 * gamma * staticPres / 1000.
-    // alternatively, q = 0.5 * rho * u^2
-    local qq to 0.5 * rho * tas ^ 2 / 1000.
-
-    local ias to tas / sqrt(1.225 / rho).
-
-    local avgTemp to atm:altitudetemperature(0).
-    local avgPres to atm:altitudepressure(0) * 1000 * constant:atmtokpa.
-    local qFactor to (temp / avgTemp) ^ (-1) * (staticPres / avgPres).
-
-    local ias_rat to tas / far:ias.
-    local ias_qrat to ias_rat ^ 2.
-    local ias_A to A / ias_qrat.
-
-    clearall().
-    print "speed of sound = " + soundSpd.
-    print "rho = " + rho.
-    print "avgTemp = " + avgTemp.
-    print "avgPres = " + avgPres.
-    print "q factor = " + qFactor.
-    print "---".
-    print "Alevel " + vecRound(Alevel, 2).
-    print "Asense " + vecRound(A * qFactor, 2).
-    print "A ias  " + vecRound(ias_A, 2).
-    print "---".
-    print "Guess Q " + q.
-    print "Other Q " + qq.
-    print "Check Q " + far:dynpres.
-    print "---".
-    print "Guess mach " + mach.
-    print "Check mach " + far:mach.
-    print "---".
-    print "Guess IAS " + ias.
-    print "Check IAS " + far:ias.
-
 }
