@@ -47,7 +47,8 @@ function hoverDefaultParams {
         "cruiseCrab", true,
         "minG", 0.8,
         "spdPerH", 0.3,
-        "jerkH", 0.2,
+        // "jerkH", 0.2,
+        "jerkH", 0.4,
         "maxAccelH", 2,
         "maxSpdH", 50,
         "maxSpdV", 30
@@ -139,6 +140,9 @@ function hoverIter {
     if ship:maxthrust <> 0 {
         set throt to totalAcc / (ship:maxthrust / ship:mass). 
     }
+    if status <> "FLYING" {
+        set throt to throt * 1.5.
+    }
 
     set throt to clamp(throt, 0, 1).
     set params:throttle to throt.
@@ -210,13 +214,15 @@ function hoverUp {
 
     local out to -body:position.
     local towards to removeComp(params:tgt:position, out).
-    if towards:mag < kLockDist {
+    local tooClose to towards:mag < kLockDist.
+    local tooUnstable to vxcl(facing:forevector, ship:angularvel):mag > 0.5.
+    if  tooClose or tooUnstable {
         return params:face:upvector.
     }
     if params:crab {
         set towards to vcrs(towards, out).
     }
-    return towards.
+    return -1 * towards.
 }
 
 function hoverHAccel {

@@ -97,8 +97,8 @@ function printPids {
     printOnePid("roll ", steeringManager:rollpid).
 }
 
-function compass {
+function shipHeading {
     local northPole to latlng(90,0).
-    local comp to mod(360 - northPole:bearing,360).
+    local comp to mod(360 - northPole:bearing, 360).
     return comp.
 }

@@ -10,10 +10,11 @@ runOncePath("0:common/report.ks").
 runOncePath("0:deps/kLA-ks/src/kla").
 
 global kFlight to lexicon().
-set kFlight:ThrotKp to 0.1. // Caps at even 1m/s off
-set kFlight:ThrotMaxA to 0.2. 
+set kFlight:ThrotKp to 0.1. // 1=full throttle at 1m/s
+set kFlight:ThrotMaxA to 0.1. 
 set kFlight:AoAKp to 2. // 1 m/s vertical = X degree
-set kFlight:AeroCount to 10.
+set kFlight:AoAMaxA to 1.
+set kFlight:AeroCount to 20.
 
 set kFlight:Park to "PARK".
 set kFlight:Takeoff to "TAKEOFF".
@@ -55,8 +56,8 @@ function flightDefaultParams {
         "smoothV", -1,
         "brakeWait", 3
     ).
-    local arrow to flightArrow(params).
-    set params:arrow to arrow.
+    // local arrow to flightArrow(params).
+    // set params:arrow to arrow.
     local differ to flightDifferCreate(params).
     set params:differ to differ.
     return params.
@@ -71,6 +72,7 @@ function flightSteering {
         // We have to recalc every time since we're spinning
         local out to -body:position.
         local lev to removeComp(velocity:surface, out).
+        // local lev to unitZ.
         local level to lookDirUp(lev, out).
         // HACK ALERT
         // Cooked steering chooses pyr outputs by converting angle error into
@@ -82,11 +84,12 @@ function flightSteering {
         // direction. This hack adds additional rotation error to trigger
         // equivalent rotational velocity. Because kp = 1, I believe this is an
         // exact solution.
-        local spd to max(groundspeed, 10).
+        local spd to groundspeed.
         local turnOmega to flightSpdToOmega(spd, params:xacc).
         local hack to r(0, turnOmega, 0).
         local steer to level * hack * params:steering.
-        set params:arrowvec to steer:forevector.
+        // local steer to level * params:steering.
+        // set params:arrowvec to steer:forevector.
 
         return steer.
     }
@@ -114,6 +117,7 @@ function flightIter {
 
     local out to -body:position.
     local lev to removeComp(velocity:surface, out).
+    // local lev to vxcl(out, velocity:surface).
     set params:level to lookDirUp(lev, out).
 
     if not params:report:istype("BOOLEAN") {
@@ -132,6 +136,14 @@ function flightIter {
     }
 }
 
+function flightSetSpeedsGivenMin {
+    parameter params, minSpd.
+
+    set params:landV to max(params:landV, minSpd + 2).
+    set params:cruiseV to max(params:cruiseV, minSpd * 1.4).
+    set params:maneuverV to max(params:maneuverV, minSpd * 1.2).
+}
+
 function flightTakeoff {
     parameter params.
 
@@ -139,9 +151,7 @@ function flightTakeoff {
     set params:throttle to 1.
 
     if status = "LANDED" {
-        set params:landV to max(params:landV, groundspeed + 2).
-        set params:cruiseV to max(params:cruiseV, groundspeed * 1.4).
-        set params:maneuverV to max(params:maneuverV, groundspeed * 1.2).
+        flightSetSpeedsGivenMin(params, groundspeed).
     }
 }
 
@@ -204,10 +214,11 @@ function flightLevelAoaLinear {
     local aeroforceDiff to aeroAcc * ship:mass.
     local aeroforce to aeroforceDiff.
 
-    local aoa to smallAng(vectorAngleAround(
-        srfRolled:forevector, 
-        facing:rightvector,
-        facing:forevector)).
+    // local aoa to smallAng(vectorAngleAround(
+    //     srfRolled:forevector, 
+    //     facing:rightvector,
+    //     facing:forevector)).
+    local aoa to 90 - vang(srfRolled:upvector, facing:forevector).
     local lift to aeroforce:y.
     local drag to aeroforce:z.
     local cl to lift / air2.
@@ -238,11 +249,17 @@ function flightLevelAoaLinear {
         local prevThrust to aero:Thrust.
         local GdotL to -Gmag * cosP.
         local GdotD to Gmag * sinP.
-        
+
         // small angle approximation of thrust * sin(aoa).
-        local stable to ((-GdotL) / (spd2) - b) / (m + prevThrust / spd2).
+        local stable to ((-GdotL) / (spd2) - b) 
+            / (m + constant:degtorad * prevThrust / spd2).
+        set stable to aoa + clamp(stable - aoa, -2, 2).
+        // set stable to (stable + aoa) / 2.
         local stableDrag to -1 * (md * stable + bd) * spd2.
         local stableThrust to (1 / cos(stable)) * (stableDrag + GdotD).
+
+        local sevCl to m * (zeroAoA + 10) + b.
+        local sevSpd to sgnsqrt(Gmag / sevCl) + 5.
 
         // klaPrint(x).
         // print " -- ".
@@ -251,27 +268,25 @@ function flightLevelAoaLinear {
         // klaPrint(solution).
         // print " -- ".
         // print i.
+        // print "Diff " + vecround(aeroforceDiff, 2).
         print "tickms " + ((nowTick - lastTick) * 1000).
         print "energy " + (0.5 * airspeed ^ 2 + 9.8 * altitude).
         print "aoa " + aoa.
         print "lift / G " + round(lift / Gmag, 2).
+        print "drag / G " + round(drag / Gmag, 2).
         print "cl " + cl.
         print "cd " + cd.
         print "pitch angle " + round(arcsin(sinP), 2).
         print "stable aoa at " + round(hspd) + " = " + stable.
         print "stable thrust " + stableThrust.
-        // print "aoapred " + aoaPred.
-        // print "error " + round((aoaPred - aoa) / aoa, 4).
-        // print "aoapredD " + aoaPredD.
-        // print "error " + round((aoaPredD - aoa) / aoa, 4).
-        // print "lift pred " + liftPred.
-        // print "error " + round((liftPred - lift) / lift, 4).
-        // print "drag pred " + dragPred.
-        // print "error " + round((dragPred - drag) / drag, 4).
-        print "Diff " + vecround(aeroforceDiff, 2).
-
-        local sevCl to m * (zeroAoA + 10) + b.
-        local sevSpd to sgnsqrt(Gmag / sevCl) + 5.
+        print "aoapred " + aoaPred.
+        print "error " + round((aoaPred - aoa) / aoa, 4).
+        print "aoapredD " + aoaPredD.
+        print "error " + round((aoaPredD - aoa) / aoa, 4).
+        print "lift pred " + liftPred.
+        print "error " + round((liftPred - lift) / lift, 4).
+        print "drag pred " + dragPred.
+        print "error " + round((dragPred - drag) / drag, 4).
         print "stall speed " + sevSpd.
         print "zero aoa " + round(zeroAoA, 2).
 
@@ -309,16 +324,22 @@ function flightLevel {
 
     // PIDs
     local aoaPid to params:aoaPid.
-    // do not apply the correction for the AoA
-    set aoaPid:setpoint to params:vspd - hspd / 5.
-    local aoaOffset to aoaPid:update(time:seconds, 
-        levelSurf:y - levelSurf:z / 5).
+    // set aoaPid:setpoint to params:vspd - hspd / 5.
+    set aoaPid:setpoint to vspd.
+    // local aoaOffset to aoaPid:update(time:seconds, 
+    //     levelSurf:y - levelSurf:z / 5).
+    local aoaOffset to aoaPid:update(time:seconds, levelSurf:y).
     // calculate a throttle adjustment, but remember to count falling as -spd
     local throttlePid to params:throttlePid.
-    set throttlePid:setpoint to hspd + 5 * vspd.
-    local signedSurf to levelSurf:z + 5 * levelSurf:y.
-    local throtAdj to throttlePid:update(time:seconds, signedSurf).
-    // print "a " + round(aoaOffset, 2) + " t " + round(throtAdj, 2).
+    // set throttlePid:setpoint to hspd + 5 * vspd.
+    set throttlePid:setpoint to hspd.
+    // local signedSurf to levelSurf:z + 5 * levelSurf:y.
+    // local throtAdj to throttlePid:update(time:seconds, signedSurf).
+    local throtAdj to throttlePid:update(time:seconds, levelSurf:z).
+    // set aoaOffset to 0.
+    // set throtAdj to 0.
+    print "a " + round(aoaOffset, 2) + " t " + round(throtAdj, 2) 
+        + " A " + round(aoaOffset + aoa, 2).
 
     // pitch
     local pitchA to arcTan2(vspd, hspd).
@@ -448,16 +469,16 @@ function flightCreateReport {
 }
 
 function flightThrottlePid {
-    local pid to pidloop(kFlight:ThrotKp, 0, 0).
+    local pid to pidloop(kFlight:ThrotKp, 0, kFlight:ThrotKp / 10).
     set pid:maxoutput to kFlight:ThrotMaxA.
     set pid:minoutput to -kFlight:ThrotMaxA.
     return pid.
 }
 
 function flightAoAPid {
-    local pid to pidloop(kFlight:AoAKp, 0, 0).
-    set pid:maxoutput to 1.
-    set pid:minoutput to -1.
+    local pid to pidloop(kFlight:AoAKp, 0, kFlight:AoAKp / 10).
+    set pid:maxoutput to kFlight:AoAMaxA.
+    set pid:minoutput to -kFlight:AoAMaxA.
     return pid.
 }
 

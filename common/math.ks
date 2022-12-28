@@ -75,8 +75,9 @@ function rotateVecAround {
 
 function removeComp {
     parameter x, orth.
-    set orth to orth:normalized.
-    return x - vDot(x, orth) * orth.
+    // set orth to orth:normalized.
+    // return x - vDot(x, orth) * orth.
+    return vxcl(orth, x).
 }
 
 function lerp {
