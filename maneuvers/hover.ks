@@ -26,7 +26,7 @@ function hoverDefaultParams {
         // "tgt", waypoint("island airfield"),
         "mode", kHover:Stop,
         "seek", false,
-        "crab", true,
+        "crab", false,
         "vspdCtrl", 0,
 
         // shared values
@@ -42,7 +42,6 @@ function hoverDefaultParams {
 
         // constants
         "minAGL", 10,
-        "minAMSL", 50,
         "favAAT", 12,
         "cruiseCrab", true,
         "minG", 0.8,
@@ -187,7 +186,7 @@ function hoverAlt {
     }
  
     // altitude
-    local seaAlt to params:minAMSL.
+    local seaAlt to 0.
     // clear obstacles
     local clearAlt to maxGround + radarOffset + params:minAGL.
     local avgAlt to avgGround + radarOffset + params:favAAT.
@@ -227,6 +226,10 @@ function hoverUp {
 
 function hoverHAccel {
     parameter params.
+
+    if abs(verticalSpeed) > params:maxSpdV {
+        return zeroV.
+    }
 
     local travel to params:travel.
     local travelInv to travel:inverse.
@@ -276,4 +279,23 @@ function hoverPid {
     // set ki to 0.
     // set kd to 0.
     return pidloop(kp, ki, kd).
+}
+
+function hoverHoverToFlight {
+    lock throttle to 1.
+    lock steering to heading(shipHeading(), 85, 0).
+    wait 5.
+    lock steering to heading(shipHeading(), 45, 0).
+    wait 10.
+}
+
+function hoverFlightToHover {
+    print "Transition to 45".
+    lock steering to heading(shipHeading(), 45, 0).
+    lock throttle to 1.
+    wait 3.
+    print "Transition to 85".
+    lock steering to heading(shipHeading(), 85, 0).
+    lock throttle to ship:mass * gat(altitude) / ship:maxthrust.
+    wait 3.
 }

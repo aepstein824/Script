@@ -11,25 +11,6 @@ runOncePath("0:maneuvers/hover.ks").
 
 pilotHybrid().
 
-function pilotHoverToFlight {
-    lock throttle to 1.
-    lock steering to heading(shipHeading(), 85, 0).
-    wait 5.
-    lock steering to heading(shipHeading(), 45, 0).
-    wait 10.
-}
-
-function pilotFlightToHover {
-    print "Transition to 45".
-    lock steering to heading(shipHeading(), 45, 0).
-    lock throttle to 1.
-    wait 3.
-    print "Transition to 85".
-    lock steering to heading(shipHeading(), 85, 0).
-    lock throttle to ship:mass * gat(altitude) / ship:maxthrust.
-    wait 3.
-}
-
 function pilotHybrid {
     local flyNext to status = "FLYING" or brakes.
 
@@ -40,12 +21,12 @@ function pilotHybrid {
             set flyNext to false.
             clearAll().
             print "Switching to Hover".
-            pilotFlightToHover().
+            hoverFlightToHover().
         } else {
             clearAll().
             pilotHover().
             set flyNext to true.
-            pilotHoverToFlight().
+            hoverHoverToFlight().
         }
     }
 }
