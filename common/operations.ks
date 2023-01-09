@@ -1,5 +1,55 @@
 @LAZYGLOBAL OFF.
 
+function opsRefuel {
+    local shipResources to list().
+    list resources in shipResources.
+    local transfers to list().
+    local refillers to ship:partstaggedpattern("refiller").
+    local refillees to ship:partstaggedpattern("refillee").
+
+    for res in shipResources {
+        local trans to transferAll(res:name, refillers, refillees).
+        set trans:active to true.
+        transfers:add(trans).
+    }
+
+    until false {
+        local anyTransferring to false.
+        for trans in transfers {
+            if trans:status = "Transferring" {
+                set anyTransferring to true.
+            }
+        }
+
+        if not anyTransferring {
+            break.
+        }
+
+        wait 0.
+    }
+
+    print "Transfer Statuses: ".
+    for trans in transfers {
+        print " " + trans:resource + ": (" + trans:status + ") " + trans:message.
+    }
+
+    local full to opsCheckFull(refillees).
+    return full.
+}
+
+function opsCheckFull {
+    parameter parts.
+    for part in parts {
+        for resource in part:resources {
+            if resource:amount < .99 * resource:capacity {
+                print "Out of " + resource:name.
+                return false.
+            }
+        }
+    }
+    return true.
+}
+
 global anytimeScienceParts to list(
     "sensorBarometer",
     "sensorThermometer",
