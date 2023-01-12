@@ -70,10 +70,7 @@ function flightSteering {
         flightDifferUpdate(params).
 
         // We have to recalc every time since we're spinning
-        local out to -body:position.
-        local lev to removeComp(velocity:surface, out).
-        // local lev to unitZ.
-        local level to lookDirUp(lev, out).
+        local level to shipLevel().
         // HACK ALERT
         // Cooked steering chooses pyr outputs by converting angle error into
         // rotation velocity. As we're turning, it sees the resulting angular

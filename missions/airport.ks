@@ -15,16 +15,16 @@ runOncePath("0:phases/airline").
 set kPhases:startInc to 0.
 set kPhases:stopInc to 0.
 
-// local runway to waypoint("island 09").
+local runway to waypoint("island 09").
 // local runway to waypoint("ksc 09").
 // local runway to waypoint("ksc 27").
-local runway to waypoint("Cove Launch Site").
+// local runway to waypoint("Cove Launch Site").
 local takeoffHeading to 90.
-local landHeading to 0.
+local landHeading to 90.
 local glideAngle to 3.
 local turnXacc to 4.
 local endRadius to 3.
-local vtol to true.
+local vtol to false.
 local vtolLandDistance to 500.
 
 local hovering to vtol.

@@ -102,3 +102,10 @@ function shipHeading {
     local comp to mod(360 - northPole:bearing, 360).
     return comp.
 }
+
+function shipLevel {
+    local out to -body:position.
+    local lev to vxcl(out, velocity:surface).
+    local level to lookDirUp(lev, out).
+    return level.
+}

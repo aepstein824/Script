@@ -222,3 +222,9 @@ function gat {
 
     return body:mu / (body:radius + h) ^ 2. 
 }
+
+function orbitalSpeed {
+    parameter mu, semimajor, radius.
+
+    return sqrt(mu * (2 / radius - 1 / semimajor)).
+}
