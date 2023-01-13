@@ -1,35 +1,35 @@
 @LAZYGLOBAL OFF.
 
+runPath("0:common/control.ks").
 runPath("0:maneuvers/landAtm.ks").
 
 local kKerbPark to 75000.
 local kLandingBudget to 200.
 
-function circleAtKerbin {
+function preventEscape {
+    controlLock().
     if obt:transition = "ESCAPE" {
         print "Avoiding escape!".
-        lock steering to ship:retrograde.
+        set controlSteer to ship:retrograde.
         wait 1.
-        lock throttle to 1.
+        set controlThrot to 1.
         wait until obt:transition = "FINAL".
-        lock throttle to 0.
-        wait 5.
+        set controlThrot to 0.
+        wait 1.
     }
+    controlUnlock().
+}
 
-    matchPlanesAndSemi(V(0, 1, 0), kKerbPark).
-    if nextNodeOverBudget(kLandingBudget) {
-        remove nextNode. 
-        changePeAtAp(kKerbPark).
-    }
+function circleAtKerbin {
+
+    preventEscape().
+
+    changePeAtAp(kKerbPark).
     nodeExecute().
-    wait 1.
+
     changeApAtPe(kKerbPark).
     local dvBudget to ship:deltav:current - kLandingBudget.
-    if nextnode:prograde < 0 {
-        set nextnode:prograde to max(nextnode:prograde, -dvBudget).
-    } else {
-        set nextnode:prograde to min(nextnode:prograde, dvBudget).
-    }
+    set nextNode:prograde to clampAbs(nextNode:prograde, dvBudget).
     nodeExecute().
 }
 

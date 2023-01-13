@@ -1,5 +1,6 @@
 @LAZYGLOBAL OFF.
 
+runOncePath("0:common/control.ks").
 runOncePath("0:common/math.ks").
 runOncePath("0:common/operations.ks").
 runOncePath("0:common/orbital.ks").
@@ -65,6 +66,8 @@ function hopBestTo {
 function verticalLeapTo {
     parameter h.
 
+    controlLock().
+
     if (h < groundAlt()) {
         return.
     }
@@ -76,14 +79,16 @@ function verticalLeapTo {
     until ship:velocity:surface:mag > v0 {
         set v0 to sqrt(2 * (h - groundAlt()) * g).
 
-        lock steering to lookDirUp(-body:position, v(0, 1, 0)).
-        lock throttle to 1.
+        set controlSteer to lookDirUp(-body:position, v(0, 1, 0)).
+        set controlThrot to 1.
     }
 
 
-    lock throttle to 0.
+    set controlThrot to 0.
 
     wait until groundAlt() > .90 * h.
+
+    controlUnlock().
 }
 
 function suicideBurn {

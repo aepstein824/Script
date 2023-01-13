@@ -11,8 +11,8 @@ declare global kLandAtm to lexicon().
 set kLandAtm:EntryPe to 45000.
 set kLandAtm:BurnAlt to 55000.
 set kLandAtm:ReturnTanly to 100.
-set kLandAtm:Winged to true.
-set kLandAtm:Coast to true.
+set kLandAtm:Winged to false.
+set kLandAtm:Coast to false.
 set kLandAtm:SurrenderH to 20000.
 set kLandAtm:CoastReserve to 120.
 set kLandAtm:CoastH to 80.

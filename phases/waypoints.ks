@@ -184,7 +184,6 @@ function vacDescendToward {
     }
 
     local dt to 90 - vectorAngleAround(wPosMid, burnPos, norm).
-    print dt.
     local burnStartSpd to shipVAt(mid):mag.
     local dv to 2 * burnStartSpd * sin(dt / 2).
     add node(mid, 0, dv * cos(dt / 2), -dv * sin(dt / 2)).

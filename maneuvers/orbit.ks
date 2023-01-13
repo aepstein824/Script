@@ -143,7 +143,16 @@ function escapeEllipseDeflect {
     return tanly - flightPath.
 } 
 
+function escapePrograde {
+    parameter spd, rad to 0.
+    
+    local bestPro to vxcl(shipNorm(), body:obt:velocity:orbit):normalized.
+    local escapeV to bestPro * spd + body:obt:position:normalized * rad. 
+    escapeWith(escapeV, 0).
+}
+
 function escapeWith {
+    // v_x is the excess velocity in the parent orbit
     parameter v_x, delay.
 
     if body = sun { return. }
@@ -247,10 +256,8 @@ function escapeOmni {
         escapeWith(hi:vd * bv:normalized, hi:when).
     } else {
         print " Just getting out".
-        local bestPro to removeComp(body:obt:velocity:orbit, shipNorm()).
-        local escapeV to bestPro:normalized * 40 * sgn(hi:vd).
-        // vecdraw(kerbin:position, bestPro * mun:altitude, green, "esc", 1, true).
-        escapeWith(escapeV, 0).
+        local escapeSpd to 40 * sgn(hi:vd).
+        escapePrograde(escapeSpd).
     }
 }
 

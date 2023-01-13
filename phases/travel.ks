@@ -54,6 +54,8 @@ function travelStratTo {
     }
     ourBodies:add(sun).
 
+    print targetable.
+    print ourBodies.
     if ourBodies:find(targetable) <> -1 {
         if targetable = body {
             return list(stratOrbiting).

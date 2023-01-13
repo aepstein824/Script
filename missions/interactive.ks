@@ -56,10 +56,14 @@ function doSomething {
 
     sas off.
     if it = "travel" {
+        unsetTarget().
         if not hasTarget {
             setTargetTo(a0).
         }
         local dest to choose target if hasTarget else body(a0).
+        print hasTarget.
+        print a0.
+        print dest.
         local travelCtx to lexicon(
             "dest", dest 
         ).

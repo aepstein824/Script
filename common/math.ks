@@ -100,6 +100,11 @@ function clamp {
     return max(min(x, high), low).
 }
 
+function clampAbs {
+    parameter x, limit.
+    return clamp(x, -limit, limit).
+}
+
 function quadraticFormula {
     parameter a, b, c, sign.
     local det to b^2 - 4 * a * c.

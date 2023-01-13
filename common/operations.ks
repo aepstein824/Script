@@ -53,7 +53,6 @@ function opsCheckFull {
 global anytimeScienceParts to list(
     "sensorBarometer",
     "sensorThermometer",
-    "sensorAccelerometer",
     "sensorGravimeter",
     "cupola-telescope"
 ).
@@ -61,7 +60,9 @@ global spaceScienceParts to list(
     "magnetometer",
     "InfraredTelescope"
 ).
-
+global groundOnlySceinceParts to list(
+    "sensorAccelerometer"
+).
 global useOnceScienceParts to list(
     "goo",
     "science.module",
@@ -72,64 +73,62 @@ global labs to list(
     "lab"
 ).
 
-function doAG1To45Science {
-    local ag1Parts to anytimeScienceParts.
-    local mods to scienceModules(ag1Parts).
-    doSearchScience(mods).
-    wait 5.
-    ag4 off. ag4 on.
-    cleanModules(mods).
-    wait 3.
-    doSearchScience(mods).
-    wait 5.
-    ag5 off. ag5 on.
-    cleanModules(mods).
-    wait 3.
+function doAnytimeScience {
+    local anytime to anytimeScienceParts.
+    local mods to scienceModules(anytime).
+
+    opsScienceToBox(mods).
 }
 
-function doAG13To45Science {
-    local ag13Parts to mergeList(anytimeScienceParts, spaceScienceParts).
-    local mods to scienceModules(ag13Parts).
-    doSearchScience(mods).
-    wait 10.
-    ag4 off. ag4 on.
-    cleanModules(mods).
-    wait 10.
-    doSearchScience(mods).
-    wait 10.
-    ag5 off. ag5 on.
-    cleanModules(mods).
-    wait 10.
+function doUseOnceScienceParts {
+    local useOnce to mergeList(anytimeScienceParts, useOnceScienceParts).
+    local mods to scienceModules(useOnce).
+    
+    opsScienceToBox(mods).
 }
 
-function doSearchScience {
+function opsScienceToBox {
     parameter mods.
 
-    wait 1.
+    opsExperimentModules(mods).
+    opsAwaitModules(mods).
+    opsCollectScience().
+    opsCleanModules(mods).
+}
+
+function opsExperimentModules {
+    parameter mods.
+
     for m in mods:values {
         m[0]:deploy().
+        wait 0.
     }
 }
 
-function cleanModules {
+function opsAwaitModules {
+    parameter mods.
+    for m in mods:values {
+        wait until m[0]:hasData.
+    }
+    wait 0.
+}
+
+function opsCollectScience {
+    local eruPattern to "ScienceBox|Experiment Return".
+    local eruParts to ship:partsdubbedpattern(eruPattern).
+    for eruPart in eruParts {
+        local eru to eruPart:getmodule("ModuleScienceContainer").
+        eru:doaction("collect all", true).
+        wait 0.
+    }
+}
+
+function opsCleanModules {
     parameter mods.
     for m in mods:values {
         cleanModule(m[0]).
     }
 }
-
-function doSearchAndCollect {
-    parameter mods.
-
-    doSearchScience(mods).
-    wait 5.
-
-    local eruPattern to "ScienceBox|Experiment Return".
-    local eruPart to ship:partsdubbedpattern(eruPattern)[0].
-    local eru to eruPart:getmodule("ModuleScienceContainer").
-    eru:doaction("collect all", true).
-}
-
 
 function scienceModules {
     parameter scienceParts.
@@ -217,6 +216,11 @@ function stageToMax {
     stageTo(maxPartStage()).
 }
 
+function unsetTarget {
+    set target to body.
+    wait 0.
+}
+
 function setTargetTo {
     parameter nameOrThing.
 
@@ -248,19 +252,11 @@ function cleanModule {
 
     // duplicates
     m:dump().
-    // local p to m:part.
-    // local doorModName to "ModuleAnimateGeneric".
-    // if p:hasmodule(doorModName) {
-    //     local doorMod to p:getmodule(doorModName).
-    //     local doorActionName to "toggle doors".
-    //     if doorMod:hasaction(doorActionName) {
-    //         doorMod:doAction(doorActionName, true).
-    //     }
-    //     local coverActionName to "toggle cover".
-    //     if doorMod:hasaction(coverActionName) {
-    //         doorMod:doAction(coverActionName, true).
-    //     }
-    // }
+    wait 0.
+    if not m:inoperable {
+        m:reset().
+    }
+    wait 0.
 }
 
 function jettisonFairings {
