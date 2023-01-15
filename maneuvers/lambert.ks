@@ -3,6 +3,7 @@
 runOncePath("0:common/info.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/math.ks").
+runOncePath("0:test/test_utils.ks").
 
 local pi to constant:pi.
 local eul to constant:e.
@@ -60,6 +61,20 @@ function lambertInterceptFitnessFactory {
     return lexicon("epsilon", epsilon, "fitness", fitness@).
 }
 
+function lambertPosOnly {
+    parameter obtable1.
+    parameter p2.
+    parameter startTime.
+    parameter flightDuration.
+
+
+    local factory to lambertInterceptFitnessFactory@.
+    set factory to factory:bind(flightDuration).
+
+    local res to lambert(obtable1, p2, startTime, true, factory).
+    return res.
+}
+
 function lambertLanding {
     parameter obtable1.
     parameter p2.
@@ -79,13 +94,15 @@ function lambertLandingFitnessFactory {
         local tanlyReverse to arcTan2R(ef * sinR(cang) + et * cosR(cang),
             ef * cosR(cang) - et * sinR(cang)).
         local p1Tanly to -1 * tanlyReverse.
+        print p1Tanly.
+        // return p1Tanly.
         local ecc_ to ef ^ 2 + et ^ 2.
         local flightA to arcTan2R(ecc_ * sinR(p1Tanly), 
             1 + ecc_ * cosR(p1Tanly)).
         return flightA.
     }.
 
-    return lexicon("epsilon", 1/10^3, "fitness", fitness@).
+    return lexicon("epsilon", .01, "fitness", fitness@).
 }
 
 function lambert {
@@ -126,7 +143,7 @@ function lambert {
     local eh to ep.
 
     if not (isShort or allowLong) { 
-        return results. 
+        return testError("Short ellipses not allowed"). 
     }
     
     if not isShort {
@@ -175,16 +192,16 @@ function lambert {
 
         local y_p to specifics:fitness:call(et_p).
         local dY_dX to (y_p - y) / dX.
-        if abs(dy_dx) < epsilon {
-            // print "Aborting since dy_dx = " + dy_dx.
-            return results.
+        if abs(dy_dx) < 1/10^12 {
+            return testError("Aborting since dy_dx = " + dy_dx
+                + " " + y + ", " + y_p).
         }
 
         // nr iteration
         set x to x - y / dY_dX.
 
         if k = kLimit {
-            return results.
+            return testError("Hit iteration limit but error is " + abs(y)).
         }
     }
 

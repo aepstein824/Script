@@ -1,60 +1,12 @@
 @LAZYGLOBAL OFF.
 
-function tanlyToEanlyR {
-    parameter argOrbit.
-    parameter tanly.
-    local e to argOrbit:eccentricity.
-
-    local quad1 to arcCos((e + cos(tanly)) / (1 + e * cos(tanly))).
-    if tanly > 180 {
-        return 360 - quad1.
-    }
-    return quad1.
-}
-
-function eanlyToManlyR {
-    parameter argOrbit.
-    parameter eanly.
-    local e to argOrbit:eccentricity.
-    
-    return eanly - e * sin(eanly) * constant:radtodeg.
-}
-
-function manlyToEanlyR {
-    parameter argOrbit.
-    parameter manly.
-    local e to argOrbit:eccentricity.
-
-    local e0 to manly.
-    local ei to e0.
-    from {local i is 0.} until i = 10 step {set i to i + 1.} do {
-        local fi to ei - e * sin(ei) * constant:radtodeg - manly.
-        local di to 1 - e * cos(ei).
-        print fi + " -- " + di.
-        set ei to ei - (fi / di).
-    }
-
-    return ei.
-}
-
-function eanlyToTanlyR {
-    parameter argOrbit.
-    parameter eanly.
-    local e to argOrbit:eccentricity.
-
-    local quad1 to arccos((cos(eanly) - e) / (1 - e * cos(eanly))).
-    if eanly > quad1 {
-        return 360 - quad1.
-    }
-    return quad1.
-}
+runOncePath("0:common/math.ks").
 
 function tanlyToEanly {
-    parameter argOrbit.
+    parameter ecc.
     parameter tanly.
-    local e to argOrbit:eccentricity.
 
-    local quad1 to arcCos((e + cos(tanly)) / (1 + e * cos(tanly))).
+    local quad1 to arcCos((ecc + cos(tanly)) / (1 + ecc * cos(tanly))).
     if tanly > 180 {
         return 360 - quad1.
     }
@@ -62,11 +14,10 @@ function tanlyToEanly {
 }
 
 function eanlyToManly {
-    parameter argOrbit.
+    parameter ecc.
     parameter eanly.
-    local e to argOrbit:eccentricity.
     
-    return eanly - e * sin(eanly) * constant:radtodeg.
+    return eanly - ecc * sin(eanly) * constant:radtodeg.
 }
 
 function manlyToEanly {
@@ -103,8 +54,9 @@ function timeBetweenTanlies {
     set x to posmod(x, 360).
     set y to posmod(y, 360).
 
-    local manlyX to eanlyToManly(argOrbit, tanlyToEanly(argOrbit, x)).
-    local manlyY to eanlyToManly(argOrbit, tanlyToEanly(argOrbit, y)).
+    local ecc to argOrbit:eccentricity.
+    local manlyX to eanlyToManly(ecc, tanlyToEanly(ecc, x)).
+    local manlyY to eanlyToManly(ecc, tanlyToEanly(ecc, y)).
 
     if manlyX > manlyY {
         set manlyX to manlyX - 360.
@@ -123,7 +75,7 @@ function posToTanly {
     // print "p2 " + p2.
     local norm to vCrs(o:velocity:orbit, p1):normalized. 
     // print "norm " + norm.
-    local orbX to removeComp(p2, norm).
+    local orbX to vxcl(norm, p2).
     // print "orbX " + orbx.
     local angleToO to vectorAngleAround(p1, norm, orbX).
 

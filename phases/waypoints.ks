@@ -10,6 +10,7 @@ runOncePath("0:maneuvers/lambert.ks").
 runOncePath("0:maneuvers/orbit.ks").
 
 global kWaypointsClimbAngle to 23.
+global kWaypointsOverhead to 600.
 
 function doWaypoints {
     local minInc to 360.
@@ -137,39 +138,46 @@ function vacDescendToward {
         waitForRotation(wGeo).
     }
 
-    local r to periapsis + body:radius.
-    local a to r * 1.05 / 2.
-    local ecc to r / a - 1.
+    local rPe to periapsis + body:radius.
+    // An ellipse where the periapsis is 1/10 the current periapsis
+    local a to rPe * 1.1 / 2.
+    local ecc to rPe / a - 1.
     // print "ecc " + ecc.
-    local landR to body:radius + wGeo:terrainHeight.
+    local landR to body:radius + wGeo:terrainHeight + kWaypointsOverhead.
+    // todo, should prolly calculate ecc from tanly instead
     local cosTanly to ((a / landR) * (1 - ecc ^ 2) - 1) / ecc.
     // print "cosTanly " + cosTanly.
-    local tanly to arcCos(cosTanly).
+    local tanly to 360 - arcCos(cosTanly).
     // print "tanly " + tanly.
 
-    local eanly to arcCos((ecc + cosTanly) / (1 + ecc * cosTanly)).
-    local manly to eanly - ecc * sin(eanly).
+    // find the time to between the landing burn and the landing
     local mm to constant:radtodeg * sqrt(body:mu / a ^ 3).
-    local landDur to (180 - manly) / mm.
-    local planeDur to (tanly - 90) * obt:period / 360.
+    local eanly to tanlyToEanly(ecc, tanly).
+    local manly to eanlyToManly(ecc, eanly).
+    local landDur to (manly - 180) / mm.
+    // print "landDur " + landDur.
+    // 90 - (tanly - 180) is the angle traveled before the plane change
+    local planeDur to (90 - (tanly - 180)) * obt:period / 360.
+    // print "planeDur " + planeDur.
     local postDur to planeDur + landDur.
-    // print "post burn time " + postTime * sToHours + "h".
+    // print "post burn time " + postDur.
 
     local norm to shipNorm().
     local bodyMm to -body:angularvel:y * constant:radtodeg.
-    local wPosNow to groundPosition(wGeo).
+    local wPosNow to groundPosition(wGeo, kWaypointsOverhead).
 
     local early to detimestamp(time + 30).
     local late to detimestamp(early + obt:period).
     local mid to 0.
     local burnPos to ship:position.
-    local wPosMid to wPosNow.
+    local wPosLand to wPosNow.
     for i in range(12) {
         set mid to (early + late) / 2.
         local landTimeMid to mid + postDur.
         local nowTillLand to landTimeMid - time:seconds.
-        set wPosMid to rotateVecAround(wPosNow, cosmicNorth, bodyMm * nowTillLand).
-        set burnPos to vCrs(norm, wPosMid).
+        set wPosLand to rotateVecAround(wPosNow, cosmicNorth,
+            bodyMm * nowTillLand).
+        set burnPos to vCrs(norm, wPosLand).
         local burnTanly to posToTanly(burnPos + body:position, obt).
         local burnTime to timeBetweenTanlies(obt:trueanomaly, burnTanly, obt).
         // print "Off by " + (burnTime + time - mid):seconds.
@@ -183,16 +191,16 @@ function vacDescendToward {
         // vecdraw(body:position, burnPos * 2, blue, "an", 1, true).
     }
 
-    local dt to 90 - vectorAngleAround(wPosMid, burnPos, norm).
+    local dt to 90 - vectorAngleAround(wPosLand, burnPos, norm).
     local burnStartSpd to shipVAt(mid):mag.
     local dv to 2 * burnStartSpd * sin(dt / 2).
     add node(mid, 0, dv * cos(dt / 2), -dv * sin(dt / 2)).
     nodeExecute().
 
-    set wPosNow to groundPosition(wGeo).
-    local wPosLand to rotateVecAround(wPosNow, cosmicNorth, bodyMm * postDur).
+    set wPosNow to groundPosition(wGeo, kWaypointsOverhead).
+    set wPosLand to rotateVecAround(wPosNow, cosmicNorth, bodyMm * postDur).
     local deorbitTime to time + planeDur.
-    local res to lambertLanding(ship, wPosLand, deorbitTime).
+    local res to lambertPosOnly(ship, wPosLand, deorbitTime, landDur).
     add res:burnNode.
     nodeExecute().
 }

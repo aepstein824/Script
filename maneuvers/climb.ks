@@ -128,7 +128,18 @@ function warpUp {
 function circularize {
     set kuniverse:timewarp:rate to 1.
     // set climbSteer to vxcl(body:position, velocity:orbit).
-    set climbSteer to acHeading(0).
+    local pitch to 0.
+    if obt:eta:apoapsis > obt:eta:periapsis {
+        local acc to ship:maxthrust / ship:mass.
+        local gacc to gat(altitude).
+        local centripetalAcc to velocity:orbit:mag ^ 2 
+            / (altitude + body:radius).
+        local verticalAcc to gacc - centripetalAcc.
+        print verticalAcc.
+        set pitch to arctan2(centripetalAcc, acc) / 2.
+        set pitch to min(pitch, 30).
+    }
+    set climbSteer to acHeading(pitch).
     set climbThrottle to climbCircularizeThrottle().
 }
 

@@ -13,14 +13,19 @@ runOncePath("0:phases/travel.ks").
 runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/waypoints.ks").
 
-set kPhases:startInc to 0.
-set kPhases:stopInc to 6.
-
+// Mission parameters
 local dest to mun.
 local kMoonPeLow to kWarpHeights[dest].
 local kInterStg to 2.
 local kLanderStg to 2.
-local lz to latlng(0, 0).
+local lz to dest:geopositionlatlng(1, 1).
+
+// Testing
+set kPhases:startInc to 0.
+set kPhases:stopInc to 6.
+
+// Launch
+set kClimb:Turn to 3.5.
 
 if shouldPhase(0) {
     print "Launch to Orbit!".
@@ -32,7 +37,7 @@ if shouldPhase(1) {
     local travelContext to lexicon(
         "dest", dest,
         "altitude", kWarpHeights[dest],
-        "inclination", 0
+        "inclination", 90
     ). 
     travelTo(travelContext).
 }

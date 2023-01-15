@@ -95,6 +95,8 @@ function suicideBurn {
     parameter safeH.
     parameter finalV to 5.
 
+    controlLock().
+
     set kuniverse:timewarp:mode to "PHYSICS".
     set kuniverse:timewarp:rate to 4.
 
@@ -136,10 +138,10 @@ function suicideBurn {
             break.
         } 
 
-        lock steering to -1 * ship:velocity:surface.
-        lock throttle to 0.
+        set controlSteer to -1 * ship:velocity:surface.
+        set controlThrot to 0.
 
-        wait 0.
+        wait 0.1.
     }
 
     local startV to -1 * ship:velocity:surface.
@@ -148,12 +150,12 @@ function suicideBurn {
     print "Burn!".
     until vDot(startV:normalized, currentV) < finalV {
         set currentV to -1 * ship:velocity:surface.
-        lock steering to currentV:normalized().
-        lock throttle to max(currentV:mag / 5, 0.5).
+        set controlSteer to currentV:normalized().
+        set controlThrot to max(currentV:mag / 5, 0.5).
         wait 0.
     }
 
-    lock throttle to 0.
+    controlUnlock().
 }
 
 function coast {
@@ -179,6 +181,10 @@ function coast {
         if throt <= 0.01 {
             pid:reset().
         }
+        local scaredAlt to groundAlt() / 3.
+        if spd > scaredAlt {
+            set pid:setpoint to min(scaredAlt, 2).
+        }
         wait 0.
     }
     lock steering to up.
@@ -187,9 +193,9 @@ function coast {
 }
 
 function groundPosition {
-    parameter geo.
+    parameter geo, height to 0.
 
-    local terrainH to geo:terrainHeight.
+    local terrainH to geo:terrainHeight + height.
     return geo:altitudePosition(terrainH) - body:position.
 }
 
