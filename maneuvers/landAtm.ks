@@ -51,6 +51,8 @@ function landFromDeorbit {
     if (kLandAtm:Coast) {
         kuniverse:timewarp:cancelwarp().
         coast(kLandAtm:CoastSpd).
+    } else {
+        wait until status = "LANDED" or status = "SPLASHED".
     }
 
     print "Landed at " + geoPosition.
@@ -75,13 +77,16 @@ function wingedDescent {
 function burnExtraFuel {
     lock steering to ship:srfretrograde.
     
+    set kuniverse:timewarp:rate to 2.
     wait until ship:altitude < kLandAtm:BurnAlt.
+    kuniverse:timewarp:cancelwarp().
     lock throttle to 0.75.
-    until ship:deltav:current < kLandAtm:CoastReserve or stage:number = 0 {
+    until (kLandAtm:Coast and ship:deltav:current < kLandAtm:CoastReserve) 
+        or stage:number = 0 {
         shipStage().
         wait 0.
     }
-
+    lock throttle to 0.
 }
 
 function planLandingBurn {

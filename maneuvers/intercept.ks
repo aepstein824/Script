@@ -77,7 +77,6 @@ function hlIntercept {
     parameter obtable1, obtable2. 
 
     local hi to hohmannIntercept(obtable1:orbit, obtable2:orbit).
-    set hi:dest to obtable2.
     local deviations to obtable2:typename = "Body".
     
     if obtable1:obt:eccentricity < 0.2 and obtable1:obt:eccentricity < 0.2 { 
@@ -87,21 +86,22 @@ function hlIntercept {
         local incNodeP to vcrs(norm1, norm2):normalized.
         local bodyP to positionAt(obtable1, hi:start) - obtable1:obt:body:position.
 
-        local kNodeAllow to 10.
+        local kNodeAllow to 3.
         local nodeAng to vang(bodyP, incNodeP).
         print " AN is " + round(nodeAng) + " away, want 0 or 180".
-        if nodeAng > kNodeAllow and nodeAng < (180 - kNodeAllow) and deviations {
+        if deviations and nodeAng > kNodeAllow
+            and nodeAng < (180 - kNodeAllow) {
             if vang(norm1, norm2) > 2 {
                 print " Changing planes first".
                 local nd to matchPlanesNode(norm2).
                 set hi:burnNode to nd.
+                set hi:planes to true.
                 return hi.
             }
-            // print " Circular orbits, far from AN/DN, using hohmann intercept".
-            // return hi.
         }
     }
 
+    set hi:dest to obtable2.
     local roughT to hi:start.
     local roughDur to hi:duration.
     local di to obtable1:obt:period * 0.1.
@@ -153,7 +153,6 @@ function lambertGrid {
     local highI to kIntercept:StartSpan * extra + 1.
     local lowJ to -kIntercept:DurSpan * extra.
     local highJ to kIntercept:DurSpan * extra + 1.
-    local slantFactor to 0.5 * detimestamp(dj) / detimestamp(di) / highI. 
 
     until guessT + di * lowI > time {
         print " advancing guess time".
@@ -167,16 +166,16 @@ function lambertGrid {
     for i in range(lowI, highJ) {
         for j in range (lowJ, highJ) {
             local startTime to guessT + i * di.
-            local flightDuration to guessDur + j * dj - slantFactor * i * di.
+            local flightDuration to guessDur + j * dj - i * di.
             local results to lambertIntercept(obtable1, obtable2, v(0,0,0),
                 startTime, flightDuration).
             // print "Duration " + round(flightDuration * sToDays).
             if results:ok {
                 set results:totalV to results:burnVec:mag. 
                 set results:totalV to results:totalV + results:matchVec:mag.
-                print "(" + i + ", " + j + ") "
-                    + round(results:burnVec:mag) + " -> "
-                    + round(results:matchVec:mag).
+                // print "(" + i + ", " + j + ") "
+                //     + round(results:burnVec:mag) + " -> "
+                //     + round(results:matchVec:mag).
                 if results:totalV < best:totalV {
                     set results:start to startTime.
                     set results:when to startTime - time.

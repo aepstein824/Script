@@ -46,9 +46,8 @@ function hoverDefaultParams {
         "cruiseCrab", true,
         "minG", 0.8,
         "spdPerH", 0.3,
-        // "jerkH", 0.2,
         "jerkH", 0.4,
-        "maxAccelH", 2,
+        "maxAccelH", 0.2,
         "maxSpdH", 50,
         "maxSpdV", 30
     ).
@@ -96,6 +95,18 @@ function hoverThrottle {
     parameter params.
 
     return params:throttle.
+}
+
+function hoverLock {
+    parameter params.
+
+    lock steering to hoverSteering(params).
+    lock throttle to hoverThrottle(params).
+}
+
+function hoverUnlock {
+    unlock steering.
+    unlock throttle.
 }
 
 function hoverIter {
@@ -185,17 +196,18 @@ function hoverAlt {
         set avgGround to avgGround + g / positions:length.
     }
  
-    // altitude
-    local seaAlt to 0.
     // clear obstacles
     local clearAlt to maxGround + radarOffset + params:minAGL.
     local avgAlt to avgGround + radarOffset + params:favAAT.
-    local safeAlt to max(seaAlt, max(clearAlt, avgAlt)).
+    // print "clear " + round(clearAlt) + " avgAlt " + round(avgAlt)
+    //     + " radar " + round(radarOffset) 
+    //     + " " + vecround(params:travel:inverse * params:tgt:position).
+    local safeAlt to max(clearAlt, avgAlt).
     if params:mode = kHover:Hover {
         set safeAlt to safeAlt.
     }
 
-    return safeAlt - (altitude - radarOffset).
+    return safeAlt - altitude.
 }
 
 function hoverVspd {
@@ -254,18 +266,18 @@ function hoverHAccel {
 
     local desiredA to desiredV - promisedV.
     local errorA to desiredA - curA.
-    local timeDiff to min(time:seconds - params:prevTime, 0.05).
+    local timeDiff to max(time:seconds - params:prevTime, 0.001).
     local deltaA to errorA:normalized * jerk * timeDiff.
     local newA to curA + deltaA.
-    set newA to vecClampMag(newA, params:maxAccelH).
+    set newA to vecClampMag(newA, params:maxAccelH * gat(altitude)).
     set params:prevTime to time:seconds.
     local worldA to travel * newA.
     set params:prevA to worldA.
 
     // print "promisedV " + vecRound(promisedV, 2)
-        // + " desiredV " + vecRound(desiredV, 2)
-        // + " desiredA " + vecRound(desiredA, 2) 
-        // + " newA " + vecRound(newA, 2).
+    //     + " desiredV " + vecRound(desiredV, 2)
+    //     + " desiredA " + vecRound(desiredA, 2)
+    //     + " towards " + vecround(toTgt, 2).
 
     return worldA.
 }

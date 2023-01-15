@@ -54,8 +54,6 @@ function travelStratTo {
     }
     ourBodies:add(sun).
 
-    print targetable.
-    print ourBodies.
     if ourBodies:find(targetable) <> -1 {
         if targetable = body {
             return list(stratOrbiting).
@@ -110,9 +108,7 @@ function travelIntercept {
 
     set target to ctx:dest:name.
 
-    local hl to hlIntercept(ship, target).
-    add hl:burnNode.
-    nodeExecute().
+    local hl to travelDoubleHl().
 
     if (target:typename = "BODY") {
         travelIntoSatOrbit(ctx, target, hl:arrivalTime).
@@ -133,11 +129,8 @@ function travelEscapeTo {
     parameter ctx, tgtBody, planeOf.
 
     local hl to hlIntercept(body, tgtBody).
-    // print hl:burnNode.
+    // it's fine if this is a plane change
     escapeOmni(hl).
-    // add node(hl:arrivalTime, 0, 0, 0).
-    // print "waiting in escape 137".
-    // wait 10000.
 
     nodeExecute().
     print " Waiting in travelEscapeTo to escape " + body:name.
@@ -154,11 +147,7 @@ function travelEscapeTo {
 function travelSatellite {
     parameter ctx, tgtBody, planeOf.
 
-    local hl to hlIntercept(ship, tgtBody).
-    add hl:burnNode.
-    // print "Waiting in 157".
-    // wait(100000).
-    nodeExecute().
+    local hl to travelDoubleHl().
     travelIntoSatOrbit(ctx, tgtBody, hl:arrivalTime).
     travelCaptureToPlaneOf(ctx, planeOf).
 }
@@ -218,4 +207,21 @@ function travelCaptureToPlaneOf {
     nodeExecute().
     circleNextExec(pe).
 
+}
+
+function travelDoubleHl {
+    // The function may return a plane change instead.
+
+    local hl to hlIntercept(ship, target).
+    add hl:burnNode.
+    nodeExecute().
+
+    if hl:haskey("planes") and hl:planes {
+        print " Retrying HL intercept after plane change".
+        set hl to hlIntercept(ship, target).
+        add hl:burnNode.
+        nodeExecute().
+    }
+
+    return hl.
 }

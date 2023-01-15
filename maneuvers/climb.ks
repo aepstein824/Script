@@ -17,8 +17,6 @@ set kClimb:Roll to 0.
 set kClimb:DragFactor to 1.05.
 
 local jettisoned to false.
-local climbSteer to facing.
-local climbThrottle to 0.
 
 function climbSuccess  {
     return ship:obt:periapsis > kClimb:ClimbPe.
@@ -26,8 +24,7 @@ function climbSuccess  {
 
 function climbInit {
     set jettisoned to false.
-    lock steering to climbSteer.
-    lock throttle to climbThrottle.
+    controlLock().
 }
 
 function climbLoop {
@@ -38,8 +35,8 @@ function climbLoop {
     if surfaceV <  kClimb:VertV {
         verticalClimb().
     } else if surfaceV < kClimb:SteerV {
-        set climbSteer to acHeading(90 - kClimb:Turn).
-        set climbThrottle to slowThrottle().
+        set controlSteer to acHeading(90 - kClimb:Turn).
+        set controlThrot to slowThrottle().
     } else if ship:apoapsis < kClimb:ClimbAp {
         gravityTurn().
     } else if ship:altitude < 70000 {
@@ -56,7 +53,7 @@ function climbLoop {
 }
 
 function climbCleanup {
-    set climbThrottle to 0.
+    set controlThrot to 0.
     kuniverse:timewarp:cancelwarp.
 }
 
@@ -84,7 +81,7 @@ function handleStage {
 
     if shouldStage {
         print "Staging " + stage:number.
-        set climbThrottle to 0.4.
+        set controlThrot to 0.4.
         stage.
         wait 0.5.
     }
@@ -104,30 +101,29 @@ function solidCheck {
 }
 
 function verticalClimb {
-    set climbSteer to acHeading(90).
-    set climbThrottle to slowThrottle().
+    set controlSteer to acHeading(90).
+    set controlThrot to slowThrottle().
 }
 
 function gravityTurn {
     local pitch to arccos(groundspeed / airspeed).
-    set climbSteer to acHeading(pitch).
+    set controlSteer to acHeading(pitch).
     if (ship:altitude < kClimb:TLimAlt) {
-        set climbThrottle to slowThrottle().
+        set controlThrot to slowThrottle().
     }
     else {
-        set climbThrottle to 1.
+        set controlThrot to 1.
     }
 }
 
 function warpUp {
-    set climbThrottle to 0.
-    set climbSteer to srfPrograde.
+    set controlThrot to 0.
+    set controlSteer to srfPrograde.
     set kuniverse:timewarp:rate to 2.
 }
 
 function circularize {
     set kuniverse:timewarp:rate to 1.
-    // set climbSteer to vxcl(body:position, velocity:orbit).
     local pitch to 0.
     if obt:eta:apoapsis > obt:eta:periapsis {
         local acc to ship:maxthrust / ship:mass.
@@ -135,12 +131,11 @@ function circularize {
         local centripetalAcc to velocity:orbit:mag ^ 2 
             / (altitude + body:radius).
         local verticalAcc to gacc - centripetalAcc.
-        print verticalAcc.
         set pitch to arctan2(centripetalAcc, acc) / 2.
         set pitch to min(pitch, 30).
     }
-    set climbSteer to acHeading(pitch).
-    set climbThrottle to climbCircularizeThrottle().
+    set controlSteer to acHeading(pitch).
+    set controlThrot to climbCircularizeThrottle().
 }
 
 function climbOrbitSpeed {
@@ -154,7 +149,7 @@ function climbCircularizeThrottle {
     if obt:eta:apoapsis > obt:eta:periapsis {
         return 1.0.
     }
-    if vang(facing:forevector, climbSteer:forevector) > 10 {
+    if vang(facing:forevector, controlSteer:forevector) > 10 {
         return 0.05.
     }
     local cSpd to climbOrbitSpeed().

@@ -61,8 +61,7 @@ function ensureHibernate {
 }
 
 function shipStage {
-    declare local shouldStage to maxThrust = 0 and stage:ready
-        and stage:number > 0.
+    local shouldStage to maxThrust = 0 and stage:ready and stage:number > 0.
 
     if shouldStage {
         print "Staging " + stage:number.

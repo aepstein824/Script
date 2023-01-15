@@ -5,12 +5,14 @@ runOncePath("0:common/math.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 runOncePath("0:maneuvers/hop.ks").
+runOncePath("0:maneuvers/hover.ks").
 runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/lambert.ks").
 runOncePath("0:maneuvers/orbit.ks").
 
 global kWaypointsClimbAngle to 23.
 global kWaypointsOverhead to 600.
+global kWaypointsCoastSpeed to 5.
 
 function doWaypoints {
     local minInc to 360.
@@ -209,7 +211,52 @@ function vacLand {
     legs on.
     suicideBurn(600).
     suicideBurn(100).
-    coast(5).
+    coast(kWaypointsCoastSpeed).
+}
+
+function vacLandGeo {
+    parameter wGeo.
+
+    legs on.
+    print "Initial Suicide Burn".
+    suicideBurn(600).
+    print "Descent Suicide Burn".
+    suicideBurn(300).
+
+    print "Controlled Descent to target".
+    local params to hoverDefaultParams().
+    set params:mode to kHover:Hover.
+    set params:tgt to wGeo.
+    set params:seek to true.
+    set params:cruiseCrab to false.
+    set params:minG to 0.2.
+    set params:jerkH to 0.4.
+    hoverLock(params).
+
+    until vxcl(body:position, wGeo:position):mag < 10 {
+        hoverIter(params).
+        wait 0.0.
+    }
+
+    print " Descending.".
+    set params:mode to kHover:Vspd.
+
+    set params:vspdCtrl to -kWaypointsCoastSpeed.
+    until ship:status = "LANDED"  or ship:status = "SPLASHED" {
+        local scaredAlt to groundAlt() / 5.
+        if kWaypointsCoastSpeed > scaredAlt {
+            set params:seek to false.
+            set params:vspdCtrl to -1 * max(scaredAlt, 1).
+        }
+        hoverIter(params).
+        wait 0.
+    }
+
+    print " Tip Prevention".
+    lock steering to lookDirUp(up:forevector, facing:upvector).
+    lock throttle to 0.
+    print " Landing Successful?".
+    wait 5.
 }
 
 function vacClimb {

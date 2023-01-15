@@ -72,7 +72,7 @@ function verticalLeapTo {
         return.
     }
 
-    print "Leap to " + h.
+    print " Leap to " + h.
     local g to body:mu / (groundAlt() + body:radius) ^ 2.
 
     local v0 to 1000000000.
@@ -98,12 +98,12 @@ function suicideBurn {
     controlLock().
 
     set kuniverse:timewarp:mode to "PHYSICS".
-    set kuniverse:timewarp:rate to 4.
+    set kuniverse:timewarp:rate to 2.
 
-    print "Rising".
+    print " Rising".
     wait until vDot(body:position, ship:velocity:surface) > 1.
 
-    print "Falling".
+    print " Falling".
     until false {
         local terrainH to terrainHAt(ship:position).
         local h0 to altitude - terrainH - safeH.
@@ -131,14 +131,16 @@ function suicideBurn {
         local qc to h0 - 0.5 * v0^2 / a.
         local tf to qfMax(qa, qb, qc).
 
+        local srfRetro to -1 * ship:velocity:surface.
+        set controlSteer to srfRetro.
         if tf < 5 {
+            controlMaybeLock().
             kuniverse:timewarp:cancelwarp().
         }
         if tf < 0 {
             break.
         } 
 
-        set controlSteer to -1 * ship:velocity:surface.
         set controlThrot to 0.
 
         wait 0.1.
@@ -147,7 +149,7 @@ function suicideBurn {
     local startV to -1 * ship:velocity:surface.
     local currentV to startV.
 
-    print "Burn!".
+    print " Burn!".
     until vDot(startV:normalized, currentV) < finalV {
         set currentV to -1 * ship:velocity:surface.
         set controlSteer to currentV:normalized().
@@ -174,7 +176,7 @@ function coast {
 
     lock steering to -(0.1 * ship:velocity:surface:normalized 
         + body:position:normalized).
-    until ship:status = "LANDED"  or ship:status = "SPLASHED" {
+    until ship:status = "LANDED" or ship:status = "SPLASHED" {
         local vDown to vDot(body:position:normalized, ship:velocity:surface).
         set throt to pid:update(time:seconds, vDown).
         set throt to clamp(throt, 0, 1).
@@ -187,7 +189,7 @@ function coast {
         }
         wait 0.
     }
-    lock steering to up.
+    lock steering to lookDirUp(up:forevector, facing:upvector).
     lock throttle to 0.
     wait 5.
 }

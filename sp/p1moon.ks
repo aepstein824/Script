@@ -14,24 +14,27 @@ runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/waypoints.ks").
 
 // Mission parameters
-local dest to mun.
+local dest to minmus.
 local kMoonPeLow to kWarpHeights[dest].
 local kInterStg to 2.
 local kLanderStg to 2.
-local lz to dest:geopositionlatlng(1, 1).
+local kReturnStg to 1.
+local lz to dest:geopositionlatlng(69, 69).
 
 // Testing
 set kPhases:startInc to 0.
 set kPhases:stopInc to 6.
+// set kPhases:phase to 2.
 
 // Launch
 set kClimb:Turn to 3.5.
 
 if shouldPhase(0) {
     print "Launch to Orbit!".
-    kuniverse:quicksaveto("moon_land_launch").
+    launchQuicksave("moon_land_launch").
     launchToOrbit().
     stageTo(kInterStg).
+    wait 3.
 }
 if shouldPhase(1) {
     local travelContext to lexicon(
@@ -46,7 +49,7 @@ if shouldPhase(2) {
     lights on.
     vacDescendToward(lz).
     stageTo(kLanderStg).
-    vacLand().
+    vacLandGeo(lz).
     print "Landed at " + ship:geoposition.
 }
 if shouldPhase(3) {
@@ -57,6 +60,7 @@ if shouldPhase(4) {
     lights off.
     print "Leaving " + dest:name.
     vacClimb(kMoonPeLow).
+    stageTo(kReturnStg).
     circleNextExec(kMoonPeLow).
 }
 if shouldPhase(5) {
