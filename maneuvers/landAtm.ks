@@ -61,7 +61,7 @@ function landFromDeorbit {
 function getToAtm {
     if ship:altitude > 70000 {
         set kuniverse:timewarp:mode to "RAILS".
-        set kuniverse:timewarp:rate to 100.
+        set kuniverse:timewarp:rate to 50.
     }
     wait until ship:altitude < 70000.
     kuniverse:timewarp:cancelwarp().

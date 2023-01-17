@@ -1,5 +1,6 @@
 @LAZYGLOBAL OFF.
 
+runOncePath("0:common/control").
 runOncePath("0:common/orbital").
 
 declare global kClimb to lexicon().
@@ -131,7 +132,7 @@ function circularize {
         local centripetalAcc to velocity:orbit:mag ^ 2 
             / (altitude + body:radius).
         local verticalAcc to gacc - centripetalAcc.
-        set pitch to arctan2(centripetalAcc, acc) / 2.
+        set pitch to arcsin(verticalAcc / acc).
         set pitch to min(pitch, 30).
     }
     set controlSteer to acHeading(pitch).
@@ -153,11 +154,11 @@ function climbCircularizeThrottle {
         return 0.05.
     }
     local cSpd to climbOrbitSpeed().
-    local apTime to time + obt:eta:apoapsis.
+    local apTime to time:seconds + obt:eta:apoapsis.
     local apSpd to shipVAt(apTime):mag.
-    local burnTime to shipTimeToDV(cSpd - apSpd) / 2.
-    local apTime to obt:eta:apoapsis.
-    local throt to lerp(burnTime - apTime, 0, 5) + 0.05.
+    local burnDur to shipTimeToDV(cSpd - apSpd) / 2.
+    local apDur to obt:eta:apoapsis.
+    local throt to invlerp(burnDur - apDur, -5, 0) + 0.05.
 
     return throt.
 }

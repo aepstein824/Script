@@ -30,7 +30,7 @@ function flightDefaultParams {
         "vspd", 0,
         "hspd", 0,
         "xacc", 0.0,
-        "landStyle", kFlight:Rough,
+        "landStyle", kFlight:Smooth,
 
         // calculations
         "level", ship:facing,
@@ -357,6 +357,7 @@ function flightLanding {
     parameter params.
 
     local rough to params:landStyle = kFlight:Rough.
+    local flareSteer to heading(shipHeading(), 5).
     if status = "LANDED" {
         set params:throttle to 0.
         if groundspeed < (params:hspd - params:brakeWait) or rough {
@@ -372,17 +373,14 @@ function flightLanding {
             setThrustReverser(kForward).
         }
 
-        set params:steering to params:level:inverse * facing.
+        set params:steering to params:level:inverse * flareSteer.
         return.
     }
 
-    if groundAlt() < 5 {
-        // Causes a slight throttle increase and AoA rise
-        if rough { 
-            set params:vspd to params:descentV.
-        } else {
-            set params:vspd to params:smoothV.
-        }
+    if groundAlt() < 10 {
+        set params:steering to params:level:inverse * flareSteer.
+        set params:throttle to 0.1.
+        return.
     }
     flightLevel(params).
 }

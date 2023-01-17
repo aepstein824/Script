@@ -10,7 +10,7 @@ set kPhases:phase to -1.
 function shouldPhase {
     parameter p.
 
-    if kPhases:phase > 0 {
+    if kPhases:phase >= 0 {
         return p = kPhases:phase.
     }
 
