@@ -54,7 +54,7 @@ if shouldPhase(2) {
 }
 if shouldPhase(3) {
     print "Doing Science".
-    doUseOnceScienceParts().
+    doUseOnceScience().
 }
 if shouldPhase(4) {
     lights off.

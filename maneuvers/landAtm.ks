@@ -89,17 +89,22 @@ function burnExtraFuel {
     lock throttle to 0.
 }
 
+// Burn to descend toward KSC.
+// Compensates for spin, but not eccentricity or inclination.
 function planLandingBurn {
     local sNorm to shipNorm().
-
     local ksc to waypoint("ksc").
 
-    // doesn't work, need to account for eccentricity and spin
     local orbW to removeComp(ksc:position - body:position, sNorm).
-    local pePos to shipPAtPe().
-    local wTanly to vectorAngleAround(pePos, sNorm, orbW).
-    local burnTanly to mod(wTanly - kLandAtm:ReturnTanly + 360, 360).
-    local burnTime to timeBetweenTanlies(obt:trueanomaly, burnTanly, obt) + time.
+    local offsetW to rotateVecAround(orbW, sNorm, -kLandAtm:ReturnTanly).
+    local shipPos to -body:position.
+    local angleToBurn to vectorAngleAround(shipPos, sNorm, offsetW).
+    local orbitMeanMotion to 360 / orbit:period.
+    local planetMeanMotion to -body:angularVel:y * constant:radtodeg.
+    local relativeMeanMotion to orbitMeanMotion - planetMeanMotion.
+    local durToBurn to angleToBurn / relativeMeanMotion.
+    local burnTime to time + durToBurn.
+
     local burnPos to shipPAt(burnTime).
     local rb to burnPos:mag.
     local rp to body:radius + kLandAtm:EntryPe.

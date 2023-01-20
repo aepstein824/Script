@@ -1,5 +1,7 @@
 @LAZYGLOBAL OFF.
 
+runOncePath("0:common/math.ks").
+
 function opsRefuel {
     local shipResources to list().
     list resources in shipResources.
@@ -80,7 +82,7 @@ function doAnytimeScience {
     opsScienceToBox(mods).
 }
 
-function doUseOnceScienceParts {
+function doUseOnceScience {
     local useOnce to mergeList(anytimeScienceParts, useOnceScienceParts).
     local mods to scienceModules(useOnce).
     
@@ -117,6 +119,7 @@ function opsCollectScience {
     local eruPattern to "ScienceBox|Experiment Return".
     local eruParts to ship:partsdubbedpattern(eruPattern).
     for eruPart in eruParts {
+        print " Collecting experiments in " + eruPart:name.
         local eru to eruPart:getmodule("ModuleScienceContainer").
         eru:doaction("collect all", true).
         wait 0.
@@ -163,6 +166,27 @@ function waitWarpPhsx {
     kuniverse:timewarp:warpto(endTime).
     wait until time:seconds > endTime.
     kuniverse:timewarp:cancelwarp.
+}
+
+function opsGetSunAngle {
+    parameter geo.
+    local sunPos to sun:position - body:position.
+    local geoPos to geo:position - body:position.
+    local currentSunAngle to vectorAngleAround(sunPos, unitY, geoPos).
+    return currentSunAngle.
+}
+
+// Warp till the geo position is at the specified sun angle. Zero is noon.
+// I take a geo pos here to make clear that we're using the body's rotation.
+function opsWarpTillSunAngle {
+    parameter geo, sunAngle.
+
+    local currentSunAngle to opsGetSunAngle(geo).
+    local bodyMM to -body:angularvel:y * constant:radtodeg.
+    local around to posAng(sunAngle - currentSunAngle).
+    local dur to around / bodyMM.
+
+    waitWarp(time + dur).
 }
 
 function keyOrDefault {
@@ -250,11 +274,17 @@ function setTargetTo {
 function cleanModule {
     parameter m.
 
-    // duplicates
+    // remove duplicates
     m:dump().
     wait 0.
     if not m:inoperable {
         m:reset().
+    }
+    for action in m:allactionnames {
+        if action:contains("reset") {
+            print " Attempting reset of " + m:part:name.
+            m:doaction(action, true).
+        }
     }
     wait 0.
 }
@@ -360,15 +390,15 @@ function setFlaps {
 global kUnset to "UNSET".
 global kForward to "FORWARD".
 global kReverse to "REVERSE".
-// local reverserState to kUnset.
+local reverserState to kUnset.
 local allReverserCache to false.
 function setThrustReverser {
     parameter state.
 
-    // if reverserState = state {
-    //     return allReverserCache.
-    // }
-    // set reverserState to state.
+    if reverserState = state {
+        return allReverserCache.
+    }
+    set reverserState to state.
 
     local allReversers to true.
     local all to list().
@@ -396,5 +426,3 @@ function setThrustReverser {
     set allReverserCache to allReversers.
     return allReversers.
 }
-
-setThrustReverser(kForward).

@@ -12,7 +12,7 @@ Contained within is code for these operations
     * For bodies, capture into an orbit with arbitrary inclination.
     * For crafts, rendezvouz and dock.
 * Travel from any orbit to a specified orbit around another body.
-    * Employs a lambert solver using hohmann orbits as an initial guess.
+    * Employs a lambert solver using hohmann transfers as an initial guess.
     * Calculates orbits with arbitrary escape trajectories.
     * Single burn to transfer from one moon to another.
 
@@ -27,6 +27,9 @@ Contained within is code for these operations
     * Can fly toward a target, calculating necessary stopping speed.
     * Can land precisely on a target.
 * Launch a rocket to orbit.
+    * Follows prograde after an initial steering phase.
+    * Pitches to counter gravity to avoid raising ap with low TWR engines.
+    * Can launch into an arbitrary inclination or target's orbit.
 * Land a rocket.
     * Deorbit and suicide burns get within 200m of the target.
     * Putting the rocket in hover mode can land precisely on a target for 200dv.

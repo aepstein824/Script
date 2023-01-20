@@ -62,7 +62,6 @@ function hopBestTo {
     lock throttle to 0.
 }
 
-
 function verticalLeapTo {
     parameter h.
 
@@ -107,7 +106,7 @@ function suicideBurn {
     until false {
         local terrainH to terrainHAt(ship:position).
         local h0 to altitude - terrainH - safeH.
-        local g to body:mu / (groundAlt() + body:radius) ^ 2.
+        local g to gat(terrainH).
         local down to -body:position:normalized.
         local v0 to vDot(down, ship:velocity:surface).
         local vs to removeComp(ship:velocity:surface, down).
@@ -200,21 +199,3 @@ function groundPosition {
     local terrainH to geo:terrainHeight + height.
     return geo:altitudePosition(terrainH) - body:position.
 }
-
-// attempt 1
-        // local ePot to g * (groundAlt() - safeH).
-        // local v to ship:velocity:surface.
-        // local down to body:position:normalized.
-        // local vDown0 to vDot(down, v).
-        // local vDown to sqrt(2 * (.5 * vDown0 ^ 2 + ePot)).
-        // local vHori to removeComp(v, down).
-        // local vBurn to (vDown * down + vHori).
-        // local maxA to ship:maxThrust / ship:mass - g * (vDown / vBurn:mag).
-        
-        // local burnDur to vBurn:mag / maxA.
-        // // fallH is negative to represent fall.
-        // local fallH to safeH - groundAlt().
-        // local pmTerm to sqrt(vDown0 ^ 2 - 2 * g * fallH).
-        // local numerator to -vDown0 + pmTerm.
-        // local fallDur to numerator / g.
-        // // print burnDur + ", " + fallDur + ", " + vDo

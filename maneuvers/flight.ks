@@ -11,17 +11,16 @@ runOncePath("0:deps/kLA-ks/src/kla").
 
 global kFlight to lexicon().
 set kFlight:ThrotKp to 0.1. // 1=full throttle at 1m/s
-set kFlight:ThrotMaxA to 0.1. 
+set kFlight:ThrotMaxA to 0.5. 
 set kFlight:AoAKp to 2. // 1 m/s vertical = X degree
 set kFlight:AoAMaxA to 1.
 set kFlight:AeroCount to 20.
+set kFlight:FlareHeight to 3.
 
 set kFlight:Park to "PARK".
 set kFlight:Takeoff to "TAKEOFF".
 set kFlight:Level to "LEVEL".
 set kFlight:Landing to "LANDING".
-set kFlight:Smooth to "SMOOTH".
-set kFlight:Rough to "ROUGH".
 
 function flightDefaultParams { 
     local params to lexicon(
@@ -30,7 +29,6 @@ function flightDefaultParams {
         "vspd", 0,
         "hspd", 0,
         "xacc", 0.0,
-        "landStyle", kFlight:Smooth,
 
         // calculations
         "level", ship:facing,
@@ -53,8 +51,7 @@ function flightDefaultParams {
         "maneuverV", 35,
         "cruiseV", 43,
         "descentV", -2,
-        "smoothV", -1,
-        "brakeWait", 3
+        "landTime", -1
     ).
     // local arrow to flightArrow(params).
     // set params:arrow to arrow.
@@ -227,7 +224,6 @@ function flightLevelAoaLinear {
 
     if i = kFlight:AeroCount - 1 {
         local solution to klaBackslash(x, y).
-        clearScreen.
         local b to klaGet(solution, 1, 1).
         local m to klaGet(solution, 2, 1).
         local bd to klaGet(solution, 1, 2).
@@ -250,8 +246,7 @@ function flightLevelAoaLinear {
         // small angle approximation of thrust * sin(aoa).
         local stable to ((-GdotL) / (spd2) - b) 
             / (m + constant:degtorad * prevThrust / spd2).
-        set stable to aoa + clamp(stable - aoa, -2, 2).
-        // set stable to (stable + aoa) / 2.
+        set stable to aoa + clamp(stable - aoa, -3, 3).
         local stableDrag to -1 * (md * stable + bd) * spd2.
         local stableThrust to (1 / cos(stable)) * (stableDrag + GdotD).
 
@@ -266,26 +261,26 @@ function flightLevelAoaLinear {
         // print " -- ".
         // print i.
         // print "Diff " + vecround(aeroforceDiff, 2).
-        print "tickms " + ((nowTick - lastTick) * 1000).
-        print "energy " + (0.5 * airspeed ^ 2 + 9.8 * altitude).
-        print "aoa " + aoa.
-        print "lift / G " + round(lift / Gmag, 2).
-        print "drag / G " + round(drag / Gmag, 2).
-        print "cl " + cl.
-        print "cd " + cd.
-        print "pitch angle " + round(arcsin(sinP), 2).
-        print "stable aoa at " + round(hspd) + " = " + stable.
-        print "stable thrust " + stableThrust.
-        print "aoapred " + aoaPred.
-        print "error " + round((aoaPred - aoa) / aoa, 4).
-        print "aoapredD " + aoaPredD.
-        print "error " + round((aoaPredD - aoa) / aoa, 4).
-        print "lift pred " + liftPred.
-        print "error " + round((liftPred - lift) / lift, 4).
-        print "drag pred " + dragPred.
-        print "error " + round((dragPred - drag) / drag, 4).
-        print "stall speed " + sevSpd.
-        print "zero aoa " + round(zeroAoA, 2).
+        // print "tickms " + ((nowTick - lastTick) * 1000).
+        // print "energy " + (0.5 * airspeed ^ 2 + 9.8 * altitude).
+        // print "aoa " + aoa.
+        // print "lift / G " + round(lift / Gmag, 2).
+        // print "drag / G " + round(drag / Gmag, 2).
+        // print "cl " + cl.
+        // print "cd " + cd.
+        // print "pitch angle " + round(arcsin(sinP), 2).
+        // print "stable aoa at " + round(hspd) + " = " + stable.
+        // print "stable thrust " + stableThrust.
+        // print "aoapred " + aoaPred.
+        // print "error " + round((aoaPred - aoa) / aoa, 4).
+        // print "aoapredD " + aoaPredD.
+        // print "error " + round((aoaPredD - aoa) / aoa, 4).
+        // print "lift pred " + liftPred.
+        // print "error " + round((liftPred - lift) / lift, 4).
+        // print "drag pred " + dragPred.
+        // print "error " + round((dragPred - drag) / drag, 4).
+        // print "stall speed " + sevSpd.
+        // print "zero aoa " + round(zeroAoA, 2).
 
         set aero:Aoa to stable.
         set aero:Thrust to stableThrust.
@@ -312,7 +307,8 @@ function flightLevel {
     local rollGrav to rollUp:mag.
 
     local acc to params:differ:D[0].
-    local aoaThrust to flightLevelAoaLinear(params:aero, vspd, hspd, rollGrav, acc).
+    local aoaThrust to flightLevelAoaLinear(params:aero, 
+        vspd, groundspeed, rollGrav, acc).
     local aoa to aoaThrust:x.
     local thrust to aoaThrust:y.
     if params:aero:LandingSpd > 10 {
@@ -335,8 +331,8 @@ function flightLevel {
     local throtAdj to throttlePid:update(time:seconds, levelSurf:z).
     // set aoaOffset to 0.
     // set throtAdj to 0.
-    print "a " + round(aoaOffset, 2) + " t " + round(throtAdj, 2) 
-        + " A " + round(aoaOffset + aoa, 2).
+    // print "a " + round(aoaOffset, 2) + " t " + round(throtAdj, 2) 
+    //     + " A " + round(aoaOffset + aoa, 2).
 
     // pitch
     local pitchA to arcTan2(vspd, hspd).
@@ -347,7 +343,7 @@ function flightLevel {
     set params:steering to flight.
 
     // throttle
-    local idealThrot to thrust / max(ship:maxThrust, 0.01).
+    local idealThrot to clamp(thrust / max(ship:maxThrust, 0.01), 0, 1).
     // Keep throttle above 0 to keep it ready for throttling up.
     // set throtAdj to 0.
     set params:throttle to max(idealThrot + throtAdj, 0.02).
@@ -356,11 +352,14 @@ function flightLevel {
 function flightLanding {
     parameter params.
 
-    local rough to params:landStyle = kFlight:Rough.
-    local flareSteer to heading(shipHeading(), 5).
+    // tried 5deg pitch for flare, but trying to rotate caused bouncing
+    local flareSteer to facing.
     if status = "LANDED" {
         set params:throttle to 0.
-        if groundspeed < (params:hspd - params:brakeWait) or rough {
+
+        if params:landTime < 0 {
+            set params:landTime to time:seconds.
+        } else if time:seconds - params:landTime > 1 {
             brakes on.
         }
 
@@ -376,13 +375,14 @@ function flightLanding {
         set params:steering to params:level:inverse * flareSteer.
         return.
     }
+    set params:landTime to -1.
 
-    if groundAlt() < 10 {
-        set params:steering to params:level:inverse * flareSteer.
-        set params:throttle to 0.1.
-        return.
-    }
+    
     flightLevel(params).
+    if groundAlt() < kFlight:FlareHeight {
+        set params:throttle to 0.
+        set params:vspd to params:descentV / 2.
+    }
 }
 
 function flightPitch {
@@ -432,7 +432,7 @@ function flightBeginLanding {
         set params:mode to kFlight:Landing.
         set params:steering to r(0, 0, 0).
 
-        flightResetSpds(params, params:landV).
+        flightResetSpds(params, params:maneuverV).
         setThrustReverser(kForward).
         set params:vspd to -1.
         setFlaps(3).

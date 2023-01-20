@@ -81,7 +81,7 @@ function handleStage {
         and stage:number >= kClimb:LastStage).
 
     if shouldStage {
-        print "Staging " + stage:number.
+        print " Staging " + stage:number.
         set controlThrot to 0.4.
         stage.
         wait 0.5.
@@ -93,7 +93,7 @@ function solidCheck {
     list engines in allEngines.
     for e in allEngines {
         if e:ignition and e:flameout and e:throttlelock {
-            print "Solid Fuel depleted.".
+            print " Solid Fuel depleted.".
             return true.
         }
     }

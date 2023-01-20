@@ -75,8 +75,6 @@ function rotateVecAround {
 
 function removeComp {
     parameter x, orth.
-    // set orth to orth:normalized.
-    // return x - vDot(x, orth) * orth.
     return vxcl(orth, x).
 }
 
@@ -167,4 +165,9 @@ function smallAng {
         set x to x - 360.
     }
     return x.
+}
+
+function posAng {
+    parameter x.
+    return posmod(x, 360).
 }
