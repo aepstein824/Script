@@ -2,6 +2,8 @@
 
 runOncePath("0:common/math.ks").
 
+global kWarpCancelDur to 5.
+
 function opsRefuel {
     local shipResources to list().
     list resources in shipResources.
@@ -157,6 +159,7 @@ function waitWarp {
     set kuniverse:timewarp:mode to "RAILS".
     kuniverse:timewarp:warpto(detimestamp(endTime)).
     wait until time:seconds > endTime.
+    wait kWarpCancelDur.
     wait until ship:unpacked.
 }
 

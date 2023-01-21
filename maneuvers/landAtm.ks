@@ -95,6 +95,11 @@ function planLandingBurn {
     local sNorm to shipNorm().
     local ksc to waypoint("ksc").
 
+    if ship:orbit:eccentricity > 0.2 {
+        changePeAtAp(kLandAtm:EntryPe).
+        return.
+    }
+
     local orbW to removeComp(ksc:position - body:position, sNorm).
     local offsetW to rotateVecAround(orbW, sNorm, -kLandAtm:ReturnTanly).
     local shipPos to -body:position.

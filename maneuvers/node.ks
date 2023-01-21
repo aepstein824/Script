@@ -35,7 +35,7 @@ function nodeExecute {
     lock steering to nd:deltav.
     until vang(nodeDv0, ship:facing:vector) < 3 { wait 0. }
     set kuniverse:timewarp:rate to 5.
-    wait until nd:eta <= rocketEstimate / 2 + 3.
+    wait until nd:eta <= rocketEstimate / 2 + kWarpCancelDur.
     kuniverse:timewarp:cancelwarp().
     wait until nd:eta <= rocketEstimate / 2.
 
