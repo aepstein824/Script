@@ -14,13 +14,15 @@ set kFlight:ThrotKp to 0.1. // 1=full throttle at 1m/s
 set kFlight:ThrotMaxA to 0.5. 
 set kFlight:AoAKp to 2. // 1 m/s vertical = X degree
 set kFlight:AoAMaxA to 1.
-set kFlight:AeroCount to 20.
+set kFlight:AeroCount to 10.
 set kFlight:FlareHeight to 3.
 
 set kFlight:Park to "PARK".
 set kFlight:Takeoff to "TAKEOFF".
 set kFlight:Level to "LEVEL".
 set kFlight:Landing to "LANDING".
+
+local kPitchNoiseAmp to 0.2.
 
 function flightDefaultParams { 
     local params to lexicon(
@@ -192,7 +194,7 @@ function flightLevelAoaLinear {
     set aero:LastTick to nowTick.
     set aero:Iter to mod(i + 1, kFlight:AeroCount).
  
-    local air2 to airspeed ^ 2.
+    local dyn to ship:dynamicpressure.
 
     local srfRolled to lookDirUp(srfPrograde:forevector, facing:upvector).
 
@@ -215,14 +217,15 @@ function flightLevelAoaLinear {
     local aoa to 90 - vang(srfRolled:upvector, facing:forevector).
     local lift to aeroforce:y.
     local drag to aeroforce:z.
-    local cl to lift / air2.
-    local cd to drag / air2.
+    local cl to lift / dyn.
+    local cd to drag / dyn.
 
     klaSet(x, i + 1, 2, aoa).
     klaSet(y, i + 1, 1, cl).
     klaSet(y, i + 1, 2, cd).    
 
     if i = kFlight:AeroCount - 1 {
+        local air2 to airspeed ^ 2.
         local solution to klaBackslash(x, y).
         local b to klaGet(solution, 1, 1).
         local m to klaGet(solution, 2, 1).
@@ -231,10 +234,11 @@ function flightLevelAoaLinear {
         local aoaPred to (cl - b) / m.
         local aoaPredD to (cd - bd) / md.
         local zeroAoA to -b / m.
-        local liftPred to (m * aoa + b) * air2.
-        local dragPred to (md * aoa + bd) * air2.
+        local liftPred to (m * aoa + b) * dyn.
+        local dragPred to (md * aoa + bd) * dyn.
 
         local spd2 to vspd ^ 2 + hspd ^ 2.
+        local dyn2 to dyn * (spd2 / air2).
         local vmag to sqrt(spd2).
         local sinP to vspd / vmag.
         local cosP to hspd / vmag.
@@ -244,15 +248,18 @@ function flightLevelAoaLinear {
         local GdotD to Gmag * sinP.
 
         // small angle approximation of thrust * sin(aoa).
-        local stable to ((-GdotL) / (spd2) - b) 
-            / (m + constant:degtorad * prevThrust / spd2).
+        local stable to ((-GdotL) / (dyn2) - b) 
+            / (m + constant:degtorad * prevThrust / dyn2).
         set stable to aoa + clamp(stable - aoa, -3, 3).
-        local stableDrag to -1 * (md * stable + bd) * spd2.
+        local stableDrag to -1 * (md * stable + bd) * dyn2.
         local stableThrust to (1 / cos(stable)) * (stableDrag + GdotD).
 
-        local sevCl to m * (zeroAoA + 10) + b.
-        local sevSpd to sgnsqrt(Gmag / sevCl) + 5.
+        local stallCl to m * (zeroAoA + 10) + b.
+        local altFactor to body:atm:altitudepressure(altitude)
+            / body:atm:altitudepressure(100).
+        local stallSpd to sgnsqrt(Gmag * altFactor * (air2 / dyn) / stallCl).
 
+        // clearScreen.
         // klaPrint(x).
         // print " -- ".
         // klaPrint(y).
@@ -279,12 +286,12 @@ function flightLevelAoaLinear {
         // print "error " + round((liftPred - lift) / lift, 4).
         // print "drag pred " + dragPred.
         // print "error " + round((dragPred - drag) / drag, 4).
-        // print "stall speed " + sevSpd.
+        // print "stall speed " + stallSpd.
         // print "zero aoa " + round(zeroAoA, 2).
 
         set aero:Aoa to stable.
         set aero:Thrust to stableThrust.
-        set aero:LandingSpd to sevSpd.
+        set aero:LandingSpd to stallSpd.
     }
 
     return v(aero:Aoa, aero:Thrust, 0).
@@ -334,10 +341,13 @@ function flightLevel {
     // print "a " + round(aoaOffset, 2) + " t " + round(throtAdj, 2) 
     //     + " A " + round(aoaOffset + aoa, 2).
 
+    // noise to feed data to the flight model
+    local pitchNoise to kPitchNoiseAmp * sin(360 * mod(time:seconds, 2)).
+
     // pitch
     local pitchA to arcTan2(vspd, hspd).
     local travel to flightPitch(pitchA).
-    local aoaRots to flightPitch(aoa + aoaOffset).
+    local aoaRots to flightPitch(aoa + aoaOffset + pitchNoise).
     local rolled to lookDirUp(unitZ, rollUp).
     local flight to travel * rolled * aoaRots.
     set params:steering to flight.

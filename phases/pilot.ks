@@ -12,7 +12,8 @@ runOncePath("0:maneuvers/hover.ks").
 pilotHybrid().
 
 function pilotHybrid {
-    local flyNext to status = "FLYING" or brakes.
+    local flyNext to status = "FLYING"
+        or vang(facing:forevector, up:forevector) > 30.
 
     until false {
         if flyNext {
