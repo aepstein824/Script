@@ -36,7 +36,5 @@ function circleAtKerbin {
 function landKsc {
     planLandingBurn().
     nodeExecute().
-    print ship:geoposition.
     landFromDeorbit().
-    print ship:geoposition.
 }

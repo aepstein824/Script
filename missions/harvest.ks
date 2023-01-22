@@ -16,6 +16,7 @@ clearAll().
 set kPhases:startInc to 1.
 set kPhases:stopInc to 2.
 
+// NOTE must be in body's orbit
 local lz to latlng(19.5, -174.9).
 local home to vessel("hive").
 

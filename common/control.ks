@@ -5,6 +5,7 @@ global controlThrot to 0.
 global controlLocked to false.
 
 function controlLock {
+    sas off.
     set controlLocked to true.
     lock steering to controlSteer.
     lock throttle to controlThrot.

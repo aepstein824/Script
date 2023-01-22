@@ -95,11 +95,13 @@ function planLandingBurn {
     local sNorm to shipNorm().
     local ksc to waypoint("ksc").
 
-    if ship:orbit:eccentricity > 0.2 {
+    if ship:orbit:eccentricity > 0.05 {
+        print " Imperfect parking job, deorbit from ap".
         changePeAtAp(kLandAtm:EntryPe).
         return.
     }
 
+    print " Lining up deorbit from " + kLandAtm:ReturnTanly.
     local orbW to removeComp(ksc:position - body:position, sNorm).
     local offsetW to rotateVecAround(orbW, sNorm, -kLandAtm:ReturnTanly).
     local shipPos to -body:position.

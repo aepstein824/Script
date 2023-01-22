@@ -60,7 +60,6 @@ if shouldPhase(5) {
     landKsc().
 }
 
-
 function setDestination {
     if ind = 0 or ind = 2 {
         set dest to mun.

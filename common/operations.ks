@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 
 runOncePath("0:common/math.ks").
+runOncePath("0:common/orbital.ks").
 
 global kWarpCancelDur to 5.
 
@@ -190,6 +191,33 @@ function opsWarpTillSunAngle {
     local dur to around / bodyMM.
 
     waitWarp(time + dur).
+}
+
+function opsWarpTillParentAligns {
+    parameter align.
+
+    if vang(align, unitY) < 5 {
+        return.
+    }
+    local parent to body:obt:body.
+    local currentPos to parent:position - body:position.
+    local parentMM to 360 / body:obt:period.
+    local norm to normOf(body:obt).
+
+    local negAlign to -1 * align.
+    local angleToPosAlign to vectorAngleAround(currentPos, norm, align).
+    local angleToNegAlign to vectorAngleAround(currentPos, norm, negAlign).
+    local smallerAngleToEither to min(angleToPosAlign, angleToNegAlign).
+
+    local dur to smallerAngleToEither / parentMM.
+    waitWarp(time + dur).
+}
+
+function opsDecouplePart {
+    parameter part.
+
+    local mod to part:getmodule("ModuleAnchoredDecoupler").
+    mod:doAction("decouple", true).
 }
 
 function keyOrDefault {

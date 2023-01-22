@@ -157,8 +157,6 @@ function escapeWith {
 
     if body = sun { return. }
 
-    // set delay to 0.
-
     local startTime to time + delay.
     local r0 to altitude + body:radius.
     local soirad to body:soiradius.
@@ -188,7 +186,7 @@ function escapeWith {
         set spd0 to sqrt(body:mu * (2 / r0 - 1 / a)).
         set deflectAngle to escapeEllipseDeflect(a, body:soiradius, e).
     }
-    print "deflectAngle " + deflectAngle.
+    // print "deflectAngle " + deflectAngle.
 
     local i_n to shipnorm().
     local i_x to v_x:normalized.
@@ -200,7 +198,6 @@ function escapeWith {
         return false.
     }
     local spdPro to sqrt(spd0 ^ 2 - spdNorm ^ 2).
-
     // print "spdPro " + spdPro.
 
     local cosDeflect to cos(deflectAngle).
@@ -341,4 +338,29 @@ function hyperPe {
     local burnNorm to vDot(burnVec, startNorm).
     local burnPro to vDot(burnVec, startPro).
     add node(burnTime, burnRad, burnNorm, burnPro).
+}
+
+// At Ap, use RCS to tune the period
+function orbitTunePeriod {
+    parameter tgtPeriod, dur, eps to 0.01.
+
+    controlLock().
+    set controlSteer to prograde.
+    set controlThrot to 0.
+    wait until vang(facing:forevector, prograde:forevector) < 3.
+    local startTime to time.
+    local stopTime to startTime + dur.
+    local gain to -0.1.
+    enableRcs().
+
+    until abs(obt:period - tgtPeriod) < eps or time > stopTime {
+        local error to obt:period - tgtPeriod.
+        local output to v(0, 0, gain * error).
+        local clampedOut to vecMinMag(output, 0.06).
+        set ship:control:translation to clampedOut.
+        wait 0.
+    }
+
+    disableRcs().
+    controlUnlock().
 }

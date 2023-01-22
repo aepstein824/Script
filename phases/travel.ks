@@ -129,6 +129,7 @@ function travelEscapeTo {
     parameter ctx, tgtBody, planeOf.
 
     local hl to hlIntercept(body, tgtBody).
+    set hl:dest to tgtBody.
     // it's fine if this is a plane change
     escapeOmni(hl).
 

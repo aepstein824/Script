@@ -22,6 +22,8 @@ local kInterStg to 2.
 local kLanderStg to 2.
 set kClimb:Turn to 5.
 set kClimb:ClimbAp to 80000.
+
+// TODO only in body's orbit
 local lz to latlng(0, 0).
 
 wait until ship:unpacked.

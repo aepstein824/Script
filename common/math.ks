@@ -148,6 +148,16 @@ function vecClampMag {
     }
 }
 
+function vecMinMag {
+    parameter vec, mag.
+    if vec:mag < mag {
+        return vec:normalized * mag.
+    }
+    else {
+        return vec.
+    }
+}
+
 function sgnSqrt {
     parameter x.
     return sgn(x) * sqrt(abs(x)).

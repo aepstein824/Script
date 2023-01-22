@@ -10,7 +10,7 @@ set kClimb:VertV to 60.
 set kClimb:SteerV to 200.
 set kClimb:ClimbAp to 80000.
 set kClimb:ClimbPe to 71000.
-set kClimb:LastStage to 0.
+set kClimb:OrbitStage to -1.
 set kClimb:ClimbA to 1.5.
 set kClimb:TLimAlt to 10000.
 set kClimb:Heading to 90.
@@ -31,14 +31,17 @@ function climbInit {
 function climbLoop {
     local surfaceV to ship:velocity:surface:mag.
 
-    handleStage().
+    local staged to handleStage().
+    if staged {
+        return.
+    }
 
     if surfaceV <  kClimb:VertV {
         verticalClimb().
     } else if surfaceV < kClimb:SteerV {
         set controlSteer to acHeading(90 - kClimb:Turn).
         set controlThrot to slowThrottle().
-    } else if ship:apoapsis < kClimb:ClimbAp {
+    } else if ship:apoapsis < kClimb:ClimbAp and ship:altitude < 70000 {
         gravityTurn().
     } else if ship:altitude < 70000 {
         warpUp().
@@ -76,16 +79,22 @@ function slowThrottle {
 }
 
 function handleStage {
-    local shouldStage to ((maxThrust = 0 or solidCheck()) 
-        and stage:ready
-        and stage:number >= kClimb:LastStage).
+    local shouldStage to ((maxThrust = 0 or solidCheck()) and stage:ready).
 
     if shouldStage {
-        print " Staging " + stage:number.
-        set controlThrot to 0.4.
+        local interimThrot to 1.
+        if stage:number <= maxPartStage {
+            print " Staging " + stage:number.
+            set interimThrot to 0.2.
+        } else {
+            print " Launch Stage " + stage:number.
+        }
+        set controlThrot to interimThrot.
         stage.
         wait 0.5.
     }
+
+    return shouldStage.
 }
 
 function solidCheck {
@@ -126,7 +135,7 @@ function warpUp {
 function circularize {
     set kuniverse:timewarp:rate to 1.
     local pitch to 0.
-    if obt:eta:apoapsis > obt:eta:periapsis {
+    if obt:eta:apoapsis > obt:eta:periapsis and ship:maxthrust > 0 {
         local acc to ship:maxthrust / ship:mass.
         local gacc to gat(altitude).
         local centripetalAcc to velocity:orbit:mag ^ 2 
@@ -137,6 +146,13 @@ function circularize {
     }
     set controlSteer to acHeading(pitch).
     set controlThrot to climbCircularizeThrottle().
+
+    if kClimb:OrbitStage > 0 and obt:periapsis > -1000 and stage:number
+        > kClimb:OrbitStage {
+        set controlThrot to 0.
+        wait 0.
+        stageTo(kClimb:OrbitStage).
+    }
 }
 
 function climbOrbitSpeed {
@@ -147,6 +163,9 @@ function climbOrbitSpeed {
 }
 
 function climbCircularizeThrottle {
+    if ship:maxthrust = 0 {
+        return 1.0.
+    }
     if obt:eta:apoapsis > obt:eta:periapsis {
         return 1.0.
     }

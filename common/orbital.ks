@@ -180,3 +180,13 @@ function orbitalSpeed {
 
     return sqrt(mu * (2 / radius - 1 / semimajor)).
 }
+
+function orbitalPeriodToSemi {
+    parameter mu, period.
+    return (mu * (period / 2 / constant:pi) ^ 2) ^ (1 / 3).
+}
+
+function orbitalSemiToPeriod {
+    parameter mu, semi.
+    return 2 * constant:pi * sqrt(semi ^ 3 / mu).
+}

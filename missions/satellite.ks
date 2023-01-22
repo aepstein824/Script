@@ -23,6 +23,7 @@ local kCarrierPark to 120000.
 local kInterStage to 0.
 local dest to minmus.
 
+// TODO only call this when in the correct body's orbit
 local kApDir to sat100dirs()[3].
 
 if shouldPhase(0) {
