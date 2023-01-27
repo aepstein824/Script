@@ -35,7 +35,8 @@ function opsRefuel {
 
     print "Transfer Statuses: ".
     for trans in transfers {
-        print " " + trans:resource + ": (" + trans:status + ") " + trans:message.
+        print " " + trans:resource + ": ("
+            + trans:status + ") " + trans:message.
     }
 
     local full to opsCheckFull(refillees).
@@ -78,6 +79,9 @@ global labs to list(
     "lab"
 ).
 
+global scienceModName to "ModuleScienceExperiment".
+
+
 function doAnytimeScience {
     local anytime to anytimeScienceParts.
     local mods to scienceModules(anytime).
@@ -104,16 +108,16 @@ function opsScienceToBox {
 function opsExperimentModules {
     parameter mods.
 
-    for m in mods:values {
-        m[0]:deploy().
+    for m in mods {
+        m:deploy().
         wait 0.
     }
 }
 
 function opsAwaitModules {
     parameter mods.
-    for m in mods:values {
-        wait until m[0]:hasData.
+    for m in mods {
+        wait until m:hasData.
     }
     wait 0.
 }
@@ -129,10 +133,15 @@ function opsCollectScience {
     }
 }
 
+function opsCollectRestoreScience {
+    opsCollectScience().
+    opsCleanModules(ship:modulesnamed(scienceModName)).
+}
+
 function opsCleanModules {
-    parameter mods.
-    for m in mods:values {
-        cleanModule(m[0]).
+    parameter modList.
+    for m in modList {
+        cleanModule(m).
     }
 }
 
@@ -141,18 +150,15 @@ function scienceModules {
     local scienceMods to Lexicon().
     for pname in scienceParts {
         local parts to ship:partsdubbedpattern(pname). 
-        local mods to List().
         for p in parts {
-            local sciMod to p:getmodule("ModuleScienceExperiment").
+            local sciMod to p:getmodule(scienceModName).
             if not (sciMod:inoperable or sciMod:hasdata) {
-                mods:add(sciMod).
+                set scienceMods[pname] to sciMod.
+                break.
             }
         }
-        if mods:length() > 0 {
-            set scienceMods[pname] to mods.
-        }
     }
-    return scienceMods.
+    return scienceMods:values.
 }
 
 function waitWarp {
@@ -332,12 +338,14 @@ function jettisonFairings {
 }
 
 function enableRcs {
-    rcs on.
+    if not lights lights on.
+    if not rcs rcs on.
     set ship:control:translation to v(0, 0, 0).
 }
 
 function disableRcs {
-    rcs off.
+    if lights lights off.
+    if rcs rcs off.
     set ship:control:translation to v(0, 0, 0).
 }
 
@@ -362,11 +370,28 @@ function detimestamp {
 
 function getPort {
     parameter s.
-    local primarySearch to s:partstagged("primaryport"). 
-    if primarySearch:length() > 0 {
-        return primarySearch[0].
+    if s:dockingPorts:empty() {
+        return s.
     }
-    return s:dockingPorts[0].
+    local lowestPort to s:dockingPorts[0].
+    local lowestUid to lowestPort:uid.
+    for port in s:dockingPorts {
+        if port:uid < lowestUid and port:haspartner() {
+            set lowestPort to port.
+            set lowestUid to port:uid.
+        }
+        local hasTag to port:tag:length > 0.
+        if hasTag and activeShip:partstagged(port:tag):length > 0 {
+            print "Active ship has " + port:tag.
+            return port.
+        }
+    }
+    return lowestPort.
+}
+
+function opsControlFromPort {
+    parameter port.
+    port:getmodule("ModuleDockingNode"):doevent("Control From Here").
 }
 
 function groundAlt {

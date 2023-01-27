@@ -105,68 +105,72 @@ function normOf {
         obt1:position - obt1:body:position):normalized.
 }
 
+function orbitalRelativeV {
+    parameter obtable1, obtable2, t.
+    local p1 to positionAt(obtable1, t).
+    local p2 to positionAt(obtable2, t).
+    local oneToTwo to p2 - p1.
+    local v1 to velocityAt(obtable1, t):orbit.
+    local v2 to velocityAt(obtable2, t):orbit.
+    local vDiff to v1 - v2.
+    local relV to vdot(vDiff, oneToTwo:normalized).
+    return relV.
+}
+
+function closestApproachNear {
+    parameter obtable1, obtable2, t.
+
+    local lr to .1.
+    set t to time + obt:eta:periapsis.
+    local eps to 3.
+    local signLast to 0.
+    // use gradient descent, lowering learning rate when crossing the min
+    until false {
+        local relV to orbitalRelativeV(obtable1, obtable2, t).
+        local u to lr * relV.
+        set t to t + u.
+
+        // print "Iter:".
+        // print " d = " + relV.
+        // print " x = " + distanceAt(obtable1, obtable2, t).
+        // print " u = " + u.
+
+        local signNow to sgn(relV).
+        if signNow * signLast = -1 {
+            set lr to lr / 2.
+        }
+        set signLast to signNow.
+
+        if abs(u) < 0.01 {
+            break.
+        }
+        if abs(relV) < eps {
+            break.
+        }
+    }
+    return t.
+}
+
 function closestApproach {
     parameter obtable1, obtable2.
 
-    local lr to .5.
-    local t to time:seconds.
-    if obt:eccentricity < 1 {
-        set t to t + obt:period.
-    }
-    local dt to 10.
-    local dxSignLast to 0.
-    local tEarly to t.
-    until false {
-        local t_p to t + dt.
+    local bestDistance to 10^20.
+    local bestTime to time:seconds.
+    local bigPeriod to max(obtable1:obt:period, obtable2:obt:period).
+    local count to 36.
 
-        local x to distanceAt(obtable1, obtable2, t).
-        local x_p to distanceAt(obtable1, obtable2, t_p).
-        
-        local dx_dt to (x_p - x) / dt.
-        local dxSign to sgn(dx_dt).
-        // print "Iter:".
-        // print " t = " + t.
-        // print " x = " + x.
-        // print " d = " + dx_dt.
-        // print " u = " + lr * x / dx_dt / 60 / 60.
-        if dxSignLast = -1 and dxSign = 1  {
-            break.
-        }
-        set tEarly to t.
-        set t to t - lr * x / dx_dt.
-        set dxSignLast to dxSign.
-    }
-
-    local earlyLateDifference to t - tEarly.
-    local tLate to t + earlyLateDifference.
-    set tEarly to tEarly - earlyLateDifference.
-    until false {
-        // print tEarly * sToHours + ", " + (tLate * sToHours).
-        local tGuess to (tEarly + tLate) / 2.
-        if (tLate - tEarly) < dt {
-            print "Binary search range too small.".
-            return t.
-        }
-
-        local x to distanceAt(obtable1, obtable2, tGuess - dt).
-        local x_p to distanceAt(obtable1, obtable2, tGuess).
-        local x_p2 to distanceAt(obtable1, obtable2, tGuess + dt).
-
-        local early to x > x_p.
-        local straddle to ((x > x_p) <> (x_p > x_p2)).
-        if straddle {
-            set t to tGuess.
-            break.
-        }
-        if early {
-            set tEarly to tGuess.  
-        } else {
-            set tLate to tGuess.
+    for i in range(count) {
+        local t to (i / count) * bigPeriod + time:seconds.
+        local nearDist to distanceAt(obtable1, obtable2, t).
+        if nearDist < bestDistance {
+            set bestDistance to nearDist.
+            set bestTime to t.
         }
     }
 
-    return t.
+    return closestApproachNear(obtable1, obtable2, bestTime).
 }
+
 
 // acceleration
 function gat {

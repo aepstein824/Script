@@ -10,7 +10,7 @@ runOncePath("0:phases/waypoints.ks").
 
 local buttonNames to list(
     "exit", "travel", "dock", "launch", 
-    "land", "node", "circle", "ground"
+    "land", "node", "circle", "ground", "refresh"
     ).
 clearGuis().
 local gui to gui(300).
@@ -56,14 +56,11 @@ function doSomething {
 
     sas off.
     if it = "travel" {
-        unsetTarget().
+        // unsetTarget().
         if not hasTarget {
             setTargetTo(a0).
         }
         local dest to choose target if hasTarget else body(a0).
-        print hasTarget.
-        print a0.
-        print dest.
         local travelCtx to lexicon(
             "dest", dest 
         ).
@@ -99,6 +96,9 @@ function doSomething {
         // nodeExecute().
     } else if it = "ground" {
         vacLand(). 
+    } else if it = "refresh" {
+        opsCollectRestoreScience().
+        opsRefuel().
     }
 }
 

@@ -41,7 +41,7 @@ function shipTimeToDV {
     parameter dv.
     local flowIsp to shipFlowIsp().
     local flow to flowIsp[0].
-    local ve to flowIsp[1] * 9.81.
+    local ve to flowIsp[1] * 9.80655.
     local burnRatio to constant:e ^ (-1 * dv / ve).
     local rocketEstimate to (1 - burnRatio)  * ship:mass / flow. 
     return rocketEstimate.
@@ -107,4 +107,10 @@ function shipLevel {
     local lev to vxcl(out, velocity:surface).
     local level to lookDirUp(lev, out).
     return level.
+}
+
+function shipFacingRcs {
+    parameter vt.
+    local vFace to ship:facing:inverse * vt.
+    set ship:control:translation to vFace.
 }

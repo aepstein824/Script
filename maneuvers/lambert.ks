@@ -46,9 +46,9 @@ function lambertInterceptFitnessFactory {
     local radRat to r2 / r1.
     local nRef to sqrt(mu / (r1 ^ 3)).
     local tauS to detimestamp(flightDuration * nRef).
+    local yS to ln(tauS).
     local cDimless to cvec:mag / r1.
     local epsilon to (1 / 10 ^ 10) / min(1, tauS).
-    local yS to ln(tauS).
 
     local function fitness {
         parameter et.

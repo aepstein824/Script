@@ -6,13 +6,6 @@ runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 
 function nodeExecute {
-    parameter useRcs to false.
-
-    local rcsThrusters to list().
-    list rcs in rcsThrusters.
-    set useRcs to  useRcs and not rcsThrusters:empty().
-    
-
     wait 0.
     local nd to nextnode.
     print " Node in: " + round(nd:eta) 
@@ -55,11 +48,6 @@ function nodeExecute {
             set done to true.
         }
 
-        if useRcs and nd:deltav:mag < 0.5 {
-            // Leave the last bit for rcs if in use
-            set done to true.
-        }
-
         nodeStage().
         wait 0.04.
     }
@@ -67,24 +55,11 @@ function nodeExecute {
     lock throttle to 0.
     wait 0.1.
 
-    if useRcs {
-        enableRcs().
-        until nd:deltav:mag < 0.05 {
-            setRcs(nd:deltav).
-            wait 0.
-        }
-        setRcs(v(0,0,0)).
-        disableRcs().
-    }
     unlock steering.
     unlock throttle.
     remove nd.
     wait 1.
     clearVecDraws().
-}
-
-function nodeRcs {
-    nodeExecute(true).
 }
 
 function nodeStage {
@@ -107,14 +82,3 @@ function nodeStage {
     }
 }
         
-function setRcs {
-    parameter vt.
-    if vt:mag > 0 and vt:mag < 0.2 {
-        set vt to vt * 0.2 / vt:mag.
-    }
-    set ship:control:translation to v(
-        vDot(vt, ship:facing:starvector),
-        vDot(vt, ship:facing:topvector),
-        vDot(vt, ship:facing:forevector)
-    ).
-}

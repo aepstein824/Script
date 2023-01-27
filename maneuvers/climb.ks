@@ -147,7 +147,7 @@ function circularize {
     set controlSteer to acHeading(pitch).
     set controlThrot to climbCircularizeThrottle().
 
-    if kClimb:OrbitStage > 0 and obt:periapsis > -1000 and stage:number
+    if kClimb:OrbitStage >= 0 and obt:periapsis > 10000 and stage:number
         > kClimb:OrbitStage {
         set controlThrot to 0.
         wait 0.
@@ -170,7 +170,11 @@ function climbCircularizeThrottle {
         return 1.0.
     }
     if vang(facing:forevector, controlSteer:forevector) > 10 {
+        // that little extra kick to get a long heavy craft horizontal
+        enableRcs().
         return 0.05.
+    } else {
+        disableRcs().
     }
     local cSpd to climbOrbitSpeed().
     local apTime to time:seconds + obt:eta:apoapsis.

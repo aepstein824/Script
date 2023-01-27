@@ -11,7 +11,8 @@ global kRndvParams to Lexicon().
 set kRndvParams:floatDist to 200.
 set kRndvParams:maxSpeed to 50.
 set kRndvParams:thrustAng to 5.
-set kRndvParams:rcsSpd to 3.
+set kRndvParams:rcsSpd to 5.
+set kRndvParams:rcsSlowDist to 100.
 
 
 function planIntercept {
@@ -48,146 +49,153 @@ function ballistic {
     if distance() < floatDist and currentSpeed < 2 {
         return.
     }
-    local halfDistance to distance() / 2.
-    local shortestHalftime to sqrt((distance() - floatDist) / shipAccel()).
     local maxAccel to 0.5. // accel for 1/4 total
+    local shortestHalftime to sqrt((distance() - floatDist) / shipAccel()).
     local infFuelSpd to shipAccel() * shortestHalftime * maxAccel.
     print " Infinite Fuel Speed " + round(infFuelSpd).
     local maxSpeed to min(infFuelSpd, max(kRndvParams:maxSpeed, currentSpeed)). 
     print " Max Speed " + round(maxSpeed).
+    local burnTime to 1.3 * shipTimeToDV(maxSpeed) + 5.
+    local burnDist to 0.5 * maxSpeed * burnTime.
+    print " Slow dist " + burnDist.
+    local switchDist to 2 * burnDist. 
+    local endSpd to 5.
 
-    local function toGoalV{
-        parameter approach.
-        local retro to target:velocity:orbit.
-        local toward to (target:position - ship:position):normalized.
-        set approach to min(approach, distance() / halfDistance).
-        local closeIn to approach * maxSpeed * toward.
-        //print  (retro + closeIn - ship:velocity:orbit).
-        return (retro + closeIn - ship:velocity:orbit).
-    }
+    controlLock().
+    enableRcs().
+    until false {
+        local towards to target:position - ship:position.
+        local dist to towards:mag.
 
-    local function goalThrot {
-        parameter approach.
-        local goalV to toGoalV(approach).
-        if vang(ship:facing:vector, goalV) > kRndvParams:thrustAng {
-            return 0.
+        local shortDist to dist - 2 * floatDist.
+        local desiredSpd to rndvSpd(shortDist, burnDist, maxSpeed, endSpd).
+        local relV to velocity:orbit - target:velocity:orbit.
+        local movingAway to vdot(relV, towards) < 0.
+
+        if shortDist > switchDist or movingAway {
+            // while far, push velocity towards the target
+            local desired to desiredSpd * towards:normalized.
+            local delta to desired - relV.
+            local angFactor to 1.
+            local angle to vang(facing:vector, delta).
+            if angle > kRndvParams:thrustAng {
+                set angFactor to 1 - invLerp(angle, 0,
+                    2 * kRndvParams:thrustAng).
+            }
+            local magFactor to invLerp(5 * delta:mag, 0, shipAccel()).
+            local thrust to angFactor * magFactor.
+
+            set controlSteer to delta.
+            set controlThrot to thrust.
+        } else {
+            // while close, only burn retrograde
+            local steer to -relV.
+            if movingAway or shortDist < 0 {
+                set desiredSpd to 0.
+            }
+            if vang(steer, facing:vector) < kRndvParams:thrustAng {
+                local magError to relV:mag - desiredSpd.
+                // if desiredSpd is greater, throt will be 0
+                local magFactor to invLerp(5 * magError, 0, shipAccel()).
+                set controlThrot to magFactor.
+            } else {
+                set controlThrot to 0.
+            }
+            set controlSteer to steer.
         }
-        local thrust to invLerp(5 * goalV:mag, 0, shipAccel()).
-        if thrust < 0.01 {
-            set thrust to 0.
+
+        // if dist > 10 * burnDist {
+        //     set kuniverse:timewarp:mode to "PHYSICS".
+        //     set kuniverse:timewarp:rate to 4.
+        // } else {
+        //     set kuniverse:timewarp:rate to 1.
+        // }
+
+        if relV:mag < endSpd {
+            break.
         }
-        return thrust.
+    
+        wait 0.
     }
-
-    local function timeToBurn {
-        parameter dv.
-        return 1.3 * shipTimeToDV(dv) + 5.
-    }
-
-    lock steering to toGoalV(1).
-    lock throttle to goalThrot(1).
-
-    local reverseDist to timeToBurn(maxSpeed) * maxSpeed + floatDist.
-    if distance() > 10 * reverseDist {
-        set kuniverse:timewarp:mode to "PHYSICS".
-        set kuniverse:timewarp:rate to 4.
-    }
-    print " Will reverse at " + round(reverseDist) + "m".
-    wait until distance() < reverseDist.
-    kuniverse:timewarp:cancelwarp().
-
-    local stopFactor to 0.1.
-    local stopSpd to maxSpeed * stopFactor.
-    lock steering to toGoalV(stopFactor).
-    lock throttle to goalThrot(stopFactor).
-
-    local stopDist to timeToBurn(stopSpd) * stopSpd + floatDist.
-    print " Will stop at " + round(stopDist) + "m".
-    wait until distance() < stopDist.
-
-    lock steering to toGoalV(0).
-    lock throttle to goalThrot(0).
-    wait until toGoalV(0):mag < 1.
-
-    lock throttle to 0.
-    unlock steering.
+    disableRcs().
+    controlUnlock().
 }
 
 function rcsNeutralize {
     print "Neutralize relative velocity with RCS".
     lock throttle to 0.
-    lock steering to ship:position - target:position.
+    lock steering to "kill".
 
-    wait 3.
-
-    rcs on.
+    enableRcs().
     until false {
         local tr to target:velocity:orbit - ship:velocity:orbit.
         if (tr:mag < 0.3){
             break.
         }
-        setRcs(tr).
+        shipFacingRcs(tr).
         wait 0.
     }
-    set ship:control:translation to v(0,0,0).
-    rcs off.
+    disableRcs().
 }
 
 function rcsApproach {
     print "RCS Approach".
     local ourPort to getPort(ship).
-    ourPort:getmodule("ModuleDockingNode"):doevent("Control From Here").
-    local tgtPort to target.
-    local tgtPorts to target:dockingports.
-    if not tgtPorts:empty() {
-        set tgtPort to getPort(target).
-    }
+    opsControlFromPort(ourPort).
+    local tgtPort to getPort(target).
+
+    enableRcs().
     lock steering to tgtPort:position - ship:position.
     lock throttle to 0.
     wait 3. 
 
-    rcs on.
-    local approachStart to time.
-    local halfway to (tgtPort:position - ourPort:position):mag * 1.
     until false {
         local towards to tgtPort:position - ourPort:position.
-        local tr to target:velocity:orbit - ship:velocity:orbit.
+        local dist to towards:mag.
 
-        local desired to kRndvParams:rcsSpd * towards:normalized.
-        local delta to desired + tr.
-        if delta:mag < 0.1 or towards:mag < halfway / 2{
+        if dist < 0.9 {
             break.
         }
-        setRcs(delta).
+
+        local desiredSpd to rndvSpd(dist, kRndvParams:rcsSlowDist,
+            kRndvParams:rcsSpd, 0.2).
+        local desired to desiredSpd * towards:normalized.
+        local relV to ship:velocity:orbit - target:velocity:orbit.
+        // print "desired " + facing:inverse * desired.
+        // print "relV " + facing:inverse * relV.
+        local delta to desired - relV.
+
+        if dist < 10 {
+            set delta to delta * 3.
+        }
+        shipFacingRcs(delta).
+        wait 0.
     }
-    local approachDur to time - approachStart.
-    local reverseDist to approachDur * kRndvParams:rcsSpd / 2 + 15.
-    wait until (tgtPort:position - ourPort:position):mag < reverseDist.
 
-    until false {
-        if not hasTarget {
-            break.
-        }
-        local towards to tgtPort:position - ourPort:position.
-        local tr to target:velocity:orbit - ship:velocity:orbit.
+    disableRcs().
+    controlUnlock().
+}
 
-        local desired to 0.5 * towards:normalized.
-        local delta to desired + tr.
-        if towards:mag < 2 {
-            break.
-        }
-        setRcs(2 * delta).
+function rndvSpd {
+    parameter dist, slowDist, maxSpd, minSpd.
+    if dist < 2 {
+        return minSpd.
     }
-    setRcs(v(0, 0, 0)).
-    rcs off.
-} 
+    if dist < 0 {
+        return 0.
+    }
+    local curve to 1.
+    if dist < slowDist {
+        set curve to sqrt(invLerp(dist, 0, slowDist)).
+    }
+    local clamped to max(maxSpd * curve, minSpd).
+    return clamped.
+}
 
-function doubleBallisticRcs {
+function doubleBallistic {
     ballistic().
-    rcsNeutralize().
     if (target:position:mag > (kRndvParams:floatDist + 50)) {
         ballistic().
-        rcsNeutralize().
     }
 }
 

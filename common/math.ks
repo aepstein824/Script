@@ -73,6 +73,11 @@ function rotateVecAround {
     return dir * vec.
 }
 
+function vecAlong {
+    parameter vec, along.
+    return along:normalized * vDot(vec, along).
+}
+
 function removeComp {
     parameter x, orth.
     return vxcl(orth, x).
@@ -101,6 +106,15 @@ function clamp {
 function clampAbs {
     parameter x, limit.
     return clamp(x, -limit, limit).
+}
+
+// Gets a value out of a deadzone.
+function unDeadzone {
+    parameter x, limit.
+    if abs(x) < limit {
+        return sgn(x) * limit.
+    }
+    return x.
 }
 
 function quadraticFormula {

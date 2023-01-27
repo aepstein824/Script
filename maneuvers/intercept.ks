@@ -158,7 +158,7 @@ function lambertGrid {
         print " advancing guess time".
         set guessT to guessT + di.
     }
-    until guessDur + dj * lowJ > 0 {
+    until guessDur + dj * lowJ > 1 {
         print " advancing guess dur".
         set guessDur to guessDur + dj.
     }
@@ -166,10 +166,10 @@ function lambertGrid {
     for i in range(lowI, highJ) {
         for j in range (lowJ, highJ) {
             local startTime to guessT + i * di.
-            local flightDuration to guessDur + j * dj - i * di.
+            local flightDuration to guessDur + j * dj.
+            // print "Duration " + round(flightDuration * sToHours, 2).
             local results to lambertIntercept(obtable1, obtable2, v(0,0,0),
                 startTime, flightDuration).
-            // print "Duration " + round(flightDuration * sToDays).
             if results:ok {
                 set results:totalV to results:burnVec:mag. 
                 set results:totalV to results:totalV + results:matchVec:mag.

@@ -13,12 +13,13 @@ runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/waypoints.ks").
 clearAll().
 
+set kPhases:phase to 0.
 set kPhases:startInc to 1.
 set kPhases:stopInc to 2.
 
 // NOTE must be in body's orbit
-local lz to latlng(19.5, -174.9).
-local home to vessel("hive").
+local lz to latlng(90, 0).
+local home to vessel("P2 Shoddle").
 
 if shouldPhase(0) {
     print "Landing".

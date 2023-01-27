@@ -108,14 +108,19 @@ function travelIntercept {
 
     set target to ctx:dest:name.
 
-    local hl to travelDoubleHl().
+    local hl to travelDoubleHl(target).
 
     if (target:typename = "BODY") {
         travelIntoSatOrbit(ctx, target, hl:arrivalTime).
         travelCaptureToInc(ctx).
     } else {
-        waitWarp(closestApproach(ship, target) - 2 * 60).
-        doubleBallisticRcs().
+        local closestTime to closestApproach(ship, target).
+        local tgtV to velocityAt(target, closestTime):orbit.
+        local shipV to velocityAt(ship, closestTime):orbit.
+        local diff to (tgtV - shipV):mag.
+        waitWarp(closestTime - 300).
+        waitWarp(closestTime - shipTimeToDV(diff) - 20).
+        doubleBallistic().
     }
 }
 
@@ -148,7 +153,7 @@ function travelEscapeTo {
 function travelSatellite {
     parameter ctx, tgtBody, planeOf.
 
-    local hl to travelDoubleHl().
+    local hl to travelDoubleHl(tgtBody).
     travelIntoSatOrbit(ctx, tgtBody, hl:arrivalTime).
     travelCaptureToPlaneOf(ctx, planeOf).
 }
@@ -212,14 +217,15 @@ function travelCaptureToPlaneOf {
 
 function travelDoubleHl {
     // The function may return a plane change instead.
+    parameter targetable.
 
-    local hl to hlIntercept(ship, target).
+    local hl to hlIntercept(ship, targetable).
     add hl:burnNode.
     nodeExecute().
 
     if hl:haskey("planes") and hl:planes {
         print " Retrying HL intercept after plane change".
-        set hl to hlIntercept(ship, target).
+        set hl to hlIntercept(ship, targetable).
         add hl:burnNode.
         nodeExecute().
     }

@@ -364,3 +364,23 @@ function orbitTunePeriod {
     disableRcs().
     controlUnlock().
 }
+
+function orbitDispose {
+    sas off.
+    rcs on.
+    lights on.
+
+    lock steering to retrograde.
+    for i in range(100) {
+        local away to -activeShip:position.
+        local retro to retrograde:forevector.
+        // Don't care about the sign, just get away from the ship on a path that
+        // doesn't point right back to the ship again.
+        shipFacingRcs(vCrs(away, retro):normalized).
+        wait 0.1.
+    }
+    lock throttle to 0.05.
+    wait 3.
+    lock throttle to 1.0.
+    wait until false.
+}
