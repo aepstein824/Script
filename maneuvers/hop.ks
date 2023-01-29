@@ -96,11 +96,14 @@ function suicideBurn {
 
     controlLock().
 
-    set kuniverse:timewarp:mode to "PHYSICS".
-    set kuniverse:timewarp:rate to 2.
+    local riseTime to verticalSpeed / gat(altitude).
+
+    if riseTime > 10 {
+        set kuniverse:timewarp:warp to 1.
+    }
 
     print " Rising".
-    wait until vDot(body:position, ship:velocity:surface) > 1.
+    wait until verticalSpeed < -1.
 
     print " Falling".
     until false {
@@ -132,8 +135,11 @@ function suicideBurn {
 
         local srfRetro to -1 * ship:velocity:surface.
         set controlSteer to srfRetro.
-        if tf < 5 {
-            controlMaybeLock().
+        if tf > 120 {
+            set kuniverse:timewarp:warp to 2.
+        } else if tf > 60 {
+            set kuniverse:timewarp:warp to 1.
+        } else {
             kuniverse:timewarp:cancelwarp().
         }
         if tf < 0 {

@@ -1,7 +1,9 @@
 @LAZYGLOBAL OFF.
 
+runOncePath("0:common/geo.ks").
 runOncePath("0:common/info.ks").
 runOncePath("0:common/math.ks").
+runOncePath("0:common/optimize.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 runOncePath("0:maneuvers/hop.ks").
@@ -10,7 +12,10 @@ runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/lambert.ks").
 runOncePath("0:maneuvers/orbit.ks").
 
-global kWaypointsClimbAngle to 23.
+// global kWaypointsClimbLeap to 300.
+// global kWaypointsClimbAngle to 45.
+global kWaypointsClimbLeap to 3.
+global kWaypointsClimbAngle to 80.
 global kWaypointsOverhead to 600.
 global kWaypointsCoastSpeed to 5.
 
@@ -262,7 +267,7 @@ function vacLandGeo {
 function vacClimb {
     parameter height.
     parameter compass to 90.
-    verticalLeapTo(120).
+    verticalLeapTo(kWaypointsClimbLeap).
     lock steering to heading(compass, kWaypointsClimbAngle, 0).
     lock throttle to 1.
     until apoapsis > height {
@@ -271,4 +276,45 @@ function vacClimb {
     }
     lock throttle to 0.
     wait 1.
+}
+
+function vacNearestFlat {
+    parameter lz.
+    local dspace to 10.
+    local success to 0.15.
+
+    local function lzF {
+        parameter pos.
+        return pos:terrainHeight.
+    }
+    local function lzNF {
+        parameter pos.
+        return -1 * pos:terrainHeight.
+    }
+    local function lzCombine {
+        parameter geo, ds.
+        set ds to v(ds:x, 0, ds:y).
+        local northFrame to geoNorthFrame(geo).
+        local pos to geo:position.
+        local combined to pos + northFrame * ds.
+        local combinedGeo to geo:body:geopositionof(combined).
+        return combinedGeo.
+    }
+    local function lzSuccess {
+        parameter df.
+        return (abs(df:x) + abs(df:y)) < success.
+    }
+    local start to lz:position.
+    local top to optimizeFixedWalk(lzNF@, lzCombine@, lzSuccess@, lz, dspace).
+    local topClimb to (top:position - start):mag.
+    print " Uphill " + geoRound(top) + " : " + round(topClimb, 2).
+    local bottom to optimizeFixedWalk(lzF@, lzCombine@, lzSuccess@, lz, dspace).
+    local bottomClimb to (bottom:position - start):mag.
+    print " Downhill " + geoRound(bottom) + " : " + round(bottomClimb, 2).
+    local chosen to bottom.
+    if topClimb < bottomClimb {
+        set chosen to top.
+    }
+
+    return chosen.
 }

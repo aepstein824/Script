@@ -7,6 +7,13 @@ runOncePath("0:maneuvers/orbit.ks").
 
 function launchToOrbit {
     ensureHibernate().
+
+    if hasTarget {
+        waitForTargetPlane(target).
+        set kClimb:Heading to launchHeading().
+        print " Launching with heading " + round(kClimb:Heading, 2).
+    }
+
     climbInit().
     until climbSuccess() {
         climbLoop().

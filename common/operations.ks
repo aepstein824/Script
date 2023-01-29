@@ -6,14 +6,20 @@ runOncePath("0:common/orbital.ks").
 global kWarpCancelDur to 5.
 
 function opsRefuel {
-    local shipResources to list().
-    list resources in shipResources.
     local transfers to list().
     local refillers to ship:partstaggedpattern("refiller").
     local refillees to ship:partstaggedpattern("refillee").
 
-    for res in shipResources {
-        local trans to transferAll(res:name, refillers, refillees).
+    local resMap to lexicon().
+    for part in refillees {
+        for res in part:resources {
+            set resMap[res:name] to true.
+        }
+    }
+    local shipResources to resMap:keys.
+
+    for resName in shipResources {
+        local trans to transferAll(resName, refillers, refillees).
         set trans:active to true.
         transfers:add(trans).
     }
@@ -48,7 +54,7 @@ function opsCheckFull {
     for part in parts {
         for resource in part:resources {
             if resource:amount < .99 * resource:capacity {
-                print "Out of " + resource:name.
+                print " Out of " + resource:name.
                 return false.
             }
         }
@@ -101,8 +107,10 @@ function opsScienceToBox {
 
     opsExperimentModules(mods).
     opsAwaitModules(mods).
-    opsCollectScience().
-    opsCleanModules(mods).
+    local hasBox to opsCollectScience().
+    if hasBox {
+        opsCleanModules(mods).
+    }
 }
 
 function opsExperimentModules {
@@ -125,12 +133,15 @@ function opsAwaitModules {
 function opsCollectScience {
     local eruPattern to "ScienceBox|Experiment Return".
     local eruParts to ship:partsdubbedpattern(eruPattern).
+    local hasBox to false.
     for eruPart in eruParts {
         print " Collecting experiments in " + eruPart:name.
         local eru to eruPart:getmodule("ModuleScienceContainer").
         eru:doaction("collect all", true).
         wait 0.
+        set hasBox to true.
     }
+    return hasBox.
 }
 
 function opsCollectRestoreScience {
@@ -163,11 +174,31 @@ function scienceModules {
 
 function waitWarp {
     parameter endTime.
-    set kuniverse:timewarp:mode to "RAILS".
-    kuniverse:timewarp:warpto(detimestamp(endTime)).
-    wait until time:seconds > endTime.
-    wait kWarpCancelDur.
+    local warper to kuniverse:timewarp.
+
+    wait until warper:issettled.
+    set warper:mode to "RAILS".
+
+    local function remaining {
+        return detimestamp(endTime - time).
+    }
+    if remaining() <= 0 return.
+
+    until false {
+        kuniverse:timewarp:warpto(detimestamp(endTime)).
+        if remaining() < 10 {
+            break.
+        }
+        wait 10.
+        if warper:warp > 0 {
+            break.
+        }
+    }
+
+    wait until remaining() <= 0.
+    wait until warper:issettled.
     wait until ship:unpacked.
+    wait 1.
 }
 
 function waitWarpPhsx {
@@ -382,7 +413,7 @@ function getPort {
         }
         local hasTag to port:tag:length > 0.
         if hasTag and activeShip:partstagged(port:tag):length > 0 {
-            print "Active ship has " + port:tag.
+            print " Found port on " + s:name + " with tag " + port:tag.
             return port.
         }
     }
@@ -443,6 +474,21 @@ function setFlaps {
     }
 }
 
+function opsUndockPart {
+    parameter part.
+    local elemList to ship:elements.
+    for elem in elemList {
+        if elem:parts:contains(part) {
+            for port in elem:dockingPorts {
+                if port:haspartner {
+                    port:undock.
+                }
+                wait 1.
+            }
+        }
+    }
+}
+
 global kUnset to "UNSET".
 global kForward to "FORWARD".
 global kReverse to "REVERSE".
@@ -481,4 +527,15 @@ function setThrustReverser {
     }
     set allReverserCache to allReversers.
     return allReversers.
+}
+
+function geoRound {
+    parameter geo, n to 4.
+    local bod to geo:body.
+    return bod:geopositionlatlng(round(geo:lat, n), round(geo:lng, n)).
+}
+
+function pressAnyKey {
+    print "Press ANY key to continue ".
+    terminal:input:getchar().
 }

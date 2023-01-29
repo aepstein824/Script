@@ -13,7 +13,7 @@ runOncePath("0:phases/rndv.ks").
 runOncePath("0:phases/waypoints.ks").
 clearAll().
 
-set kPhases:phase to 0.
+// set kPhases:phase to 0.
 set kPhases:startInc to 1.
 set kPhases:stopInc to 2.
 

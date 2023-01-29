@@ -365,22 +365,47 @@ function orbitTunePeriod {
     controlUnlock().
 }
 
-function orbitDispose {
-    sas off.
-    rcs on.
-    lights on.
+function orbitSeparate {
+    parameter t, s to activeShip.
+    enableRcs().
 
     lock steering to retrograde.
-    for i in range(100) {
-        local away to -activeShip:position.
+    for i in range(t / 0.1) {
+        local away to -s:position.
         local retro to retrograde:forevector.
-        // Don't care about the sign, just get away from the ship on a path that
-        // doesn't point right back to the ship again.
-        shipFacingRcs(vCrs(away, retro):normalized).
+        shipFacingRcs(vxcl(retro, away):normalized).
         wait 0.1.
     }
+    unlock steering.
+
+    disableRcs().
+}
+
+function orbitDispose {
+    parameter s to activeShip.
+    print "Deorbit".
+    sas off.
+
+    orbitSeparate(7, s).
+    lock steering to retrograde.
     lock throttle to 0.05.
     wait 3.
     lock throttle to 1.0.
-    wait until false.
+    wait until periapsis < -1000.
+    lock throttle to 0.
+}
+
+function orbitPatchesInclude {
+    parameter startOrbit, bod.
+    local orbitIter to startOrbit.
+    until false {
+        if not orbitIter:hasnextpatch {
+            break.
+        }
+        set orbitIter to orbitIter:nextpatch.
+        if orbitIter:body = bod {
+            return true.
+        }
+    }
+    return false.
 }

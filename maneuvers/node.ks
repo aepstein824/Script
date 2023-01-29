@@ -19,13 +19,18 @@ function nodeExecute {
         return.
     }
 
+    local steer to facing.
+    local throt to 0.
+    lock steering to steer.
+    lock throttle to throt.
+
     local rocketEstimate to shipTimeToDV(dv).
 
     local warpTime to nd:eta - rocketEstimate / 2 - 60.
     waitWarp(time:seconds + warpTime).
     local done to false.
     local nodeDv0 to nd:deltav.
-    lock steering to nd:deltav.
+    set steer to nd:deltav.
     until vang(nodeDv0, ship:facing:vector) < 3 { wait 0. }
     set kuniverse:timewarp:rate to 5.
     wait until nd:eta <= rocketEstimate / 2 + kWarpCancelDur.
@@ -36,7 +41,7 @@ function nodeExecute {
         local maxAcceleration to ship:maxthrust/ship:mass.
         local minTime to 0.05 * 0.05. 
         if maxAcceleration > 0 {
-            lock throttle to min(nd:deltav:mag / maxAcceleration, 1).
+            set throt to min(nd:deltav:mag / maxAcceleration, 1).
             if nd:deltav:mag / maxAcceleration < minTime {
                 // Too small for this engine
                 set done to true.
@@ -52,7 +57,7 @@ function nodeExecute {
         wait 0.04.
     }
 
-    lock throttle to 0.
+    set throt to 0.
     wait 0.1.
 
     unlock steering.

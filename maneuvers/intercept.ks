@@ -88,15 +88,16 @@ function hlIntercept {
 
         local kNodeAllow to 3.
         local nodeAng to vang(bodyP, incNodeP).
-        print " AN is " + round(nodeAng) + " away, want 0 or 180".
-        if deviations and nodeAng > kNodeAllow
-            and nodeAng < (180 - kNodeAllow) {
-            if vang(norm1, norm2) > 2 {
+        if vang(norm1, norm2) > 2 {
+            if deviations and nodeAng > kNodeAllow
+                and nodeAng < (180 - kNodeAllow) {
                 print " Changing planes first".
                 local nd to matchPlanesNode(norm2).
                 set hi:burnNode to nd.
                 set hi:planes to true.
                 return hi.
+            } else {
+                print " AN is " + round(nodeAng) + " away, want 0 or 180".
             }
         }
     }

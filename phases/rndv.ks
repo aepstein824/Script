@@ -12,7 +12,7 @@ set kRndvParams:floatDist to 200.
 set kRndvParams:maxSpeed to 50.
 set kRndvParams:thrustAng to 5.
 set kRndvParams:rcsSpd to 5.
-set kRndvParams:rcsSlowDist to 100.
+set kRndvParams:rcsSlowDist to 150.
 
 
 function planIntercept {
@@ -45,6 +45,10 @@ function ballistic {
         return (target:position - ship:position):mag.
     }
     local floatDist to kRndvParams:floatDist.
+    if distance < floatDist {
+        print " No need to rndv".
+        return.
+    }
     local currentSpeed to (target:velocity:orbit - ship:velocity:orbit):mag.
     if distance() < floatDist and currentSpeed < 2 {
         return.
@@ -102,6 +106,9 @@ function ballistic {
                 set controlThrot to 0.
             }
             set controlSteer to steer.
+            if relV:mag < endSpd {
+                break.
+            }
         }
 
         // if dist > 10 * burnDist {
@@ -110,10 +117,6 @@ function ballistic {
         // } else {
         //     set kuniverse:timewarp:rate to 1.
         // }
-
-        if relV:mag < endSpd {
-            break.
-        }
     
         wait 0.
     }
@@ -140,6 +143,8 @@ function rcsNeutralize {
 
 function rcsApproach {
     print "RCS Approach".
+
+    gear off.
     local ourPort to getPort(ship).
     opsControlFromPort(ourPort).
     local tgtPort to getPort(target).
@@ -153,21 +158,21 @@ function rcsApproach {
         local towards to tgtPort:position - ourPort:position.
         local dist to towards:mag.
 
-        if dist < 0.9 {
+        if dist < 1.1 {
             break.
         }
 
-        local desiredSpd to rndvSpd(dist, kRndvParams:rcsSlowDist,
-            kRndvParams:rcsSpd, 0.2).
+        local slowDist to kRndvParams:rcsSlowDist.
+        local desiredSpd to rndvSpd(dist, slowDist, kRndvParams:rcsSpd, 0.4).
         local desired to desiredSpd * towards:normalized.
         local relV to ship:velocity:orbit - target:velocity:orbit.
         // print "desired " + facing:inverse * desired.
         // print "relV " + facing:inverse * relV.
         local delta to desired - relV.
 
-        if dist < 10 {
-            set delta to delta * 3.
-        }
+        local urgency to lerp(1 - (dist / slowDist), 1, 5).
+        set delta to delta * urgency.
+
         shipFacingRcs(delta).
         wait 0.
     }
@@ -186,9 +191,9 @@ function rndvSpd {
     }
     local curve to 1.
     if dist < slowDist {
-        set curve to sqrt(invLerp(dist, 0, slowDist)).
+        set curve to sqrt(invLerp(dist - 2, 0, slowDist)).
     }
-    local clamped to max(maxSpd * curve, minSpd).
+    local clamped to lerp(curve, minSpd, maxSpd).
     return clamped.
 }
 
@@ -197,47 +202,4 @@ function doubleBallistic {
     if (target:position:mag > (kRndvParams:floatDist + 50)) {
         ballistic().
     }
-}
-
-function bestNorm {
-    local tNorm to normOf(target).
-    local ourPos to -body:position.
-    local inPlane to removeComp(tNorm, ourPos):normalized.
-    return inPlane.
-}
-
-function launchHeading {
-    local norm to bestNorm().
-    local pos to -body:position.
-    local launchDir to vCrs(pos, norm).
-    // vecdraw(body:position, norm:normalized * 2 * body:radius, rgb(0, 0, 1), 
-    //     "p1", 1.0, true).
-    // vecdraw(body:position, launchDir:normalized * 2 * body:radius, rgb(0, 1, 0),
-    //     "p2", 1.0, true).
-
-    local headingAngle to vectorAngleAround(launchDir, pos, v(0, 1, 0)).
-    return headingAngle.
-}
-
-function waitForTargetPlane {
-    parameter planeOf.
-
-    local norm to normOf(planeOf).
-    local spinningNorm to removeComp(norm, cosmicNorth).
-    local planetPos to shipPAt(time).
-    local spinningPos to removeComp(planetPos, cosmicNorth).
-
-    local bodyRadSpd to body:angularvel:y.
-    local waitRad to vectorAngleAroundR(spinningPos, -sgn(bodyRadSpd) * cosmicNorth, 
-        spinningNorm).
-    if abs(waitRad - constant:pi/2) < 0.1 or abs(waitRad - 3*constant:pi/2) < 0.1 {
-        return.
-    }
-    if waitRad > constant:pi {
-        set waitRad to waitRad - constant:pi / 2.
-    } else {
-        set waitRad to waitRad + constant:pi / 2.
-    }
-    local waitDur to waitRad / abs(bodyRadSpd).
-    waitWarp(waitDur + time).
 }

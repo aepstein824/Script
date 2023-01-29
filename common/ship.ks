@@ -114,3 +114,20 @@ function shipFacingRcs {
     local vFace to ship:facing:inverse * vt.
     set ship:control:translation to vFace.
 }
+
+function shipProcessors {
+    local procs to list().
+    list processors in procs.
+    return procs.
+}
+
+function procCount {
+    local procs to shipProcessors().
+    return procs:length().
+}
+
+function shipControlFromCommand {
+    // TODO choose this in some reasonable way
+    local commandMod to ship:modulesnamed("ModuleCommand")[0].
+    commandMod:part:controlfrom().
+}

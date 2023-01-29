@@ -194,3 +194,57 @@ function orbitalSemiToPeriod {
     parameter mu, semi.
     return 2 * constant:pi * sqrt(semi ^ 3 / mu).
 }
+
+function bestNorm {
+    local tNorm to normOf(target).
+    local ourPos to -body:position.
+    local inPlane to removeComp(tNorm, ourPos):normalized.
+    return inPlane.
+}
+
+function launchHeading {
+    local norm to bestNorm().
+    local pos to -body:position.
+    local launchDir to vCrs(pos, norm).
+    // vecdraw(body:position, norm:normalized * 2 * body:radius, rgb(0, 0, 1), 
+    //     "p1", 1.0, true).
+    // vecdraw(body:position, launchDir:normalized * 2 * body:radius, rgb(0, 1, 0),
+    //     "p2", 1.0, true).
+
+    local headingAngle to vectorAngleAround(launchDir, pos, v(0, 1, 0)).
+    return headingAngle.
+}
+
+function waitForTargetPlane {
+    parameter planeOf.
+
+    local norm to normOf(planeOf).
+    local spinningNorm to removeComp(norm, cosmicNorth).
+    local planetPos to shipPAt(time).
+    local spinningPos to removeComp(planetPos, cosmicNorth).
+
+    // Check that we actually intersect the plane of target
+    local launchInc to vang(unitY, planetPos) - 90.
+    local tgtInc to 90 - abs(90 - planeOf:orbit:inclination).
+    if launchInc > tgtInc {
+        print " Launch site at ang " + round(launchInc, 2) 
+            + " can't launch to " + round(tgtInc, 2).
+        return.
+    }
+    print " Waiting to line up with target".
+
+    local bodyRadSpd to body:angularvel:y.
+    local waitRad to vectorAngleAroundR(spinningPos, -sgn(bodyRadSpd) * unitY, 
+        spinningNorm).
+    if abs(waitRad - constant:pi/2) < 0.1 or abs(waitRad - 3*constant:pi/2) 
+        < 0.1 {
+        return.
+    }
+    if waitRad > constant:pi {
+        set waitRad to waitRad - constant:pi / 2.
+    } else {
+        set waitRad to waitRad + constant:pi / 2.
+    }
+    local waitDur to waitRad / abs(bodyRadSpd).
+    waitWarp(waitDur + time).
+}

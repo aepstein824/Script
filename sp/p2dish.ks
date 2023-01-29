@@ -41,8 +41,7 @@ if amDish {
     local count to procCount().
     wait 1.
     if count = 4 {
-        print "Press ANY key to continue ".
-        terminal:input:getchar().
+        pressAnyKey().
         set kPhases:startInc to 0.
         set kPhases:stopInc to 4.
     } else if count > 1 {
@@ -146,10 +145,4 @@ function dishNorm {
     } else {
         return unitY.
     }
-}
-
-function procCount {
-    local procs to list().
-    list processors in procs.
-    return procs:length().
 }
