@@ -72,7 +72,7 @@ global spaceScienceParts to list(
     "magnetometer",
     "InfraredTelescope"
 ).
-global groundOnlySceinceParts to list(
+global groundOnlyScienceParts to list(
     "sensorAccelerometer"
 ).
 global useOnceScienceParts to list(
@@ -87,17 +87,31 @@ global labs to list(
 
 global scienceModName to "ModuleScienceExperiment".
 
+function sciencePartNames {
+    parameter useOnce.
+    local names to anytimeScienceParts.
+    if useOnce {
+        set names to mergeList(names, useOnceScienceParts).
+    }
+    if status = "LANDED" or status = "PRELAUNCH" {
+        set names to mergeList(names, groundOnlyScienceParts).
+    }
+    if status = "ORBITING" or status = "ESCAPING" or status = "DOCKED" {
+        set names to mergeList(names, spaceScienceParts).
+    }
+    return names.
+}
 
 function doAnytimeScience {
-    local anytime to anytimeScienceParts.
-    local mods to scienceModules(anytime).
+    local names to sciencePartNames(false).
+    local mods to scienceModules(names).
 
     opsScienceToBox(mods).
 }
 
 function doUseOnceScience {
-    local useOnce to mergeList(anytimeScienceParts, useOnceScienceParts).
-    local mods to scienceModules(useOnce).
+    local names to sciencePartNames(true).
+    local mods to scienceModules(names).
     
     opsScienceToBox(mods).
 }
@@ -159,6 +173,16 @@ function opsCleanModules {
 function scienceModules {
     parameter scienceParts.
     local scienceMods to Lexicon().
+
+    for part in ship:parts() {
+        if part:hasmodule(scienceModName) {
+            local mod to part:getmodule(scienceModName).
+            if mod:hasaction("Crew Report") {
+                set scienceMods[part:name] to mod.
+            }
+        }
+    }
+
     for pname in scienceParts {
         local parts to ship:partsdubbedpattern(pname). 
         for p in parts {

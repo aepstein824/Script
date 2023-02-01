@@ -36,3 +36,8 @@ function differUpdate {
 
     return derivatives.
 }
+
+function stepLowpassUpdate {
+    parameter val, newval, k.
+    return (1 - k) * val + k * newval.
+}

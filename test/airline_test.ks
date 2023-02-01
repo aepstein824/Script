@@ -14,13 +14,14 @@ testRun(tests).
 
 function testCruiseVspd {
     local r to list().
-    local lim to 3.
+    local lim to 30.
     local h to 1000.
     r:add(testEq(airlineCruiseVspd(h, h, lim), 0)).
     r:add(testLs(airlineCruiseVspd(h, h + 1, lim), 0)).
     r:add(testGr(airlineCruiseVspd(h, h - 1, lim), 0)).
-    r:add(testEq(airlineCruiseVspd(0, 10000, lim), -lim)).
-    r:add(testEq(airlineCruiseVspd(0, -10000, lim), lim)).
+    set kAirline:DiffToVspd to 1.
+    r:add(testEq(airlineCruiseVspd(0, 10000, lim, 10000), -5000)).
+    r:add(testEq(airlineCruiseVspd(0, -10000, lim, 10000), 5000)).
     return r.
 }
 

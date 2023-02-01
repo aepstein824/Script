@@ -58,33 +58,6 @@ function hoverDefaultParams {
 // Far away from the target, these will line up. Close to the target,
 // the face direction will be locked in place, but travel will keep updating. 
 
-// stage.
-// sas off.
-// lock steering to hoverSteering(hoverParams).
-// lock throttle to hoverThrottle(hoverParams).
-
-// set hoverParams:mode to kHover.
-// print "Ascent".
-// wait until hoverParams:bounds:bottomaltradar > 5. 
-// print "Fly".
-// set hoverParams:seek to true.
-// // wait 120.
-// wait until abs((hoverParams:travel:inverse * hoverParams:tgt:position):y) < 0.1.
-// print "Reduce Hspd".
-// wait 5.
-// print "Descent".
-// set hoverParams:mode to kHover:Descend.
-// wait until hoverParams:bounds:bottomaltradar < 0.2.
-// set hoverParams:mode to kHover:Stop.
-// set hoverParams:seek to false.
-// set hoverParams:tgt to waypoint("ksc").
-// wait 1.
-// set hoverParams:seek to true.
-// wait until abs((hoverParams:travel:inverse * hoverParams:tgt:position):y) < 0.1.
-// set hoverParams:mode to kHover:Descend.
-// wait until hoverParams:bounds:bottomaltradar < 0.3.
-// set hoverParams:mode to kHover:Stop.
-
 function hoverSteering {
     parameter params.
 
@@ -214,7 +187,7 @@ function hoverVspd {
     parameter params.
 
     local h to hoverAlt(params).
-    local tgtVspd to sgn(h) * hoverSpdCurve(abs(h) * params:spdPerH).
+    local tgtVspd to sgn(h) * hoverSpdCurve(abs(h)) * params:spdPerH.
     set tgtVspd to clamp(tgtVspd, -params:maxSpdV, params:maxSpdV).
 
     return tgtVspd.

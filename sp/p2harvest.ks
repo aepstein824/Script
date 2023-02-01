@@ -21,13 +21,10 @@ local shoddleName to "P2 Shoddle".
 local amShoddle to core:tag = "shoddle".
 local amScooper to core:tag = "scooper".
 local amTank to core:tag = tankTag.
-local dest to minmus.
+local dest to mun.
 local shoddleAlt to 30000.
 
-// setStages().
-set kPhases:phase to 8.
-set kPhases:startInc to 5.
-set kPhases:stopInc to 100.
+setStages().
 
 if shouldPhase(0) {
     setTargetTo(dest).
@@ -35,16 +32,16 @@ if shouldPhase(0) {
         print "Launch Shoddle".
         set kClimb:Turn to 5.
         set kClimb:OrbitStage to 1.
-        launchQuicksave("p2_shoddle_launch").
+        launchQuicksave("p2_shoddle").
     } else if amScooper {
         print "Launch Scooper".
         set kClimb:OrbitStage to 1.
         set kClimb:Turn to 5.
-        launchQuicksave("p2_scooper_launch").
+        launchQuicksave("p2_scooper").
     } else if amTank {
         print "Launch Tank".
         set kClimb:OrbitStage to 0.
-        launchQuicksave("p2_tank_launch").
+        launchQuicksave("p2_tank").
     }
     launchToOrbit().
     wait 3.
@@ -116,11 +113,13 @@ if shouldPhase(3) {
         opsUndockPart(core:part).
         wait 2.
         set kuniverse:activevessel to vessel(shoddleName).
+        shipControlFromCommand().
         orbitDispose().
     }
     if amTank {
         print "Tank waiting for ejection".
         wait until procCount() = 1.
+        shipControlFromCommand().
         orbitDispose().
     }
     if amShoddle {
@@ -198,7 +197,7 @@ local function scooperIteration {
     orbitSeparate(3, vessel(shoddleName)).
     set kuniverse:activevessel to core:vessel.
     wait 1.
-
+    core:doaction("Open Terminal", true).
 
     print "Landing".
     local flatLz to vacNearestFlat(lz).
@@ -227,32 +226,25 @@ local function scooperIteration {
 }
 
 local function lzList {
-    parameter firstTrip to true.
-
     if dest = mun {
-        if firstTrip {
-            return list(
-                dest:geopositionlatlng(-73, 33), // Poles
-                dest:geopositionlatlng(-82, 65), // Polar Lowlands
-                dest:geopositionlatlng(65 ,-22), // Polar Crater
-                dest:geopositionlatlng(-59, 55), // High
-                dest:geopositionlatlng(-69, 57), // High Crater
-                dest:geopositionlatlng(-45, 45), // Mid
-                dest:geopositionlatlng(-53, 44), // Mid Crater
-                dest:geopositionlatlng(-36, 44)  // Low
-            ).
-        } else {
-            return list(
-                dest:geopositionlatlng(53, 40),  // NE Basin
-                dest:geopositionlatlng(13, 25),  // NW Crater
-                dest:geopositionlatlng(0, -140), // E Far Crater
-                dest:geopositionlatlng(0, -135), // Canyon
-                dest:geopositionlatlng(7, -49),  // Far Crater
-                dest:geopositionlatlng(-11, 90), // E Crater
-                dest:geopositionlatlng(-20, 135),// Twins
-                dest:geopositionlatlng(-42, 10)  // SW Crater
-            ).
-        }
+        return list(
+            // dest:geopositionlatlng(-73, 33), // Poles
+            // dest:geopositionlatlng(-82, 65), // Polar Lowlands
+            // dest:geopositionlatlng(65 ,-22), // Polar Crater
+            // dest:geopositionlatlng(-59, 55), // High
+            // dest:geopositionlatlng(-69, 57), // High Crater
+            dest:geopositionlatlng(-45, 45), // Mid
+            dest:geopositionlatlng(-53, 44), // Mid Crater
+            dest:geopositionlatlng(-36, 44), // Low
+            dest:geopositionlatlng(53, 40),  // NE Basin
+            dest:geopositionlatlng(13, 25),  // NW Crater
+            dest:geopositionlatlng(0, -140), // E Far Crater
+            dest:geopositionlatlng(0, -135), // Canyon
+            dest:geopositionlatlng(7, -49),  // Far Crater
+            dest:geopositionlatlng(-11, 90), // E Crater
+            dest:geopositionlatlng(-20, 135),// Twins
+            dest:geopositionlatlng(-42, 10)  // SW Crater
+        ).
     }
     if dest = minmus {
         return list(

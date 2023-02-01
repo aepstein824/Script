@@ -37,6 +37,8 @@ function flightDefaultParams {
         "throttlePid", flightThrottlePid(),
         "aoaPid", flightAoAPid(),
         "aero", flightAeroState(),
+        "landV", 28,
+        "landVUpdateK", 0,
 
         // output
         "steering", ship:facing,
@@ -49,7 +51,8 @@ function flightDefaultParams {
         // constants
         "takeoffAoA", 8,
         "takeoffHeading", 90,
-        "landV", 28,
+        "landingUpdateK", 0.01,
+        "levelUpdateK", 0.05,
         "maneuverV", 35,
         "cruiseV", 43,
         "descentV", -2,
@@ -231,11 +234,6 @@ function flightLevelAoaLinear {
         local m to klaGet(solution, 2, 1).
         local bd to klaGet(solution, 1, 2).
         local md to klaGet(solution, 2, 2).
-        local aoaPred to (cl - b) / m.
-        local aoaPredD to (cd - bd) / md.
-        local zeroAoA to -b / m.
-        local liftPred to (m * aoa + b) * dyn.
-        local dragPred to (md * aoa + bd) * dyn.
 
         local spd2 to vspd ^ 2 + hspd ^ 2.
         local dyn2 to dyn * (spd2 / air2).
@@ -254,10 +252,21 @@ function flightLevelAoaLinear {
         local stableDrag to -1 * (md * stable + bd) * dyn2.
         local stableThrust to (1 / cos(stable)) * (stableDrag + GdotD).
 
-        local stallCl to m * (zeroAoA + 10) + b.
+        local stallAngle to 10. // would like to incorporate zero lift angle
+        local stallCl to m * stallAngle + b.
         local altFactor to body:atm:altitudepressure(altitude)
             / body:atm:altitudepressure(100).
         local stallSpd to sgnsqrt(Gmag * altFactor * (air2 / dyn) / stallCl).
+
+        set aero:Aoa to stable.
+        set aero:Thrust to stableThrust.
+        set aero:LandingSpd to stallSpd.
+
+        // local aoaPred to (cl - b) / m.
+        // local aoaPredD to (cd - bd) / md.
+        // local zeroAoA to -b / m.
+        // local liftPred to (m * aoa + b) * dyn.
+        // local dragPred to (md * aoa + bd) * dyn.
 
         // clearScreen.
         // klaPrint(x).
@@ -288,10 +297,6 @@ function flightLevelAoaLinear {
         // print "error " + round((dragPred - drag) / drag, 4).
         // print "stall speed " + stallSpd.
         // print "zero aoa " + round(zeroAoA, 2).
-
-        set aero:Aoa to stable.
-        set aero:Thrust to stableThrust.
-        set aero:LandingSpd to stallSpd.
     }
 
     return v(aero:Aoa, aero:Thrust, 0).
@@ -318,8 +323,10 @@ function flightLevel {
         vspd, groundspeed, rollGrav, acc).
     local aoa to aoaThrust:x.
     local thrust to aoaThrust:y.
-    if params:aero:LandingSpd > 10 {
-        set params:landV to params:aero:LandingSpd.
+    local updateLandingSpd to params:aero:LandingSpd.
+    if updateLandingSpd > 20 and updateLandingSpd < params:maneuverV {
+        set params:landV to stepLowpassUpdate(params:landV, updateLandingSpd,
+            params:landVUpdateK).
     }
 
     // PIDs
@@ -362,8 +369,8 @@ function flightLevel {
 function flightLanding {
     parameter params.
 
+    set params:hspd to params:landV.
     // tried 5deg pitch for flare, but trying to rotate caused bouncing
-    local flareSteer to facing.
     if status = "LANDED" {
         set params:throttle to 0.
 
@@ -382,16 +389,20 @@ function flightLanding {
             setThrustReverser(kForward).
         }
 
-        set params:steering to params:level:inverse * flareSteer.
+        set params:steering to params:level:inverse * facing.
         return.
     }
     set params:landTime to -1.
 
-    
-    flightLevel(params).
-    if groundAlt() < kFlight:FlareHeight {
-        set params:throttle to 0.
+    local flaring to groundAlt() < kFlight:FlareHeight.
+    // Flare changes both inputs --
+    if flaring{
         set params:vspd to params:descentV / 2.
+    }
+    flightLevel(params).
+    // -- and outputs
+    if flaring {
+        set params:throttle to 0.
     }
 }
 
@@ -410,7 +421,9 @@ function flightBeginTakeoff {
 
         setFlaps(2).
         setThrustReverser(kForward).
+        lights on.
         brakes off.
+        set params:landVUpdateK to 0.
     }
 }
 
@@ -429,6 +442,7 @@ function flightBeginLevel {
         setThrustReverser(kForward).
         brakes off.
         gear off.
+        set params:landVUpdateK to params:levelUpdateK.
     }
 }
 
@@ -442,12 +456,13 @@ function flightBeginLanding {
         set params:mode to kFlight:Landing.
         set params:steering to r(0, 0, 0).
 
-        flightResetSpds(params, params:maneuverV).
         setThrustReverser(kForward).
         set params:vspd to -1.
         setFlaps(3).
         brakes off.
         gear on.
+        lights on.
+        set params:landVUpdateK to params:landingUpdateK.
     }
 }
 
@@ -468,7 +483,7 @@ function flightCreateReport {
 
 
     wait 0.
-    set params:report:gui:x to 300.
+    set params:report:gui:x to -500.
     set params:report:gui:y to -300.
     params:report:gui:show().
 }

@@ -12,10 +12,8 @@ runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/lambert.ks").
 runOncePath("0:maneuvers/orbit.ks").
 
-// global kWaypointsClimbLeap to 300.
-// global kWaypointsClimbAngle to 45.
-global kWaypointsClimbLeap to 3.
-global kWaypointsClimbAngle to 80.
+global kWaypointsClimbLeap to 300.
+global kWaypointsClimbAngle to 45.
 global kWaypointsOverhead to 600.
 global kWaypointsCoastSpeed to 5.
 
@@ -146,8 +144,8 @@ function vacDescendToward {
     }
 
     local rPe to periapsis + body:radius.
-    // An ellipse where the periapsis is 1/10 the current periapsis
-    local a to rPe * 1.1 / 2.
+    // pe of half the body radius
+    local a to (rPe + body:radius / 2) / 2.
     local ecc to rPe / a - 1.
     // print "ecc " + ecc.
     local landR to body:radius + wGeo:terrainHeight + kWaypointsOverhead.
@@ -224,9 +222,9 @@ function vacLandGeo {
 
     legs on.
     print "Initial Suicide Burn".
-    suicideBurn(600).
-    print "Descent Suicide Burn".
-    suicideBurn(300).
+    suicideBurn(600, 30).
+    // print "Descent Suicide Burn".
+    // suicideBurn(300).
 
     print "Controlled Descent to target".
     local params to hoverDefaultParams().
@@ -236,6 +234,8 @@ function vacLandGeo {
     set params:cruiseCrab to false.
     set params:minG to 0.2.
     set params:jerkH to 0.4.
+    set params:spdPerH to 2.
+    set params:maxAccelH to 0.2.
     hoverLock(params).
 
     until vxcl(body:position, wGeo:position):mag < 10 {
@@ -245,7 +245,6 @@ function vacLandGeo {
 
     print " Descending.".
     set params:mode to kHover:Vspd.
-
     set params:vspdCtrl to -kWaypointsCoastSpeed.
     until ship:status = "LANDED"  or ship:status = "SPLASHED" {
         local scaredAlt to groundAlt() / 5.

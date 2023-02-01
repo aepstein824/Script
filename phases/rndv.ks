@@ -144,7 +144,7 @@ function rcsNeutralize {
 function rcsApproach {
     print "RCS Approach".
 
-    gear off.
+    legs off.
     local ourPort to getPort(ship).
     opsControlFromPort(ourPort).
     local tgtPort to getPort(target).

@@ -39,8 +39,8 @@ function airlineInit {
 }
 
 function airlineCruiseVspd {
-    parameter tgtAlt, curAlt, limAngle.
-    local lim to groundspeed * sin(limAngle).
+    parameter tgtAlt, curAlt, limAngle, gspd to groundspeed.
+    local lim to gspd * sin(limAngle).
     local vDiff to tgtAlt - curAlt.
     return clamp(vDiff * kAirline:DiffToVspd, -lim, lim).
 }
