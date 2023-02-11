@@ -392,14 +392,19 @@ function jettisonFairings {
     }
 }
 
+local rcsLightsWereOn to false.
+
 function enableRcs {
+    set rcsLightsWereOn to lights.
     if not lights lights on.
     if not rcs rcs on.
     set ship:control:translation to v(0, 0, 0).
 }
 
 function disableRcs {
-    if lights lights off.
+    if not rcsLightsWereOn {
+        if lights lights off.
+    }
     if rcs rcs off.
     set ship:control:translation to v(0, 0, 0).
 }

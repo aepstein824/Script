@@ -119,7 +119,7 @@ function travelIntercept {
         local shipV to velocityAt(ship, closestTime):orbit.
         local diff to (tgtV - shipV):mag.
         waitWarp(closestTime - 300).
-        waitWarp(closestTime - shipTimeToDV(diff) - 20).
+        waitWarp(closestTime - shipTimeToDV(diff) - 30).
         doubleBallistic().
     }
 }

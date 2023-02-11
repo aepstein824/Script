@@ -144,8 +144,8 @@ function vacDescendToward {
     }
 
     local rPe to periapsis + body:radius.
-    // pe of half the body radius
-    local a to (rPe + body:radius / 2) / 2.
+    // pe of a fraction the body radius
+    local a to (rPe + body:radius / 5) / 2.
     local ecc to rPe / a - 1.
     // print "ecc " + ecc.
     local landR to body:radius + wGeo:terrainHeight + kWaypointsOverhead.
@@ -220,9 +220,28 @@ function vacLand {
 function vacLandGeo {
     parameter wGeo.
 
+    local overheadAlt to 500.
+    local correctionLen to 60.
+
     legs on.
+
+    local geoAlt to wGeo:terrainHeight + overheadAlt.
+    local geoRadius to geoAlt + body:radius.
+    local impactDur to obtRadiusToDuration(geoRadius, orbit).
+    local impactTime to time:seconds + impactDur.
+    // local correctionDur to impactDur - correctionLen.
+    local correctionTime to impactTime - correctionLen.
+    waitWarp(correctionTime - 10).
+    local wOverheadPos to groundPosition(wGeo, overheadAlt).
+    local wPosImpact to spinPos(wOverheadPos, impactTime - time:seconds).
+
+    local res to lambertPosOnly(ship, wPosImpact,
+        correctionTime, correctionLen).
+    add res:burnnode.
+    nodeExecute().
+
     print "Initial Suicide Burn".
-    suicideBurn(600, 30).
+    suicideBurn(20, geoAlt + overheadAlt / 4, 5).
     // print "Descent Suicide Burn".
     // suicideBurn(300).
 
@@ -234,11 +253,12 @@ function vacLandGeo {
     set params:cruiseCrab to false.
     set params:minG to 0.2.
     set params:jerkH to 0.4.
-    set params:spdPerH to 2.
+    set params:spdPerH to 1.
     set params:maxAccelH to 0.2.
     hoverLock(params).
 
-    until vxcl(body:position, wGeo:position):mag < 10 {
+    until vxcl(body:position, wGeo:position):mag < 5 
+        and vdot(body:position:normalized, wGeo:position) < 50 {
         hoverIter(params).
         wait 0.0.
     }
@@ -262,6 +282,7 @@ function vacLandGeo {
     print " Landing Successful?".
     wait 5.
 }
+vacLandGeo(latlng(-44.85, 45.1)).
 
 function vacClimb {
     parameter height.

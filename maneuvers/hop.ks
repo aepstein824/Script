@@ -92,7 +92,9 @@ function verticalLeapTo {
 
 function suicideBurn {
     parameter safeH.
+    parameter targetAlt to -10000.
     parameter finalV to 5.
+    set finalV to max(finalV, 1).
 
     controlLock().
 
@@ -107,42 +109,35 @@ function suicideBurn {
 
     print " Falling".
     until false {
+        local hTgt to altitude - targetAlt.
         local terrainH to terrainHAt(ship:position).
-        local h0 to altitude - terrainH - safeH.
-        local g to gat(terrainH).
-        local down to -body:position:normalized.
-        local v0 to vDot(down, ship:velocity:surface).
-        local vs to removeComp(ship:velocity:surface, down).
+        local hSafe to altitude - terrainH - safeH.
+        // print "hTgt " + round(hTgt) + ", hSafe " + round(hSafe).
+        local h0 to min(hTgt, hSafe).
+        local centripetal to (groundspeed ^ 2 / (body:radius + altitude) / 4).
+        local g to gat(terrainH) - centripetal.
+        local v0 to verticalSpeed.
 
-        // time for doing nothing
-        local na to -0.5 * g.
-        local nb to v0.
-        local nc to h0.
-        local tn to qfMax(na, nb, nc).
-        local spdN to abs(v0 - g * tn).
-        local spdTotal to sqrt(spdN ^ 2 + vs:mag ^ 2).
-        local a to (spdN / spdTotal) * ship:maxThrust / ship:mass - g.
+        local vertRatio to abs(v0 / velocity:surface:mag).
+        local thrustAccel to ship:maxthrust / ship:mass.
+        local twrRatio to (thrustAccel - g) / thrustAccel.
+        local tb to shipTimeToDV(velocity:surface:mag - finalV) 
+            / vertRatio / twrRatio.
 
-        local thBurn to terrainHAt(ship:position + ship:velocity:orbit * tn).
-        if thBurn > terrainH {
-            set h0 to altitude - terrainH - safeH.
-        }
-
-        local qa to -0.5 * g * (1 + 1 / a).
-        local qb to v0 * (1 + 1 / a).
-        local qc to h0 - 0.5 * v0^2 / a.
-        local tf to qfMax(qa, qb, qc).
+        local a to vertRatio * ship:maxThrust / ship:mass - g.
+        local finalH to h0 + v0 * tb + 0.5 * a * (tb ^ 2).
+        // print "finalH " + round(finalH) + ", " + round(tb).
 
         local srfRetro to -1 * ship:velocity:surface.
         set controlSteer to srfRetro.
-        if tf > 120 {
+        if finalH > 2000 {
             set kuniverse:timewarp:warp to 2.
-        } else if tf > 60 {
+        } else if finalH > 1000 {
             set kuniverse:timewarp:warp to 1.
-        } else {
+        } else { 
             kuniverse:timewarp:cancelwarp().
         }
-        if tf < 0 {
+        if finalH < 0 {
             break.
         } 
 
@@ -151,16 +146,22 @@ function suicideBurn {
         wait 0.1.
     }
 
-    local startV to -1 * ship:velocity:surface.
+    enableRcs().
+
+    // TODO replace with real equation solving
+    local startV to ship:velocity:surface.
     local currentV to startV.
 
     print " Burn!".
-    until vDot(startV:normalized, currentV) < finalV {
-        set currentV to -1 * ship:velocity:surface.
-        set controlSteer to currentV:normalized().
-        set controlThrot to max(currentV:mag / 5, 0.5).
+    until currentV:mag < finalV {
+        set currentV to ship:velocity:surface.
+        set controlSteer to -currentV.
+        set controlThrot to 1.
         wait 0.
     }
+    print " Finished Burn".
+
+    disableRcs().
 
     controlUnlock().
 }
@@ -204,4 +205,11 @@ function groundPosition {
 
     local terrainH to geo:terrainHeight + height.
     return geo:altitudePosition(terrainH) - body:position.
+}
+
+function spinPos {
+    parameter pos, dur.
+    local bodyMm to -body:angularvel:y * constant:radtodeg.
+    local spun to rotateVecAround(pos, unitY, bodyMm * dur).
+    return spun.
 }

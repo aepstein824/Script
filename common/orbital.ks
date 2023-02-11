@@ -82,6 +82,29 @@ function posToTanly {
     return posmod(angleToO + o:trueanomaly, 360).
 }
 
+function obtRadiusToTanly {
+    parameter radius, o.
+
+    // solve r = a * (1 - e^2) / (1 + e * cos(tanly)) for tanly
+
+    local semi to o:semimajoraxis.
+    local ecc to o:eccentricity.
+    local cosTanly to (semi * (1 - ecc ^ 2) - radius) / radius / ecc.
+    // this will always return the positive angle
+    return arcCos(cosTanly).
+}
+
+function obtRadiusToDuration {
+    parameter radius, o.
+
+    local tanlySmall to obtRadiusToTanly(radius, o).
+    local tanlyLarge to 360 - tanlySmall.
+    local tanlyNow to o:trueanomaly.
+    local timeSmall to timeBetweenTanlies(tanlyNow, tanlySmall, o).
+    local timeLarge to timeBetweenTanlies(tanlyNow, tanlyLarge, o).
+    return min(timeSmall, timeLarge).
+}
+
 function circleToSemiV {
     parameter r1, r2, mu.
     local circleV to sqrt(mu / r1).
