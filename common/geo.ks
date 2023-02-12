@@ -21,10 +21,10 @@ function geoApproach {
 }
 
 function turn2d {
-    parameter p, r, d.
+    parameter p, rad, d.
     // These circles also have a direction. Positive Y represents a ccw turn.
-    // At p + r * d:right, we're facing d:fore going around the circle.
-    return lexicon("p", noY(p), "r", r, "d", d).
+    // At p + rad * d:right, we're facing d:fore going around the circle.
+    return lexicon("p", noY(p), "rad", rad, "d", d).
 }
 
 function turnCCW {
@@ -39,7 +39,7 @@ function noY {
 
 function turnsIntersect {
     parameter a, b.
-    return (a:p - b:p):mag >= (abs(a:r) + abs(b:r)).
+    return (a:p - b:p):mag >= (abs(a:rad) + abs(b:rad)).
 }
 
 function turnFromPoint {
@@ -54,20 +54,20 @@ function turnFromPoint {
 
 function turnOut {
     parameter turn.
-    return turn:p + turn:r * turn:d:rightvector.
+    return turn:p + turn:rad * turn:d:rightvector.
 }
 
 function turnIntersectVec {
     // Vec must be in the same coordinates as circle:d.
     parameter circle, vec.
-    return circle:p + circle:r * vcrs(circle:d:upvector, vec:normalized).
+    return circle:p + circle:rad * vcrs(circle:d:upvector, vec:normalized).
 }
 
 function turnIntersectPoint {
     // P must be in same coordinates as circle:p.
     parameter circle, p.
     local toCirc to circle:p - p.
-    local theta to arcSin(circle:r / toCirc:mag).
+    local theta to arcSin(circle:rad / toCirc:mag).
     local intersect to p + rotateVecAround(
         cos(theta) * toCirc, 
         -circle:d:upvector,
@@ -88,9 +88,9 @@ function turnPointToPoint {
             // print endTurn.
             // print endTurn:d:rightvector.
             // print "---".
-            local path to turnToTurn(startTurn, endTurn).
-            if not path:empty() {
-                pathes:add(path).
+            local pathCandidate to turnToTurn(startTurn, endTurn).
+            if not pathCandidate:empty() {
+                pathes:add(pathCandidate).
 
             }
             if s = e {
@@ -115,34 +115,34 @@ function turnPointToPoint {
 
 function turnToTurn {
     parameter src, dst.
-    local path to list(list("start", turnOut(src))).
+    local outPath to list(list("start", turnOut(src))).
     local between to dst:p - src:p. 
     local mag to between:mag.
     local upDot to vdot(src:d:upvector, dst:d:upvector).
-    if upDot < 0 and mag < (src:r + dst:r) {
+    if upDot < 0 and mag < (src:rad + dst:rad) {
         return list().
     }
-    local rDiff to upDot * dst:r - src:r.
+    local rDiff to upDot * dst:rad - src:rad.
     local cosTheta to rDiff / mag.
     local upV to src:d:upvector.
     local theta to arcCos(cosTheta).
     local ndir to rotateVecAround(between, upV, theta):normalized.
-    local srcOut to src:p - src:r * ndir.
-    local dstIn to dst:p - upDot * dst:r * ndir.
+    local srcOut to src:p - src:rad * ndir.
+    local dstIn to dst:p - upDot * dst:rad * ndir.
 
-    path:add(list("turn", srcOut, src)).
-    path:add(list("straight", dstIn)).
-    path:add(list("turn", turnOut(dst), dst)).
-    return path.
+    outPath:add(list("turn", srcOut, src)).
+    outPath:add(list("straight", dstIn)).
+    outPath:add(list("turn", turnOut(dst), dst)).
+    return outPath.
 }
 
 function turnToTurnCC {
     parameter src, dst.
-    local path to list(list("start", turnOut(src))).
+    local outPath to list(list("start", turnOut(src))).
     local between to dst:p - src:p. 
     local mag to between:mag.    
-    local r1 to src:r.
-    local r2 to dst:r.
+    local r1 to src:rad.
+    local r2 to dst:rad.
     local r3 to (r1 + r2) / 2.
     if mag > (r1 + r2 + 2 * r3) {
         return list().
@@ -160,18 +160,18 @@ function turnToTurnCC {
     local middleDir to lookDirUp(srcToMid, -upV).
     local mturn to turn2d(middleP, r3, middleDir).
     local dstIn to middleP + r3 * (dst:p - middleP) / (r2 + r3).
-    path:add(list("turn", srcOut, src)).
-    path:add(list("turn", dstIn, mTurn)).
-    path:add(list("turn", turnOut(dst), dst)).
-    return path.
+    outPath:add(list("turn", srcOut, src)).
+    outPath:add(list("turn", dstIn, mTurn)).
+    outPath:add(list("turn", turnOut(dst), dst)).
+    return outPath.
 }
 
 function turnPathDistance {
-    parameter path.
+    parameter inPath.
 
     local dist to 0.
-    local prevP to path[0][1].
-    for next in path:sublist(1, path:length() - 1) {
+    local prevP to inPath[0][1].
+    for next in inPath:sublist(1, inPath:length() - 1) {
         local nextP to next[1].
         local x to (nextP - prevP).
         if next[0] = "straight" {
@@ -180,12 +180,12 @@ function turnPathDistance {
         if next[0] = "turn" {
             local turn to next[2].
             // A small fudge factor to make 180 degrees pass.
-            local twoR2 to 2.0000001 * turn:r ^ 2.
+            local twoR2 to 2.0000001 * turn:rad ^ 2.
             local thetaR to arcCosR((twoR2 - x:mag ^ 2) / twoR2).
             if vdot(x, turn:d:vector) < 0 {
                 set thetaR to 2 * constant:pi - thetaR.
             }
-            set dist to dist + turn:r * thetaR.
+            set dist to dist + turn:rad * thetaR.
         }
         set prevP to nextP.
     }

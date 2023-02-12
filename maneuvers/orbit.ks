@@ -131,9 +131,9 @@ function escapeHyperDeflect {
 }
 
 function escapeEllipseDeflect {
-    parameter a, r, e.
+    parameter a, rad, e.
 
-    local num to a * (1 - e^2) / r.
+    local num to a * (1 - e^2) / rad.
     // print "num " + num.
     local cosTanly to (num - 1) / e.
     // print "cosTanly " + cosTanly.
@@ -291,9 +291,9 @@ function inclinationToNorm {
 }
 
 function spdToHyperTurn {
-    parameter spd, rpe, r, mu.
+    parameter spd, rpe, rad, mu.
 
-    local a to 1 / (2 / r - (spd ^ 2) / mu).
+    local a to 1 / (2 / rad - (spd ^ 2) / mu).
     local e to 1 - rpe / a.
     local turn to 2 * arcsin(1 / e).
     return turn.
@@ -305,9 +305,9 @@ function hyperPe {
     local burnTime to time + 2 * 60.
     local rPe to pe + body:radius.
     local shipPos to shipPAt(burnTime).
-    local r to shipPos:mag.
+    local rad to shipPos:mag.
     local startVec to shipVAt(burnTime).
-    local currentTurn to spdToHyperTurn(startVec:mag, rPe, r, body:mu).
+    local currentTurn to spdToHyperTurn(startVec:mag, rPe, rad, body:mu).
     local turn to max(22, currentTurn).
 
     local e to 1 / sin(turn / 2).
@@ -316,11 +316,11 @@ function hyperPe {
     // local b to -a / tan(turn / 2).
     // print "b " + b.
     // local realB to -a. //(b - a) / 2.
-    // local tanly to -1 * (45 + arcCos(realB / r)).
+    // local tanly to -1 * (45 + arcCos(realB / rad)).
     // local tanly to -131.
-    local tanly to -1 * arccos((a * (1 - e^2) - r) / e / r).
+    local tanly to -1 * arccos((a * (1 - e^2) - rad) / e / rad).
     // print "tanly " + tanly.
-    local spd to sqrt(body:mu * (2 / r - 1 / a)).
+    local spd to sqrt(body:mu * (2 / rad - 1 / a)).
     // print "spd " + spd.
     local flightA to arcTan2(e * sin(tanly), 1 + e * cos(tanly)).
     // print "flightA " + flightA.

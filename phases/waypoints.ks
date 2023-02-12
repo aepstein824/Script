@@ -282,7 +282,6 @@ function vacLandGeo {
     print " Landing Successful?".
     wait 5.
 }
-vacLandGeo(latlng(-44.85, 45.1)).
 
 function vacClimb {
     parameter height.

@@ -83,9 +83,9 @@ function testRun {
         local f to tests[t].
         local results to f().
         local i to 0.
-        for r in results {
-            if not r:ok {
-                print " " + i + ": " + r:message.
+        for u in results {
+            if not u:ok {
+                print " " + i + ": " + u:message.
             }
             set i to i + 1.
         }

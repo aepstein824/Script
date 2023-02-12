@@ -6,11 +6,11 @@ local function idx {
 }
 
 local function klaInit {
-    parameter m, n, v.
+    parameter m, n, val.
     local a is List(m, n).
     local end is m * n + 2.
     from { local i is 2. } until i = end step { set i to i + 1. } do {
-        a:add(v).
+        a:add(val).
     }
     return a.
 }
@@ -40,8 +40,8 @@ function klaColumns {
     local n is a:length.
     local b is List(m, n).
     for col in a {
-        for v in col {
-            b:add(v).
+        for val in col {
+            b:add(val).
         }
     }
     return b.
@@ -159,8 +159,8 @@ function klaQRDecompose {
     parameter a.
     local m is a[0].
     local n is a[1].
-    local q is a:copy.
-    local r is klaInit(n, n, 0).
+    local q_ is a:copy.
+    local r_ is klaInit(n, n, 0).
     local col is List().
     from { local j is 1. } until j > n step { set j to j + 1. } do {
         col:add(idx(m, 1, j)).
@@ -169,18 +169,18 @@ function klaQRDecompose {
         local qj is klaColumns(List(a:subList(col[j - 1], m))).
         local aj is klaTranspose(qj).
         from { local k is 1. } until k = j step { set k to k + 1. } do {
-            local qk is klaColumns(List(q:subList(col[k - 1], m))).
-            local v is klaMProd(aj, qk)[2].
-            set r[idx(n, k, j)] to v.
-            set qj to klaSum(qj, klaSProd(-v, qk)).
+            local qk is klaColumns(List(q_:subList(col[k - 1], m))).
+            local val is klaMProd(aj, qk)[2].
+            set r_[idx(n, k, j)] to val.
+            set qj to klaSum(qj, klaSProd(-val, qk)).
         }
-        local v is klaNorm(qj).
-        set r[idx(n, j, j)] to v.
+        local val is klaNorm(qj).
+        set r_[idx(n, j, j)] to val.
         from { local i is 0. } until i = m step { set i to i + 1. } do {
-            set q[col[j - 1] + i] to qj[i + 2] / v.
+            set q_[col[j - 1] + i] to qj[i + 2] / val.
         } 
     }
-    return List(q, r).
+    return List(q_, r_).
 }
 
 function klaBackslash {
@@ -191,14 +191,14 @@ function klaBackslash {
     local x is klaInit(n, p, 0).
     local qr is klaQRDecompose(a).
     local z is klaMProd(klaTranspose(qr[0]), b).
-    local r is qr[1].
+    local r_ is qr[1].
     from { local j is 1. } until j > p step { set j to j + 1. } do {
         from { local i is n. } until i = 0 step { set i to i - 1. } do {
             local tmp is z[idx(n, i, j)].
             from { local k is n. } until k = i step { set k to k - 1. } do {
-                set tmp to tmp - r[idx(n, i, k)] * x[idx(n, k, j)].
+                set tmp to tmp - r_[idx(n, i, k)] * x[idx(n, k, j)].
             }
-            set x[idx(n, i, j)] to tmp / r[idx(n, i, i)].
+            set x[idx(n, i, j)] to tmp / r_[idx(n, i, i)].
         }
     }
     return x.

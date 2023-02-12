@@ -176,9 +176,9 @@ function scienceModules {
 
     for part in ship:parts() {
         if part:hasmodule(scienceModName) {
-            local mod to part:getmodule(scienceModName).
-            if mod:hasaction("Crew Report") {
-                set scienceMods[part:name] to mod.
+            local module to part:getmodule(scienceModName).
+            if module:hasaction("Crew Report") {
+                set scienceMods[part:name] to module.
             }
         }
     }
@@ -277,16 +277,16 @@ function opsWarpTillParentAligns {
 function opsDecouplePart {
     parameter part.
 
-    local mod to part:getmodule("ModuleAnchoredDecoupler").
-    mod:doAction("decouple", true).
+    local module to part:getmodule("ModuleAnchoredDecoupler").
+    module:doAction("decouple", true).
 }
 
 function keyOrDefault {
-    parameter lex, k, def.
-    if not lex:hasKey(k) {
-        set lex:k to def.
+    parameter lexi, k, def.
+    if not lexi:hasKey(k) {
+        set lexi:k to def.
     }
-    return lex:k.
+    return lexi:k.
 }
 
 function mergeLex {
@@ -487,14 +487,14 @@ function setFlaps {
     for i in range(3) {
         for p in all {
             if p:hasmodule(controlMod) {
-                local mod to p:getmodule(controlMod).
-                if mod:hasfield(setting) {
-                    local cur to mod:getfield(setting).
+                local module to p:getmodule(controlMod).
+                if module:hasfield(setting) {
+                    local cur to module:getfield(setting).
                     if cur > val {
-                        mod:doaction(dec, true).
+                        module:doaction(dec, true).
                     }
                     if cur < val {
-                        mod:doaction(inc, true).
+                        module:doaction(inc, true).
                     }
                 }
             }
@@ -537,17 +537,17 @@ function setThrustReverser {
     local reverseMod to "ModuleAnimateGeneric".
     for p in all {
         if p:hasmodule(reverseMod) {
-            local mod to p:getmodule(reverseMod).
+            local module to p:getmodule(reverseMod).
             if state = kForward {
                 local event to "forward thrust".
-                if mod:hasevent(event) {
-                    mod:doevent(event).
+                if module:hasevent(event) {
+                    module:doevent(event).
                 }
             }
             if state = kReverse {
                 local event to "reverse thrust".
-                if mod:hasevent(event) {
-                    mod:doevent(event).
+                if module:hasevent(event) {
+                    module:doevent(event).
                 }
             }
         } else {

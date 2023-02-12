@@ -220,12 +220,12 @@ function flightLevelAoaLinear {
     local aoa to 90 - vang(srfRolled:upvector, facing:forevector).
     local lift to aeroforce:y.
     local drag to aeroforce:z.
-    local cl to lift / dyn.
-    local cd to drag / dyn.
+    local cLift to lift / dyn.
+    local cDrag to drag / dyn.
 
     klaSet(x, i + 1, 2, aoa).
-    klaSet(y, i + 1, 1, cl).
-    klaSet(y, i + 1, 2, cd).    
+    klaSet(y, i + 1, 1, cLift).
+    klaSet(y, i + 1, 2, cDrag).    
 
     if i = kFlight:AeroCount - 1 {
         local air2 to airspeed ^ 2.
@@ -262,8 +262,8 @@ function flightLevelAoaLinear {
         set aero:Thrust to stableThrust.
         set aero:LandingSpd to stallSpd.
 
-        // local aoaPred to (cl - b) / m.
-        // local aoaPredD to (cd - bd) / md.
+        // local aoaPred to (cLift - b) / m.
+        // local aoaPredD to (cDrag - bd) / md.
         // local zeroAoA to -b / m.
         // local liftPred to (m * aoa + b) * dyn.
         // local dragPred to (md * aoa + bd) * dyn.
@@ -282,8 +282,8 @@ function flightLevelAoaLinear {
         // print "aoa " + aoa.
         // print "lift / G " + round(lift / Gmag, 2).
         // print "drag / G " + round(drag / Gmag, 2).
-        // print "cl " + cl.
-        // print "cd " + cd.
+        // print "cLift " + cLift.
+        // print "cDrag " + cDrag.
         // print "pitch angle " + round(arcsin(sinP), 2).
         // print "stable aoa at " + round(hspd) + " = " + stable.
         // print "stable thrust " + stableThrust.

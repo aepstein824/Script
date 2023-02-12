@@ -47,9 +47,9 @@ function hopBestTo {
     print "h " + dh.
     print "g " + g.
     local p to (g * dx / 2).
-    local q to (dh / dx).
-    local l0 to (p ^ 2 / (q ^ 2 + 1)) ^ (1/4). 
-    local v0 to p / l0 + q * l0.
+    local u to (dh / dx).
+    local l0 to (p ^ 2 / (u ^ 2 + 1)) ^ (1/4). 
+    local v0 to p / l0 + u * l0.
     print "(" + l0 + ", " + v0+ ")".
     local burnVec to l0 * xVec:normalized + v0 * hDir.
     

@@ -82,6 +82,7 @@ function pilotHover {
             set params:mode to kHover:Hover.
         } else if pRot:x > 0.5 {
             // press D
+            set params:mode to kHover:Stop.
             return.
         }
 

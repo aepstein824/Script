@@ -12,7 +12,7 @@ global kAirline to lexicon().
 set kAirline:DiffToVspd to 1.0 / 30.
 set kAirline:MaxTurnAngle to 30.
 set kAirline:TurnR to 0.1.
-set kAirline:Runway to waypoint("ksc 09").
+set kAirline:Runway to waypoint("ksc").
 set kAirline:TakeoffHeading to 90.
 set kAirline:LandHeading to 90.
 set kAirline:Vtol to vang(facing:forevector, up:forevector) < 30.
@@ -48,11 +48,11 @@ function airlineCruiseVspd {
 function airlineTurnError {
     parameter turn, pos2d, v2d.
     local posC to pos2d - turn:p.
-    local radDiff to posC:mag - turn:r.
+    local radDiff to posC:mag - turn:rad.
     local inside to radDiff < 0.
     local posO to posC.
     if inside {
-        set posO to posC:normalized * (turn:r - radDiff). 
+        set posO to posC:normalized * (turn:rad - radDiff). 
     }
     local posO2d to posO + turn:p.
     local tgt2d to turnIntersectPoint(turn, posO2d).
@@ -171,11 +171,11 @@ function airlineLoop {
     local nowPos2d to noY(approachFrame:inverse * nowPos) + 3 * nowVel.
     local nowDir to lookDirUp(nowVel, unitY).
 
-    local path to turnPointToPoint(nowPos2d, nowRadius, nowDir, 
+    local flightPath to turnPointToPoint(nowPos2d, nowRadius, nowDir, 
         zeroV, landRadius, r(0,kAirline:LandHeading,0)).
-    path:remove(0).
+    flightPath:remove(0).
 
-    until path:empty() {
+    until flightPath:empty() {
         set kAirline:FlightP:vspd to airlineCruiseVspd(
             approachAlt, altitude, kAirline:VspdAng).
 
@@ -185,11 +185,11 @@ function airlineLoop {
         set nowDir to approachFrame:inverse * kAirline:FlightP:level.
         set nowVel to noY(approachFrame:inverse * velocity:surface). 
 
-        local path2d to path[0][1].
+        local path2d to flightPath[0][1].
 
-        if path[0][0] = "straight" or path[0][0] = "start" {
+        if flightPath[0][0] = "straight" or flightPath[0][0] = "start" {
             // there will always be a turn after the straight
-            local turn to path[1][2].
+            local turn to flightPath[1][2].
             local fromCenter to (path2d - turn:p):normalized.
             local along to rotateVecAround(fromCenter, turn:d:upvector, 90).
             local towards to lookDirUp(along, unitY).
@@ -201,26 +201,26 @@ function airlineLoop {
             //     + " Apv " + vecround(apv).
             set kAirline:FlightP:xacc to airlineStraightErrorToXacc(app, apv).
             local endRad to (kAirline:EndRadius * groundspeed).
-            if (nowPos2d - path[0][1]):mag  < endRad {
-                path:remove(0).
+            if (nowPos2d - flightPath[0][1]):mag  < endRad {
+                flightPath:remove(0).
             }
-        } else if path[0][0] = "turn" {
-            local turn to path[0][2].
+        } else if flightPath[0][0] = "turn" {
+            local turn to flightPath[0][2].
             local turnError to airlineTurnError(turn, nowPos2d, nowVel).
-            local dimlessR to (nowPos2d - turn:p):mag / turn:r.
-            local nowXacc to flightSpdToXacc(groundspeed, turn:r).
+            local dimlessR to (nowPos2d - turn:p):mag / turn:rad.
+            local nowXacc to flightSpdToXacc(groundspeed, turn:rad).
             set kAirline:FlightP:xacc to airlineTurnErrorToXacc(turnError, 
                 dimlessR, nowXacc, turnCCW(turn)).
-            local outDir to vcrs(path[0][1] - turn:p, turn:d:upvector).
+            local outDir to vcrs(flightPath[0][1] - turn:p, turn:d:upvector).
             local dev to vang(nowVel, outDir).
             // print "P2d " + vecround(nowPos2d) 
-            //     + " toOut " + vecround(path[0][1])
+            //     + " toOut " + vecround(flightPath[0][1])
             //     + " turnError " + round(turnError)
             //     + " dimlessR " + round(dimlessR, 2)
             //     + " nowXacc " + round(nowXacc, 1)
             //     + " devation " + dev.
             if dev < 2 {
-                path:remove(0).
+                flightPath:remove(0).
             }
         }
 

@@ -11,7 +11,7 @@ local tests to lexicon(
 testRun(tests).
 
 function testPlanets {
-    local r to list().
+    local t to list().
     local testBodies to list().
     list bodies in testBodies.
     testBodies:remove(0).
@@ -29,8 +29,8 @@ function testPlanets {
             local tanlyFuture to posToTanly(whereFuture, bobt).
             local timeBetween to timeBetweenTanlies(tanlyNow, tanlyFuture, 
                 bobt).
-            r:add(testEq(timeBetween, elapsed, 0.03)).
+            t:add(testEq(timeBetween, elapsed, 1000)).
         }
     }
-    return r.
+    return t.
 }

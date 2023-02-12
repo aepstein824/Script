@@ -11,7 +11,7 @@ local tests to lexicon(
 testRun(tests).
 
 function testFixed {
-    local r to list().
+    local t to list().
 
     local function parabF {
         parameter pos.
@@ -29,13 +29,13 @@ function testFixed {
 
     local fromZero to optimizeFixedWalk(parabF@, parabCombine@, parabSuccess@, 
         zeroV, 0.1).
-    r:add(testEq(fromZero, zeroV, 1)).
+    t:add(testEq(fromZero, zeroV, 1)).
     local fromNear to optimizeFixedWalk(parabF@, parabCombine@, parabSuccess@,
         v(20, 1, 0), 0.1).
-    r:add(testEq(fromNear, zeroV, 1)).
+    t:add(testEq(fromNear, zeroV, 1)).
     local fromFar to optimizeFixedWalk(parabF@, parabCombine@, parabSuccess@,
         v(-40, -2, 0), 0.5).
-    r:add(testEq(fromFar, zeroV, 1)).
+    t:add(testEq(fromFar, zeroV, 1)).
 
-    return r.
+    return t.
 }

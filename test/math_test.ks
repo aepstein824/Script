@@ -16,87 +16,87 @@ local tests to lexicon(
 testRun(tests).
 
 function testSgn {
-    local r to list().
-    r:add(testEq(sgn(1), 1)).
-    r:add(testEq(sgn(100), 1)).
-    r:add(testEq(sgn(0.1), 1)).
-    r:add(testEq(sgn(-1), -1)).
-    r:add(testEq(sgn(-100), -1)).
-    r:add(testEq(sgn(-0.1), -1)).
-    return r.
+    local t to list().
+    t:add(testEq(sgn(1), 1)).
+    t:add(testEq(sgn(100), 1)).
+    t:add(testEq(sgn(0.1), 1)).
+    t:add(testEq(sgn(-1), -1)).
+    t:add(testEq(sgn(-100), -1)).
+    t:add(testEq(sgn(-0.1), -1)).
+    return t.
 }
 
 function testVAA {
-    local r to list().
+    local t to list().
     local pi2 to constant:pi / 2.
-    r:add(testEq(vectorAngleAround(unitX, unitY, unitZ), 90)).
-    r:add(testEq(vectorAngleAround(2 * unitX, unitY, unitZ), 90)).
-    r:add(testEq(vectorAngleAround(unitX, 2 * unitY, unitZ), 90)).
-    r:add(testEq(vectorAngleAround(unitX, unitY, unitX), 0)).
-    r:add(testEq(vectorAngleAround(unitX, unitY, -1 * unitX), 180)).
-    r:add(testEq(vectorAngleAround(unitX, unitY, -1 * unitZ), 270)).
-    r:add(testEq(vectorAngleAround(unitY, unitX, unitZ), 270)).
-    r:add(testEq(vectorAngleAround(unitX, -1 * unitY, unitZ), 270)).
-    r:add(testEq(vectorAngleAround(unitX + unitY, unitY, unitZ), 90)).
-    r:add(testEq(vectorAngleAround(unitX + unitY, unitY, 
+    t:add(testEq(vectorAngleAround(unitX, unitY, unitZ), 90)).
+    t:add(testEq(vectorAngleAround(2 * unitX, unitY, unitZ), 90)).
+    t:add(testEq(vectorAngleAround(unitX, 2 * unitY, unitZ), 90)).
+    t:add(testEq(vectorAngleAround(unitX, unitY, unitX), 0)).
+    t:add(testEq(vectorAngleAround(unitX, unitY, -1 * unitX), 180)).
+    t:add(testEq(vectorAngleAround(unitX, unitY, -1 * unitZ), 270)).
+    t:add(testEq(vectorAngleAround(unitY, unitX, unitZ), 270)).
+    t:add(testEq(vectorAngleAround(unitX, -1 * unitY, unitZ), 270)).
+    t:add(testEq(vectorAngleAround(unitX + unitY, unitY, unitZ), 90)).
+    t:add(testEq(vectorAngleAround(unitX + unitY, unitY, 
         unitZ - unitY), 90)).
-    r:add(testEq(vectorAngleAroundR(unitX, unitY, unitZ), pi2)).
-    return r.
+    t:add(testEq(vectorAngleAroundR(unitX, unitY, unitZ), pi2)).
+    return t.
 }
 
 function testRVA {
-    local r to list().
-    r:add(testEq(rotateVecAround(unitX, unitY, 90), unitZ)).
-    r:add(testEq(rotateVecAround(unitX, 2 * unitY, 90), unitZ)).
-    r:add(testEq(rotateVecAround(2 * unitX, unitY, 90), 2 * unitZ)).
-    r:add(testEq(rotateVecAround(2 * unitX, unitY, -90), -2 * unitZ)).
-    r:add(testEq(rotateVecAround(unitX, unitY, 90 + 360), unitZ)).
-    r:add(testEq(rotateVecAround(unitX, unitX + unitZ, 180), unitZ)).
-    return r.
+    local t to list().
+    t:add(testEq(rotateVecAround(unitX, unitY, 90), unitZ)).
+    t:add(testEq(rotateVecAround(unitX, 2 * unitY, 90), unitZ)).
+    t:add(testEq(rotateVecAround(2 * unitX, unitY, 90), 2 * unitZ)).
+    t:add(testEq(rotateVecAround(2 * unitX, unitY, -90), -2 * unitZ)).
+    t:add(testEq(rotateVecAround(unitX, unitY, 90 + 360), unitZ)).
+    t:add(testEq(rotateVecAround(unitX, unitX + unitZ, 180), unitZ)).
+    return t.
 }
 
 function testRemove {
-    local r to list().
-    r:add(testEq(removeComp(unitX, unitX), zeroV)).
-    r:add(testEq(removeComp(unitX + unitY, unitY), unitX)).
+    local t to list().
+    t:add(testEq(removeComp(unitX, unitX), zeroV)).
+    t:add(testEq(removeComp(unitX + unitY, unitY), unitX)).
     local xm2y1 to -2 * unitX + unitY.
-    r:add(testEq(removeComp(xm2y1, unitX), unitY)).
-    r:add(testEq(removeComp(xm2y1, unitY), -2 * unitX)).
-    r:add(testEq(removeComp(xm2y1, unitZ), xm2y1)).
-    return r.
+    t:add(testEq(removeComp(xm2y1, unitX), unitY)).
+    t:add(testEq(removeComp(xm2y1, unitY), -2 * unitX)).
+    t:add(testEq(removeComp(xm2y1, unitZ), xm2y1)).
+    return t.
 }
 
 function testLerps {
-    local r to list().
-    r:add(testEq(lerp(0, -2, 2), -2)).
-    r:add(testEq(lerp(1, -2, 2), 2)).
-    r:add(testEq(lerp(0.5, -2, 2), 0)).
-    r:add(testEq(lerp(-100, -2, 2), -2)).
-    r:add(testEq(lerp(100, -2, 2), 2)).
-    r:add(testEq(invLerp(-2, -2, 2), 0)).
-    r:add(testEq(invLerp(2, -2, 2), 1)).
-    r:add(testEq(invLerp(0, -2, 2), 0.5)).
-    r:add(testEq(invLerp(-100, -2, 2), 0)).
-    r:add(testEq(invLerp(100, -2, 2), 1)).
+    local t to list().
+    t:add(testEq(lerp(0, -2, 2), -2)).
+    t:add(testEq(lerp(1, -2, 2), 2)).
+    t:add(testEq(lerp(0.5, -2, 2), 0)).
+    t:add(testEq(lerp(-100, -2, 2), -2)).
+    t:add(testEq(lerp(100, -2, 2), 2)).
+    t:add(testEq(invLerp(-2, -2, 2), 0)).
+    t:add(testEq(invLerp(2, -2, 2), 1)).
+    t:add(testEq(invLerp(0, -2, 2), 0.5)).
+    t:add(testEq(invLerp(-100, -2, 2), 0)).
+    t:add(testEq(invLerp(100, -2, 2), 1)).
     // these also sufficiently test clamp
-    return r.
+    return t.
 }
 
 function testPosmod {
-    local r to list().
-    r:add(testEq(posmod(10, 360), 10)).
-    r:add(testEq(posmod(-10, 360), 350)).
-    r:add(testEq(posmod(370, 360), 10)).
-    r:add(testEq(posmod(-710, 360), 10)).
-    r:add(testEq(posmod(-730, 360), 350)).
-    return r.
+    local t to list().
+    t:add(testEq(posmod(10, 360), 10)).
+    t:add(testEq(posmod(-10, 360), 350)).
+    t:add(testEq(posmod(370, 360), 10)).
+    t:add(testEq(posmod(-710, 360), 10)).
+    t:add(testEq(posmod(-730, 360), 350)).
+    return t.
 }
 
 function testVecClamp {
-    local r to list().
-    r:add(testEq(vecClampMag(zeroV, 1), zeroV)).
-    r:add(testEq(vecClampMag(unitX, 1), unitX)).
-    r:add(testEq(vecClampMag(2 * unitX, 1), unitX)).
-    r:add(testEq(vecClampMag(2 * unitX, 2), 2 * unitX)).
-    return r.
+    local t to list().
+    t:add(testEq(vecClampMag(zeroV, 1), zeroV)).
+    t:add(testEq(vecClampMag(unitX, 1), unitX)).
+    t:add(testEq(vecClampMag(2 * unitX, 1), unitX)).
+    t:add(testEq(vecClampMag(2 * unitX, 2), 2 * unitX)).
+    return t.
 }
