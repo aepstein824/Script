@@ -6,12 +6,21 @@ runOncePath("0:common/operations.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 
+// This controller hovers a vessel toward a target. It's based on the assumption
+// that if we limit the "jerk" or change in acceleration to a small amount, we
+// can assume the rotation to match that change is instantaneous.
+// In atmosphere, the conservative rotation and acceleration limits help to keep
+// a craft stable and controllable even with juno engines with slow response and
+// no gimbal.
+// In vaccum, this controller is not as quick or efficient as it could be, but
+// it's still very precise. Travelling long distances over terrain on the mun
+// with this looks really cool, but consumes a lot of propellant.
+
 global kHover to lexicon().
 set kHover:Stop to "STOP".
 set kHover:Hover to "HOVER".
 set kHover:Descend to "DESCEND".
 set kHover:Vspd to "VSPD".
-
 
 local kLockDist to 50.
 local kAhead to 2.
@@ -86,9 +95,9 @@ function hoverIter {
     parameter params.
     
     if params:mode = kHover:Stop {
+        set params:throttle to 0.
         return 0.
     }
-
 
     local travel to lookDirUp(-body:position, -params:tgt:position).
     set params:travel to travel.
@@ -105,7 +114,6 @@ function hoverIter {
     // print tgtVspd + ", " + curVspd.
     set pid:setpoint to tgtVspd.
     local vacc to pid:update(time:seconds, curVspd).
-
 
     local g to gat(altitude).
     local gv to g + vacc.
@@ -227,9 +235,16 @@ function hoverHAccel {
     set toTgt:z to 0.
     set travelV:z to 0.
 
-    local promisedDV to curA * curA:mag / jerk / 2.
-    local promisedV to travelV + promisedDV.
+    // The promise refers to the velocity that our acceleration will grant us
+    // before we can bring the acceleration vector back to 0. Because of the
+    // constant jerk assumption, it can be calculated exactly.
 
+    // Velocity promised from current acceleration
+    local promisedDV to curA * curA:mag / jerk / 2.
+    // Final velocity when back to 0.
+    local promisedV to travelV + promisedDV.
+    // The desiredV is the amount we expect to be able to zero out by the time
+    // we reach the target.
     local desiredV to v(0, 0, 0).
     if params:seek {
         local spd2 to toTgt:y * jerk - curA:y.
@@ -240,8 +255,10 @@ function hoverHAccel {
     local desiredA to desiredV - promisedV.
     local errorA to desiredA - curA.
     local timeDiff to max(time:seconds - params:prevTime, 0.001).
-    local deltaA to errorA:normalized * jerk * timeDiff.
+    // Accel can only be changed by an amount within the jerk limit.
+    local deltaA to vecClampMag(errorA, jerk * timeDiff).
     local newA to curA + deltaA.
+
     set newA to vecClampMag(newA, params:maxAccelH * gat(altitude)).
     set params:prevTime to time:seconds.
     local worldA to travel * newA.
@@ -259,10 +276,6 @@ function hoverPid {
     local kp to 0.5.
     local ki to 0.05.
     local kd to 0.5.
-    // set kp to 0.
-    // print "kp = " + kp.
-    // set ki to 0.
-    // set kd to 0.
     return pidloop(kp, ki, kd).
 }
 
