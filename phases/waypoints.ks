@@ -331,7 +331,8 @@ function vacNearestFlat {
     local bottomClimb to (bottom:position - start):mag.
     print " Downhill " + geoRound(bottom) + " : " + round(bottomClimb, 2).
     local chosen to bottom.
-    if topClimb < bottomClimb {
+    // Prefer top for safer and more efficient landings
+    if topClimb < 2 * bottomClimb {
         set chosen to top.
     }
 

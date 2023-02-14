@@ -228,11 +228,11 @@ local function scooperIteration {
 local function lzList {
     if dest = mun {
         return list(
-            // dest:geopositionlatlng(-73, 33), // Poles
-            // dest:geopositionlatlng(-82, 65), // Polar Lowlands
-            // dest:geopositionlatlng(65 ,-22), // Polar Crater
-            // dest:geopositionlatlng(-59, 55), // High
-            // dest:geopositionlatlng(-69, 57), // High Crater
+            dest:geopositionlatlng(-73, 33), // Poles
+            dest:geopositionlatlng(-82, 65), // Polar Lowlands
+            dest:geopositionlatlng(65 ,-22), // Polar Crater
+            dest:geopositionlatlng(-59, 55), // High
+            dest:geopositionlatlng(-69, 57), // High Crater
             dest:geopositionlatlng(-45, 45), // Mid
             dest:geopositionlatlng(-53, 44), // Mid Crater
             dest:geopositionlatlng(-36, 44), // Low
