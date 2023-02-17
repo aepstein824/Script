@@ -1,0 +1,100 @@
+digraph {
+    subgraph cluster_environment {
+        label="Aero Data"
+        Q[label="Q", shape="box"]
+        accel1[label="True\n Acceleration", shape="box"]
+        lift[label="Lift"]
+        drag[label="Drag"]
+        accel1 -> lift,drag
+    }
+    subgraph cluster_short {
+        label="Short Term Model"
+        samples[label="Sample Recent Frames"]
+        short[label="Short Term Linear Model"]
+        samples -> short
+    }
+    subgraph cluster_accels {
+        label="Accelerations"
+        haccel[label="Horizontal"]
+        vaccel[label="Vertical"]
+        taccel[label="Turn"]
+    }
+    subgraph cluster_rates {
+        label="Rate PIDs"
+        att[label="Attitude", shape="box"]
+        vel[label="True\n Airspeed", shape="box"]
+        hvel[label="Horizontal"]
+        vvel[label="Vertical"]
+        tvel[label="Turn"]
+        vel -> hvel, vvel
+    }
+    subgraph cluster_stability {
+        label="Control Estimation"
+        roll[label="Roll for Turn"]
+        aoa[label="AoA for Vertical"]
+        thrust[label="Thrust for Horizontal"]
+        roll -> aoa -> thrust
+    }
+    subgraph cluster_pids {
+        label="Error PIDs"
+        error_accel[label="True\n Acceleration", shape="box"]
+        aoaPID[label="AoA PID"]
+        throtPID[label="Throttle PID"]
+        error_accel -> aoaPID, throtPID
+    }
+    subgraph cluster_cooked {
+        label="Cooked Steering"
+        steering[label="Steering", shape="diamond"]
+        throttle[label="Throttle", shape="diamond"]
+    }
+    subgraph cluster_flying {
+        label="Flying"
+        fly_pos[label="True\n Position", shape="box"]
+        fly_speed[label="Cruising Speed"]
+        fly_alt[label="Cruising Altitude"]
+        fly_climb[label="Climb/Descent Rate"]
+        fly_waypoints[label="Waypoint Routing"]
+        fly_pos, fly_alt -> fly_climb
+    }
+    subgraph cluster_landing {
+        label="Landing"
+        land_pos[label="True\n Position", shape="box"]
+        land_speed[label="Landing Speed"]
+        land_glideslope[label="Glide Slope"]
+        land_pos, land_speed -> land_glideslope
+    }
+    subgraph cluster_long {
+        label="Long Term Model"
+        long_zero[label="Zero Lift\nAngle"]
+        long_stall[label="10 Deg Over\nZero Lift"]
+        long_speed[label="Conservative\nStall Speed"]
+        long_lowpass[label="Low pass filter"]
+        long_update_landing[label="Update\nLanding Speed"]
+        long_zero -> long_stall -> long_speed
+        long_speed -> long_lowpass -> long_update_landing
+    }
+
+    // model
+    drag, lift, Q -> samples
+    short -> aoa, thrust
+    short -> long_zero, long_speed
+
+    // control
+    taccel -> roll
+    vaccel -> aoa, aoaPID
+    haccel -> thrust, throtPID
+    roll, aoa, aoaPID -> steering
+    thrust, throtPID -> throttle
+    vvel -> vaccel
+    hvel -> haccel
+    tvel -> taccel
+
+    // goals for flight
+    fly_speed -> hvel
+    fly_climb -> vvel
+    fly_waypoints, att -> tvel
+
+    // goals for landing
+    land_glideslope -> vvel
+    land_speed -> hvel
+}

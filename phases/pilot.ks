@@ -105,7 +105,6 @@ function pilotFlight {
 
     lock steering to flightSteering(params).
     lock throttle to flightThrottle(params).
-    flightSetSpeedsGivenMin(params, velocity:surface:mag).
 
     if status = "FLYING" {
         flightBeginLevel(params).
