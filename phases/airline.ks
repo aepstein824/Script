@@ -12,7 +12,7 @@ global kAirline to lexicon().
 set kAirline:DiffToVspd to 1.0 / 30.
 set kAirline:MaxTurnAngle to 30.
 set kAirline:TurnR to 0.1.
-set kAirline:Runway to waypoint("ksc").
+set kAirline:Runway to waypoint("ksc 09").
 set kAirline:TakeoffHeading to 90.
 set kAirline:LandHeading to 90.
 set kAirline:Vtol to vang(facing:forevector, up:forevector) < 30.
@@ -143,6 +143,7 @@ function airlineHoverTakeoff {
     flightBeginLevel(kAirline:FlightP).
     setFlaps(1).
     set kAirline:FlightP:hspd to kAirline:FlightP:maneuverV.
+    wait 2.
 }
 
 function airlineTakeoff {
@@ -158,9 +159,11 @@ function airlineLoop {
     local approachH to sin(kAirline:GlideAngle) * approachDist.
     local approachAlt to kAirline:Runway:altitude + approachH.
 
-    local nowRadius to flightSpdToRadius(groundspeed, kAirline:turnXacc).
-    local landRadius to flightSpdToRadius(kAirline:FlightP:maneuverV + 5, 
-        kAirline:turnXacc).
+    local maneuverSpd to kAirline:FlightP:maneuverV.
+    set kAirline:FlightP:hspd to maneuverSpd.
+    
+    local nowRadius to flightSpdToRadius(maneuverSpd, kAirline:turnXacc).
+    local landRadius to flightSpdToRadius(maneuverSpd, kAirline:turnXacc).
 
     local runwayApproachGeo to geoApproach(kAirline:Runway, 
         kAirline:LandHeading, -approachDist).
@@ -182,7 +185,7 @@ function airlineLoop {
         set approachFrame to geoNorthFrame(runwayApproachGeo).
         set nowPos to -runwayApproachGeo:position.
         set nowPos2d to noY(approachFrame:inverse * nowPos).
-        set nowDir to approachFrame:inverse * kAirline:FlightP:level.
+        set nowDir to approachFrame:inverse * shipLevel().
         set nowVel to noY(approachFrame:inverse * velocity:surface). 
 
         local path2d to flightPath[0][1].

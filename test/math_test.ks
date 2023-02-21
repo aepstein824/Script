@@ -41,6 +41,10 @@ function testVAA {
     t:add(testEq(vectorAngleAround(unitX + unitY, unitY, 
         unitZ - unitY), 90)).
     t:add(testEq(vectorAngleAroundR(unitX, unitY, unitZ), pi2)).
+    t:add(testEq(vectorAngleAround( 
+        v(.78, 0, -.62),
+        v(0, 1, 0),
+        v(-1, 0, 0)), 218.48)).
     return t.
 }
 

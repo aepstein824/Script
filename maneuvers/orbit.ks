@@ -393,6 +393,7 @@ function orbitDispose {
     lock throttle to 1.0.
     wait until periapsis < -1000.
     lock throttle to 0.
+    wait 1.
 }
 
 function orbitPatchesInclude {

@@ -111,6 +111,7 @@ function landPlaneRunway {
     airlineSwitchToFlight().
 
     local flightP to kAirline:FlightP.
+    set flightP:descentV to -1.3. // plenty of runway
     set flightP:maneuverV to 75.
     set flightP:cruiseV to 130.
     flightBeginLevel(flightP).

@@ -142,7 +142,7 @@ function pilotFlight {
         if abs(pTrans:x) > 0.01 {
             print "xacc: " + params:xacc.
         }
-        set params:vspd to params:vspd + .5 * pTrans:y * timeDiff.
+        set params:vspd to params:vspd + 5 * pTrans:y * timeDiff.
         if abs(pTrans:y) > 0.01 {
             print "vspd: " + params:vspd.
         }

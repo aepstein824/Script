@@ -35,13 +35,6 @@ digraph {
         thrust[label="Thrust for Horizontal"]
         roll -> aoa -> thrust
     }
-    subgraph cluster_pids {
-        label="Error PIDs"
-        error_accel[label="True\n Acceleration", shape="box"]
-        aoaPID[label="AoA PID"]
-        throtPID[label="Throttle PID"]
-        error_accel -> aoaPID, throtPID
-    }
     subgraph cluster_cooked {
         label="Cooked Steering"
         steering[label="Steering", shape="diamond"]
@@ -81,10 +74,10 @@ digraph {
 
     // control
     taccel -> roll
-    vaccel -> aoa, aoaPID
-    haccel -> thrust, throtPID
-    roll, aoa, aoaPID -> steering
-    thrust, throtPID -> throttle
+    vaccel -> aoa
+    haccel -> thrust
+    roll, aoa -> steering
+    thrust -> throttle
     vvel -> vaccel
     hvel -> haccel
     tvel -> taccel

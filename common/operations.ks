@@ -473,6 +473,33 @@ function clearAll {
 function setFlaps {
     parameter val.
 
+    setStockFlaps(val).
+
+    setFARFlaps(val).
+}
+
+function setStockFlaps {
+    parameter val.
+
+    local parts to ship:partstagged("flap").
+    for p in parts {
+        local modName to "SyncModuleControlSurface".
+        if p:hasmodule(modName) {
+            local controlMod to p:getmodule(modName).
+            if val < 0.5 {
+                controlMod:setfield("deploy", false).
+            } else {
+                controlMod:setfield("deploy angle", val * 5).
+                controlMod:setfield("deploy", true).
+            }
+        }
+    }
+    wait 0.
+}
+
+function setFARFlaps {
+    parameter val.
+
     local all to list().
     list parts in all.
     local controlMod to "FARControllableSurface".
@@ -496,6 +523,7 @@ function setFlaps {
         }
         wait 0.
     }
+
 }
 
 function opsUndockPart {

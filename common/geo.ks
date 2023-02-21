@@ -120,10 +120,13 @@ function turnToTurn {
     local mag to between:mag.
     local upDot to vdot(src:d:upvector, dst:d:upvector).
     if upDot < 0 and mag < (src:rad + dst:rad) {
-        return list().
-    }
+            return list().
+        }
     local rDiff to upDot * dst:rad - src:rad.
     local cosTheta to rDiff / mag.
+    if abs(cosTheta) > 1 {
+        return list().
+    }
     local upV to src:d:upvector.
     local theta to arcCos(cosTheta).
     local ndir to rotateVecAround(between, upV, theta):normalized.
@@ -179,12 +182,9 @@ function turnPathDistance {
         }
         if next[0] = "turn" {
             local turn to next[2].
-            // A small fudge factor to make 180 degrees pass.
-            local twoR2 to 2.0000001 * turn:rad ^ 2.
-            local thetaR to arcCosR((twoR2 - x:mag ^ 2) / twoR2).
-            if vdot(x, turn:d:vector) < 0 {
-                set thetaR to 2 * constant:pi - thetaR.
-            }
+            local p1 to prevP - turn:p.
+            local p2 to nextP - turn:p.
+            local thetaR to vectorAngleAroundR(p1, turn:d:upvector, p2).
             set dist to dist + turn:rad * thetaR.
         }
         set prevP to nextP.
