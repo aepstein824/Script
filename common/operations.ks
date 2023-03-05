@@ -230,7 +230,7 @@ function waitWarpPhsx {
     set kuniverse:timewarp:mode to "PHYSICS".
     kuniverse:timewarp:warpto(endTime).
     wait until time:seconds > endTime.
-    kuniverse:timewarp:cancelwarp.
+    kuniverse:timewarp:cancelwarp().
 }
 
 function opsGetSunAngle {

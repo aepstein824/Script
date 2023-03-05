@@ -11,14 +11,23 @@ It's output is a steering vector and throttle setting. KOS cooked steering turns
 # Modeling the Lift and Drag Equations
 This section explains `flightModelUpdate`.
 
-`Lift = Q * S * Cl * aoa`
-`Drag = Q * S * Cd * aoa`
+Let's review the lift and drag equations:
 
-These equations will allow us to choose an angle of attack (aoa) for desired lift, and then calculate the drag at that aoa.
+`Lift = Q * S * Cl`
+
+`Drag = Q * S * Cd`
+
+where `Cl = f(aoa)` and similar for drag. These equations will allow us to choose an angle of attack (aoa) for desired lift, and then calculate the drag at that aoa.
+
+In simplified models, the lift from a wing is proportional to the angle of attack for small angles, offset by an angle known as the zero lift angle. Then, as aoa approaches a critical angle, the lift decreases until rapidly falling off after that angle. Both KSP's stock and FAR have more complicated aero models than this, but as long as we stay between the range [zero lift angle - 5, critical angle - 5], a linear model will be close enough.
+
+For our linear model, `Cl = Ml * aoa + Bl`, where M and B refer to slope and intercept of the line. Because the equation is linear, it's very easy to use. For controlling level flight, we can solve for aoa in terms of a calculated Cl. For estimating the zero lift angle, we can use `Cl = 0` to get `-Ml / Bl`. For estimating a landing speed, we can find 
 
 In kOS, Q is directly available at `ship:dynamicpressure`. Our current aoa can be easily calculated from the `facing` and `srfPrograde` directions. We need to calculate `S * Cl`. Since `S`, the wing reference area, is a constant, let's just fold it in and call them both Cl from now on.
 
-To estimate Cl and Cd, we need some data about lift and drag at various angles of attack. To track the forces, first we track the acceleration of the plane as the derivative of `velocity:surface`. The difference between the values each tick / the time between the ticks yields the acceleration. Then we can subtract out the accelerations we know of. Gravity in the direction towards the body and thrust in the facing direction. What's left is the acceleration due to aerodynamic forces. The component in the direction of the velocity is drag, the component in the direction 90 towards our facing:upvector is the lift. Once we have our lift, drag, and aoa data points, we can use linear regression to estimate Cl and Cd. The formulas for [Simple Linear Regression](https://en.wikipedia.org/wiki/Simple_linear_regression) can be easily calculated online for each incoming data point. We maintain a queue of the most recent 100 points (a few seconds) to build the model. 
+To estimate Cl and Cd, we need some data about lift and drag at various angles of attack. To track the forces, first we track the acceleration of the plane as the derivative of `velocity:surface`. The difference between the values each tick / the time between the ticks yields the acceleration. Then we can subtract out the accelerations we know of. Gravity in the direction towards the body and thrust in the facing direction. What's left is the acceleration due to aerodynamic forces. The component in the direction of the velocity is drag, the component in the direction 90 towards our facing:upvector is the lift. Once we have our lift, drag, and aoa data points, we can use linear regression to estimate Cl and Cd.
+
+The formulas for [Simple Linear Regression](https://en.wikipedia.org/wiki/Simple_linear_regression) can be easily calculated online for each incoming data point. We maintain a queue of the most recent 100 points (a few seconds) to build the model. Mathematically, we do the linked linear regression for the entire queue every tick. To optimize it down to constant time, the points are kept in a queue. Each tick, the new point's contribution is added to the sums. If the queue is full, the oldest point is removed, and its contributions are removed from the sums. 
 
 # Choosing Desired Accelerations
 This section covers `flightLevel`.

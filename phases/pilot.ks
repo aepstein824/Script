@@ -133,8 +133,13 @@ function pilotFlight {
             // press E
             flightResetSpds(params, params:cruiseV).
             print "Reset Spds".
+        } else if pRot:x < -0.5 {
+            // press A
+            print "Low speed test".
+            flightResetSpds(params, 35).
         } else if pRot:x > 0.5 {
             // press D
+            print "Transition to Hover".
             return.
         }
 

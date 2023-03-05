@@ -107,38 +107,22 @@ function landPlaneRunway {
     set kAirline:FinalS to 200.
     set kAirline:VspdAng to 20.
 
+    local landWpt to airlineWptFromWaypoint(waypoint("ksc 09"), 90).
+    local approachWpt to airlineWptApproach(landWpt).
+
     airlineInit().
     airlineSwitchToFlight().
 
     local flightP to kAirline:FlightP.
     set flightP:descentV to -1.3. // plenty of runway
-    set flightP:maneuverV to 75.
-    set flightP:cruiseV to 130.
-    flightBeginLevel(flightP).
-    local runway to kAirline:Runway.
-    until false {
-        local runwayPos to runway:position.
-        local horiRunway to vxcl(up:forevector, runwayPos).
-        local towards to lookDirUp(horiRunway, up:forevector).
-        local runwayTowards to towards:inverse * runwayPos.
+    set flightP:maneuverV to 100.
+    set flightP:cruiseV to 250.
 
-        local movingToRunway to vdot(velocity:surface, runwayPos) > 0.
-        local closeToRunway to runwayTowards:z < 45000.
-        if (closeToRunway or not movingToRunway) and altitude < 7500 {
-            break.
-        }
-        local runwayAngle to arctan2(runwayTowards:y, runwayTowards:z).
-        local descendAngle to max(abs(runwayAngle), 10).
-        set flightP:vspd to airlineCruiseVspd(kAirline:CruiseAlt, 
-            altitude, descendAngle).
-
-        airlineIterWait().
-    }
+    airlineCruise(approachWpt).
 
     kuniverse:timewarp:cancelwarp().
 
     print " Fly to runway from " + geoRound(geoPosition).
-    airlineLoop().
-    airlineLanding().
-
+    airlineLoop(landWpt).
+    airlineLanding(approachWpt).
 }

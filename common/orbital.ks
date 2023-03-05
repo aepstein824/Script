@@ -202,6 +202,12 @@ function gat {
     return body:mu / (body:radius + h) ^ 2. 
 }
 
+function centrip {
+    parameter spd, h.
+
+    return spd ^ 2 / (body:radius + h).
+}
+
 function orbitalSpeed {
     parameter mu, semimajor, radius.
 

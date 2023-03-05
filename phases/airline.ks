@@ -11,18 +11,20 @@ runOncePath("0:maneuvers/hover.ks").
 global kAirline to lexicon().
 set kAirline:DiffToVspd to 1.0 / 30.
 set kAirline:MaxTurnAngle to 30.
+set kAirline:MaxStraightAngle to 10.
 set kAirline:TurnR to 0.1.
-set kAirline:Runway to waypoint("ksc 09").
 set kAirline:TakeoffHeading to 90.
-set kAirline:LandHeading to 90.
 set kAirline:Vtol to vang(facing:forevector, up:forevector) < 30.
-set kAirline:GlideAngle to 3.
+set kAirline:GlideAngle to 5.
 set kAirline:TurnXacc to 4.
 set kAirline:EndRadius to 3.
 set kAirline:VtolLandDistance to 500.
 set kAirline:FlightP to flightDefaultParams().
 set kAirline:HoverP to hoverDefaultParams().
-set kAirline:CruiseAlt to 7000.
+set kAirline:CruiseAlti to 7000.
+set kAirline:CruiseDist to 45000.
+set kAirline:FlatDist to 8500. // gives enough for any turn at 100 m/s
+set kAirline:CruiseAggro to 1.2.
 set kAirline:LandAggro to 2.
 set kAirline:VspdAng to 10.
 set kAirline:FinalS to 100.
@@ -108,7 +110,6 @@ function airlineFlightTakeoff {
     print "Achieved takeoff".
 
     flightBeginLevel(kAirline:FlightP).
-    setFlaps(1).
     set kAirline:FlightP:hspd to kAirline:FlightP:maneuverV.
 
     local startLevel to time:seconds.
@@ -141,7 +142,6 @@ function airlineHoverTakeoff {
     airlineSwitchToFlight().
 
     flightBeginLevel(kAirline:FlightP).
-    setFlaps(1).
     set kAirline:FlightP:hspd to kAirline:FlightP:maneuverV.
     wait 2.
 }
@@ -154,36 +154,79 @@ function airlineTakeoff {
     }
 }
 
-function airlineLoop {
+// Wpt stands for waypoint, but since "waypoint" is a bound name, I'm going to
+// use exclusivly "wpt" in the code when referring to this structure.
+function airlineWptCreate {
+    parameter geo, hdg, alti to -10000.
+
+    local useAlti to geo:terrainHeight.
+    if alti > useAlti {
+        set useAlti to alti.
+    }
+
+    return lexicon (
+        "geo", geo,
+        "hdg", hdg,
+        "alti", alti
+    ).
+}
+
+// Wpt refers to my struct, waypoint to the built in type.
+function airlineWptFromWaypoint {
+    parameter argWaypoint, argHeading, argAlti to -100000.
+
+
+    return airlineWptCreate(
+        argWaypoint:geoPosition,
+        argHeading,
+        argAlti
+    ).
+}
+
+function airlineWptApproach {
+    parameter runwayWpt.
+
+    local runwayGeo to runwayWpt:geo.
+    local landHeading to runwayWpt:hdg.
+
     local approachDist to kAirline:FinalS * kAirline:FlightP:maneuverV.
     local approachH to sin(kAirline:GlideAngle) * approachDist.
-    local approachAlt to kAirline:Runway:altitude + approachH.
+    local approachAlt to runwayGeo:terrainHeight + approachH.
 
-    local maneuverSpd to kAirline:FlightP:maneuverV.
+    local approachGeo to geoApproach(runwayGeo, landHeading, -approachDist).
+
+    return airlineWptCreate(approachGeo, runwayWpt:hdg, approachAlt).
+
+}
+
+function airlineLoop {
+    parameter endWpt.
+
+    local endGeo to endWpt:geo.
+    local flightP to kAirline:FlightP.
+    local maneuverSpd to FlightP:maneuverV.
     set kAirline:FlightP:hspd to maneuverSpd.
     
     local nowRadius to flightSpdToRadius(maneuverSpd, kAirline:turnXacc).
     local landRadius to flightSpdToRadius(maneuverSpd, kAirline:turnXacc).
 
-    local runwayApproachGeo to geoApproach(kAirline:Runway, 
-        kAirline:LandHeading, -approachDist).
-    local approachFrame to geoNorthFrame(runwayApproachGeo).
+    local approachFrame to geoNorthFrame(endGeo).
 
     local nowVel to noY(approachFrame:inverse * velocity:surface). 
-    local nowPos to -runwayApproachGeo:position.
+    local nowPos to -endGeo:position.
     local nowPos2d to noY(approachFrame:inverse * nowPos) + 3 * nowVel.
     local nowDir to lookDirUp(nowVel, unitY).
 
     local flightPath to turnPointToPoint(nowPos2d, nowRadius, nowDir, 
-        zeroV, landRadius, r(0,kAirline:LandHeading,0)).
+        zeroV, landRadius, r(0, endWpt:hdg, 0)).
     flightPath:remove(0).
 
     until flightPath:empty() {
-        set kAirline:FlightP:vspd to airlineCruiseVspd(
-            approachAlt, altitude, kAirline:VspdAng).
+        set FlightP:vspd to airlineCruiseVspd(
+            endWpt:alti, altitude, kAirline:VspdAng).
 
-        set approachFrame to geoNorthFrame(runwayApproachGeo).
-        set nowPos to -runwayApproachGeo:position.
+        set approachFrame to geoNorthFrame(endGeo).
+        set nowPos to -endGeo:position.
         set nowPos2d to noY(approachFrame:inverse * nowPos).
         set nowDir to approachFrame:inverse * shipLevel().
         set nowVel to noY(approachFrame:inverse * velocity:surface). 
@@ -195,14 +238,18 @@ function airlineLoop {
             local turn to flightPath[1][2].
             local fromCenter to (path2d - turn:p):normalized.
             local along to rotateVecAround(fromCenter, turn:d:upvector, 90).
-            local towards to lookDirUp(along, unitY).
-            local app to towards:inverse * (path2d - nowPos2d).
-            local apv to towards:inverse * nowVel.
-            // print "P2d " + vecround(nowPos2d) 
-            //     + " along " + vecround(along)
-            //     + " App " + vecround(app)
-            //     + " Apv " + vecround(apv).
-            set kAirline:FlightP:xacc to airlineStraightErrorToXacc(app, apv).
+            // print "Along " + vecround(along, 2).
+            local outHdg to arcTan2(along:x, -along:z).
+            clearScreen.
+            // print "outHdg " + round(outHdg).
+            local pathGeo to body:geoPositionof(endGeo:position
+                + approachFrame * path2d).
+            local toHdg to pathGeo:heading.
+            local desired to posAng(toHdg 
+                + clampAbs(smallAng(toHdg - outHdg),90)).
+            local hdgDiff to smallAng(desired - shipHeading()).
+            local hdgBased to airlineBearingXacc(hdgDiff, kAirline:TurnXacc).
+            set flightP:xacc to hdgBased.
             local endRad to (kAirline:EndRadius * groundspeed).
             if (nowPos2d - flightPath[0][1]):mag  < endRad {
                 flightPath:remove(0).
@@ -212,12 +259,12 @@ function airlineLoop {
             local turnError to airlineTurnError(turn, nowPos2d, nowVel).
             local dimlessR to (nowPos2d - turn:p):mag / turn:rad.
             local nowXacc to flightSpdToXacc(groundspeed, turn:rad).
-            set kAirline:FlightP:xacc to airlineTurnErrorToXacc(turnError, 
+            set FlightP:xacc to airlineTurnErrorToXacc(turnError, 
                 dimlessR, nowXacc, turnCCW(turn)).
-            local outDir to vcrs(flightPath[0][1] - turn:p, turn:d:upvector).
+            local outDir to vcrs(path2d - turn:p, turn:d:upvector).
             local dev to vang(nowVel, outDir).
             // print "P2d " + vecround(nowPos2d) 
-            //     + " toOut " + vecround(flightPath[0][1])
+            //     + " toOut " + vecround(path2d)
             //     + " turnError " + round(turnError)
             //     + " dimlessR " + round(dimlessR, 2)
             //     + " nowXacc " + round(nowXacc, 1)
@@ -228,30 +275,30 @@ function airlineLoop {
         }
 
         airlineIterWait().
-
-        
     }
 }
 
 function airlineLanding {
-    flightBeginLanding(kAirline:FlightP).
-    local runwayGeo to kAirline:Runway:geoposition.
+    parameter runwayWpt.
+
+    local runwayGeo to runwayWpt:geo.
+    local landHeading to runwayWpt:hdg.
+
+    local flightP to kAirline:FlightP.
+    flightBeginLanding(flightP).
     local runwayAlt to 5 + runwayGeo:terrainHeight.
     local tanGlideAngle to tan(-1 * kAirline:GlideAngle).
-    local remainder to 5 * kAirline:FlightP:maneuverV.
+    local remainder to 5 * flightP:maneuverV.
     until groundspeed < 1 {
         // approaching runway
-        local approach to heading(kAirline:LandHeading, 0).
+        local approach to heading(landHeading, 0).
         local app to approach:inverse * runwayGeo:altitudeposition(runwayAlt).
 
         if kAirline:Vtol and app:mag < kAirline:VtolLandDistance {
             break.
         }
         if app:z > remainder {
-            local roundKerbin to body:radius * vectorAngleR(
-                -body:position,
-                runwayGeo:position - body:position
-            ).
+            local roundKerbin to geoBodyPosDistance(zeroV, runwayGeo:position).
             local altDiff to altitude - runwayAlt.
             local tanToRunway to (-altDiff / roundKerbin).
             local tanTheta to tanGlideAngle
@@ -261,15 +308,16 @@ function airlineLanding {
             //     + " tanGlideAngle " + round(groundspeed * tanGlideAngle, 2)
             //     + " roundKerbin " + round(roundKerbin, 2)
             //     + " altDiff " + round(altDiff, 2).
-            set kAirline:FlightP:vspd to descent.
+            set flightP:vspd to descent.
 
             local apv to approach:inverse * velocity:surface.
-            set kAirline:FlightP:xacc to airlineStraightErrorToXacc(app, apv).
+            set flightP:xacc to airlineStraightErrorToXacc(app, apv).
 
         } else {
+            kuniverse:timewarp:cancelwarp(). 
             // close to or past runway
-            set kAirline:FlightP:vspd to kAirline:FlightP:descentV.
-            set kAirline:FlightP:xacc to 0.
+            set flightP:vspd to flightP:descentV.
+            set flightP:xacc to 0.
         }
 
         airlineIterWait().
@@ -295,6 +343,64 @@ function airlineLanding {
     }
 }
 
+function airlineBearingXacc {
+    parameter brg, lim.
+
+    local scaledBearing to brg / kAirline:MaxStraightAngle.
+    return clampAbs(scaledBearing , lim).
+}
+
+function airlineDirect {
+    parameter endGeo, cruiseAlti, cruiseSpd, stopDist.
+
+    local flightP to kAirline:FlightP.
+    flightBeginLevel(flightP).
+    setFlaps(0).
+    set flightP:hspd to cruiseSpd. 
+    until false {
+        local endPos to endGeo:position.
+        local endDist to geoBodyPosDistance(zeroV, endPos).
+
+        local movingToEnd to vdot(velocity:surface, endPos) > 0.
+        local closeToEnd to endDist < stopDist.
+        if (closeToEnd or not movingToEnd) {
+            break.
+        }
+        local altiErr to altitude - cruiseAlti.
+        local endAngle to arctan2(kAirline:CruiseAggro * altiErr, endDist).
+        local altiAngLim to max(abs(endAngle), 10).
+
+        set flightP:vspd to airlineCruiseVspd(cruiseAlti, altitude, altiAngLim).
+
+        set flightP:xacc to airlineBearingXacc(endGeo:bearing,
+            kAirline:TurnXacc).
+
+        airlineIterWait().
+    }
+}
+
+function airlineCruise {
+    parameter endWpt.
+    airlineDirect(endWpt:geo, kAirline:CruiseAlti, kAirline:FlightP:cruiseV,
+        kAirline:CruiseDist).
+
+    local flightP to kAirline:FlightP.
+    setFlaps(1).
+    flightResetSpds(flightP, flightP:maneuverV).
+    until groundSpeed < flightP:maneuverV * 1.1 {
+        airlineIterWait().
+    } 
+    setFlaps(0).
+}
+
+function airlineShortHaul {
+    parameter endWpt.
+    local flightP to kAirline:FlightP.
+    local maneuverSpd to flightP:maneuverV.
+
+    airlineDirect(endWpt:geo, endWpt:alti, maneuverSpd, kAirline:FlatDist).
+}
+
 function airlineIterWait {
     if hovering {
         hoverIter(kAirline:HoverP).
@@ -303,3 +409,16 @@ function airlineIterWait {
     }
     wait 0.05.
 }
+
+
+// Wpts
+set kAirline:Wpts to lex(
+    "Dessert00", airlineWptCreate(
+        kerbin:geopositionlatlng(-6.6, -144.04088), 0),
+    "Dessert18", airlineWptCreate(
+        kerbin:geopositionlatlng(-6.45, -144.04088), 180),
+    "Ksc09", airlineWptCreate(
+        kerbin:geopositionlatlng(-0.048588, -74.729730), 90),
+    "Ksc27", airlineWptCreate(
+        kerbin:geopositionlatlng(-0.048588, -74.487785), 270)
+).

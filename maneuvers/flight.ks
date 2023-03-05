@@ -48,6 +48,7 @@ function flightDefaultParams {
         // output
         "steering", ship:facing,
         "throttle", 0,
+        "shouldTransform", false,
 
         // vis
         "arrowVec", v(0, 0, 0),
@@ -58,8 +59,8 @@ function flightDefaultParams {
         "takeoffHeading", 90,
         "landingUpdateK", 0.04,
         "levelUpdateK", 0.1,
-        "maneuverV", 75,
-        "cruiseV", 90,
+        "maneuverV", 100,
+        "cruiseV", 250,
         "descentV", -2,
         "landTime", -1
     ).
@@ -71,7 +72,7 @@ function flightDefaultParams {
 function flightSteering {
     parameter params.
 
-    if params:mode = "LEVEL" or params:mode = "LANDING" {
+    if params:shouldTransform {
         flightDifferUpdate(params:differ).
 
         // HACK ALERT
@@ -86,12 +87,13 @@ function flightSteering {
         // exact solution.
         local spd to groundspeed.
         local turnOmega to flightSpdToOmega(spd, params:xacc).
-        local steer to angleAxis(turnOmega, up:vector) * params:steering.
+        local turnHack to angleAxis(turnOmega, up:vector).
+        local proUp to lookDirUp(velocity:surface, up:vector).
+        local steer to  turnHack * proUp * params:steering.
 
         return steer.
     }
     return params:steering.
-
 }
 
 function flightThrottle {
@@ -118,6 +120,8 @@ function flightIter {
                 to round(params[k], 2):tostring().
         }
     }
+
+    set params:shouldTransform to false.
 
     if params:mode = kFlight:Takeoff {
         flightTakeoff(params).
@@ -171,8 +175,10 @@ function flightRealityCreate {
         "Vs", 0,
         "Tas", 0,
         "Aoa", 0,
-        "Dyn", 1,
+        "Bank", 0,
+        "Dyn", 1E-10,
         "Surf", zeroV,
+        "Grav", 0,
         "Acc", zeroV,
         "Time", time:seconds,
         "Alt", 0,
@@ -188,7 +194,9 @@ function flightRealityUpdate {
     set reality:Surf to velocity:surface.
     set reality:Aoa to vang(vxcl(facing:rightvector, reality:Surf),
         facing:upvector) - 90.
-    set reality:Dyn to ship:dynamicpressure.
+    set reality:Bank to vang(facing:rightvector, up:vector) - 90.
+    set reality:Dyn to max(ship:dynamicpressure, 1E-10).
+    set reality:Grav to gat(altitude) - centrip(velocity:orbit:mag, altitude).
     set reality:Acc to acc.
     set reality:Time to time:seconds.
     set reality:Alt to altitude.
@@ -212,7 +220,7 @@ function flightModelUpdate {
     parameter model, reality.
 
     local thrustAccRaw to ship:facing:forevector * ship:thrust / ship:mass.
-    local gravAccRaw to gat(reality:Alt) * body:position:normalized.
+    local gravAccRaw to reality:Grav * body:position:normalized.
     local aeroAccRaw to (reality:Acc - thrustAccRaw - gravAccRaw).
     local aeroAcc to reality:Pro:inverse * aeroAccRaw.
     local aeroforce to aeroAcc * ship:mass.
@@ -234,11 +242,12 @@ function flightModelUpdate {
     set model:DragB to dragLinReg:b.
 
     // stall speed is level flight at 10 degrees
-    local air2 to reality:Tas ^ 2.
-    local Gmag to gat(reality:Alt) * ship:mass.
     local stallAngle to 10. // TODO incorporate zero lift angle
     local stallCl to model:AoaM * stallAngle + model:AoaB.
     if stallCl > 1 {
+        // A small boost to G to leave room for additional vertical accel
+        local Gmag to reality:Grav * ship:mass * 1.05.
+        local air2 to reality:Tas ^ 2.
         local altFactor to body:atm:altitudepressure(reality:Alt)
             / body:atm:altitudepressure(100).
         local stallSpd to sgnsqrt(Gmag * altFactor * (air2 / reality:Dyn)
@@ -265,23 +274,29 @@ function flightControlUpdate {
     local vspd to reality:Vs.
     local hspd to reality:Gs.
     local aoa to reality:Aoa.
-    local grav to gat(altitude).
+
+    local grav to reality:Grav.
     local cosP to hspd / air.
     local totalY to (accel:y + grav) / cosP.
 
     local maxTanTurn to tan(kFlight:TurnMax).
-    local xacc to clampAbs(accel:x, totalY * maxTanTurn).
+    local xacc to clampAbs(accel:x, abs(totalY) * maxTanTurn).
 
     local liftAcc to v(xacc, totalY, 0).
-    if totalY < 0 {
-        set liftAcc to liftAcc * -1.
+    local rollUp to liftAcc:vec.
+    local sgnY to sgn(totalY).
+    if sgnY < 0 {
+        // In theory, we should roll the opposite way to get a turn while our
+        // lift is negative. In practice, negative lift is only maintained for
+        // short periods of time, and this kind of inverse roll just causes me
+        // trouble.
+        set liftAcc:x to 0.
+        set rollUp to liftAcc * -1.
     }
+    local liftMag to liftAcc:mag * ship:mass * sgnY.
 
-    local sinP to vspd / air.
     local nowThrust to ship:thrust.
-    local liftMag to liftAcc:mag * ship:mass.
     local reqLift to liftMag.
-    local liftDotDrag to liftMag * sinP.
 
     local m to max(model:AoaM, 1).
     local b to model:AoaB.
@@ -291,20 +306,24 @@ function flightControlUpdate {
     // small angle approximation of thrust * sin(aoa).
     local stable to ((reqLift) / (dyn) - b) 
         / (m + constant:degtorad * nowThrust / dyn).
-    // don't set aoa to more than 3 degrees off current
-    set stable to aoa + clamp(stable - aoa, -3, 3).
+    // don't set aoa to more than some degrees off current
+    set stable to aoa + clampAbs(stable - aoa, 5).
 
+    local sinP to vspd / air.
+    local liftDotDrag to liftMag * sinP.
     local stableDrag to -1 * (md * stable + bd) * dyn.
     local stableThrust to (1 / cos(stable)) * (ship:mass * accel:z 
         + stableDrag + liftDotDrag).
 
-    set control:rollUp to liftAcc.
+    set control:rollUp to rollUp.
     set control:Aoa to stable.
     set control:Thrust to stableThrust.
 }
 
 function flightLevel {
     parameter params.
+
+    set params:shouldTransform to true.
 
     local vspd to params:vspd.
     local hspd to params:hspd.
@@ -340,8 +359,7 @@ function flightLevel {
     // pitch
     local aoaRots to flightPitch(aoa + pitchNoise).
     local rolled to lookDirUp(unitZ, params:control:rollUp).
-    local proUp to lookDirUp(velocity:surface, up:vector).
-    local flight to proUp * rolled * aoaRots.
+    local flight to rolled * aoaRots.
     set params:steering to flight.
 
     // throttle
@@ -474,17 +492,16 @@ function flightHAccPid {
     local kp to kFlight:HAccKp.
     // horizontal should not have I term 
     local pid to pidloop(kp, 0, kp / 5).
-    set pid:maxoutput to kFlight:HAccMax.
     set pid:minoutput to -kFlight:HAccMax.
+    set pid:maxoutput to kFlight:HAccMax.
     return pid.
 }
 
 function flightVAccPid {
     local kp to kFlight:VAccKp.
     local pid to pidloop(kp, kp / 10, kp / 5).
+    set pid:minoutput to -kFlight:VAccMax.
     set pid:maxoutput to kFlight:VAccMax.
-    // No Negative Gs because it's awkward while turning
-    set pid:minoutput to -9.
     return pid.
 }
 
@@ -513,8 +530,8 @@ function flightSetSteeringManager {
     // kp defaults to be 1, but we need to be sure for a hack in our steering
     set steeringmanager:yawpid:kp to 1.
     set steeringmanager:pitchpid:kp to 1.
-    // set steeringmanager:pitchpid:ki to 0.
     // we don't want to accumulate anything in level flight
+    set steeringmanager:pitchpid:ki to 0.
     set steeringmanager:rollpid:ki to 0.
     set steeringmanager:yawpid:ki to 0.
 }

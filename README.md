@@ -22,6 +22,7 @@ Contained within is code for these operations
     * Landing following a glide slope with a flare.
     * Calculate and follow waypoints based on air speed.
     * In some situations, estimate plane's stall speed.
+    * Fly a plane from runway to runway across the planet.
 * Fly a hover craft.
     * Hover a craft at a given height above obstacles.
     * Can fly toward a target, calculating necessary stopping speed.

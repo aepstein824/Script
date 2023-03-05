@@ -20,6 +20,14 @@ function geoApproach {
     return body:geoPositionof(pos).
 }
 
+function geoBodyPosDistance {
+    parameter posA, posB, bod to body.
+    return bod:radius * vectorAngleR(
+        posA - bod:position,
+        posB - bod:position
+    ).
+}
+
 function turn2d {
     parameter p, rad, d.
     // These circles also have a direction. Positive Y represents a ccw turn.

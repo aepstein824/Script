@@ -58,7 +58,7 @@ function climbLoop {
 
 function climbCleanup {
     set controlThrot to 0.
-    kuniverse:timewarp:cancelwarp.
+    kuniverse:timewarp:cancelwarp().
 }
 
 function slowThrottle {
