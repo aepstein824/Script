@@ -131,7 +131,7 @@ function pilotFlight {
             print "Level".
         } else if pRot:z > 0.5 {
             // press E
-            flightResetSpds(params, params:cruiseV).
+            flightResetSpds(params, params:maneuverV).
             print "Reset Spds".
         } else if pRot:x < -0.5 {
             // press A

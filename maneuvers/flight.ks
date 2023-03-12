@@ -55,7 +55,7 @@ function flightDefaultParams {
         "report", false,
 
         // constants
-        "takeoffAoA", 8,
+        "takeoffAoA", 10,
         "takeoffHeading", 90,
         "landingUpdateK", 0.04,
         "levelUpdateK", 0.1,
@@ -144,10 +144,12 @@ function flightTakeoff {
     parameter params.
 
     set params:steering to heading(params:takeoffHeading, params:takeoffAoA).
-    set params:throttle to 1.
 
     if status = "LANDED" {
+        set params:throttle to 1.
         flightSetSpeedsGivenMin(params, groundspeed).
+    } else {
+        set params:throttle to 0.5.
     }
 }
 
@@ -242,7 +244,7 @@ function flightModelUpdate {
     set model:DragB to dragLinReg:b.
 
     // stall speed is level flight at 10 degrees
-    local stallAngle to 10. // TODO incorporate zero lift angle
+    local stallAngle to 8. // TODO incorporate zero lift angle
     local stallCl to model:AoaM * stallAngle + model:AoaB.
     if stallCl > 1 {
         // A small boost to G to leave room for additional vertical accel

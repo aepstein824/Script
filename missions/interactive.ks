@@ -13,9 +13,9 @@ local buttonNames to list(
     "land", "node", "circle", "ground", "refresh"
     ).
 clearGuis().
-local gui to gui(300).
+local menu to gui(300).
 createButtons().
-gui:show().
+menu:show().
 
 local todo to "".
 local arg0 to "".
@@ -31,22 +31,22 @@ until false {
     unlock steering.
     unlock throttle.
     set todo to "".
-    gui:show().
+    menu:show().
 }
 
 function createButtons {
     for b in buttonNames {
-        local button to gui:addbutton(b).
+        local button to menu:addbutton(b).
         function clickChecker {
             parameter bname.
             set todo to bname.
             set arg0 to arg0f:text.
             set arg1 to arg1f:text.
-            gui:hide().
+            menu:hide().
         }
         set button:onclick to clickChecker@:bind(b).
     }
-    local fields to gui:addhlayout().
+    local fields to menu:addhlayout().
     local arg0f to fields:addtextfield("").
     local arg1f to fields:addtextfield("").
 }
@@ -102,4 +102,4 @@ function doSomething {
     }
 }
 
-gui:hide().
+menu:hide().

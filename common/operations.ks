@@ -75,6 +75,9 @@ global spaceScienceParts to list(
 global groundOnlyScienceParts to list(
     "sensorAccelerometer"
 ).
+global atmoOnlyScienceParts to list(
+    "sensorAtmosphere"
+).
 global useOnceScienceParts to list(
     "goo",
     "science.module",
@@ -95,9 +98,15 @@ function sciencePartNames {
     }
     if status = "LANDED" or status = "PRELAUNCH" {
         set names to mergeList(names, groundOnlyScienceParts).
+        if body:atm:exists {
+            set names to mergeList(names, atmoOnlyScienceParts).
+        }
     }
     if status = "ORBITING" or status = "ESCAPING" or status = "DOCKED" {
         set names to mergeList(names, spaceScienceParts).
+    }
+    if status = "FLYING" {
+        set names to mergeList(names, atmoOnlyScienceParts).
     }
     return names.
 }

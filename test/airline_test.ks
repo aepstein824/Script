@@ -7,7 +7,8 @@ local tests to lexicon(
     "testVspd", testCruiseVspd@,
     "testTurnError", testTurnError@,
     "testErrorToXaccCW", testErrorToXaccCW@,
-    "testErrorToXaccCCW", testErrorToXaccCCW@
+    "testErrorToXaccCCW", testErrorToXaccCCW@,
+    "testLandY", testLandY@
 ).
 
 testRun(tests).
@@ -109,5 +110,46 @@ function testErrorToXaccCCW {
     t:add(testEq(airlineTurnErrorToXacc(5, 1, -turnX, true), turnX - 0.5)).
     t:add(testEq(airlineTurnErrorToXacc(5, 0.1, -turnX, true), turnX - 0.5)).
     t:add(testEq(airlineTurnErrorToXacc(5, 3, -turnX, true), tp1 * -.5)).
+    return t.
+}
+
+function testLandY {
+    local t to list().
+    local runwayAlti to 100.
+    local shallowS to 5.
+    local extraOver to 10.
+    local extraShallow to 10.
+    local tanGlide to -0.1. // a little more than 5 degrees
+    local landV to 50.
+    local descentV to -1.
+
+    local resOver to airlineLandY(runwayAlti, shallowS, extraOver, extraShallow,
+        tanGlide, landV, descentV, -10).
+    t:add(testEq(resOver:spd, descentV)).
+    local resShal0 to airlineLandY(runwayAlti, shallowS, extraOver, extraShallow,
+        tanGlide, landV, descentV, 0).
+    t:add(testEq(resShal0:y, 110)).
+    t:add(testEq(resShal0:spd, descentV)).
+    local resShal1 to airlineLandY(runwayAlti, shallowS, extraOver, extraShallow,
+        tanGlide, landV, descentV, 50).
+    t:add(testEq(resShal1:y, 111)).
+    t:add(testEq(resShal1:spd, descentV)).
+    local resShal3 to airlineLandY(runwayAlti, shallowS, extraOver, extraShallow,
+        tanGlide, landV, descentV, 150).
+    t:add(testEq(resShal3:y, 113)).
+    t:add(testEq(resShal3:spd, descentV)).
+    local resShal3 to airlineLandY(runwayAlti, shallowS, extraOver, extraShallow,
+        tanGlide, landV, descentV, 150).
+    t:add(testEq(resShal3:y, 113)).
+    t:add(testEq(resShal3:spd, descentV)).
+    local resGlide0 to airlineLandY(runwayAlti, shallowS, extraOver, extraShallow,
+        tanGlide, landV, descentV, 250).
+    t:add(testEq(resGlide0:y, 125)).
+    t:add(testEq(resGlide0:spd, -5)).
+    local resGlide5 to airlineLandY(runwayAlti, shallowS, extraOver, extraShallow,
+        tanGlide, landV, descentV, 500).
+    t:add(testEq(resGlide5:y, 150)).
+    t:add(testEq(resGlide5:spd, -5)).
+    
     return t.
 }

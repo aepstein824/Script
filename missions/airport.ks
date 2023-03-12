@@ -7,9 +7,12 @@ runOncePath("0:common/ship").
 runOncePath("0:phases/airline").
 
 clearAll().
+airlineInit().
 
-airportTo(kAirline:Wpts:Dessert18).
-airportTo(kAirline:Wpts:Ksc09).
+// airportTo(kAirline:Wpts:NP27).
+// airportTo(kAirline:Wpts:Dessert18).
+// airportTo(kAirline:Wpts:Ksc09).
+airportTo(kAirline:Wpts:Island09).
 
 function airportTo {
     parameter landWpt.
@@ -17,7 +20,6 @@ function airportTo {
     local approachGeo to approachWpt:geo.
 
     set kAirline:TakeoffHeading to shipHeading().
-    airlineInit().
     airlineTakeoff().
 
     set kuniverse:timewarp:rate to 4.
@@ -45,6 +47,8 @@ function airportTo {
     airlineLoop(approachWpt).
     print "Begin landing".
     airlineLanding(landWpt).
+    print "Chill".
+    wait 3.
 }
 
 // if false {

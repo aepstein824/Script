@@ -14,7 +14,7 @@ for p in procs {
     }
 }
 
-if ship:name = activeShip:name and amSmallest {
+if ship:name = activeShip:name {
     core:doevent("Open Terminal").
 } else {
     if amSmallest {
