@@ -55,9 +55,9 @@ function flightDefaultParams {
         "report", false,
 
         // constants
-        "takeoffAoA", 10,
+        "takeoffAoA", 45,
         "takeoffHeading", 90,
-        "landingUpdateK", 0.04,
+        "landingUpdateK", 0.001,
         "levelUpdateK", 0.1,
         "maneuverV", 100,
         "cruiseV", 250,
@@ -143,13 +143,15 @@ function flightSetSpeedsGivenMin {
 function flightTakeoff {
     parameter params.
 
-    set params:steering to heading(params:takeoffHeading, params:takeoffAoA).
-
     if status = "LANDED" {
         set params:throttle to 1.
+        set params:steering to heading(params:takeoffHeading,
+            params:takeoffAoA).
         flightSetSpeedsGivenMin(params, groundspeed).
     } else {
         set params:throttle to 0.5.
+        set params:steering to heading(params:takeoffHeading,
+            params:takeoffAoA / 2).
     }
 }
 
@@ -244,7 +246,7 @@ function flightModelUpdate {
     set model:DragB to dragLinReg:b.
 
     // stall speed is level flight at 10 degrees
-    local stallAngle to 8. // TODO incorporate zero lift angle
+    local stallAngle to 10. // TODO incorporate zero lift angle
     local stallCl to model:AoaM * stallAngle + model:AoaB.
     if stallCl > 1 {
         // A small boost to G to leave room for additional vertical accel
@@ -310,6 +312,7 @@ function flightControlUpdate {
         / (m + constant:degtorad * nowThrust / dyn).
     // don't set aoa to more than some degrees off current
     set stable to aoa + clampAbs(stable - aoa, 5).
+    // print "Stable " + round(stable, 1) + " vs Aoa " + round(aoa, 1).
 
     local sinP to vspd / air.
     local liftDotDrag to liftMag * sinP.
@@ -400,6 +403,12 @@ function flightLanding {
         return.
     }
     set params:landTime to -1.
+
+    if params:vacc > 0 {
+        local upIsFast to params:vacc * (1/50).
+        set params:landV to params:landV + upIsFast.
+        set params:hspd to params:hspd + upIsFast.
+    }
 
     local flaring to groundAlt() < kFlight:FlareHeight.
     // We want to fly stably into the landing
@@ -501,7 +510,7 @@ function flightHAccPid {
 
 function flightVAccPid {
     local kp to kFlight:VAccKp.
-    local pid to pidloop(kp, kp / 10, kp / 5).
+    local pid to pidloop(kp, kp / 20, kp / 3).
     set pid:minoutput to -kFlight:VAccMax.
     set pid:maxoutput to kFlight:VAccMax.
     return pid.
@@ -528,7 +537,7 @@ function flightSetSteeringManager {
     // Setting the roll range to 180 forces roll control everywhere
     set steeringmanager:rollcontrolanglerange to 180.
     // The stop time calc doesn't work for planes
-    set steeringmanager:maxstoppingtime to 100.
+    set steeringmanager:maxstoppingtime to 10000.
     // kp defaults to be 1, but we need to be sure for a hack in our steering
     set steeringmanager:yawpid:kp to 1.
     set steeringmanager:pitchpid:kp to 1.

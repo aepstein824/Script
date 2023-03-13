@@ -314,7 +314,7 @@ function airlineLanding {
 
     local runwayAlti to  runwayGeo:terrainHeight.
     local shallowS to 5.
-    local extraOver to 5.
+    local extraOver to 7.
     local extraShallow to 7.
     local tanGlideAngle to -1 * tan(kAirline:GlideAngle).
     local descentV to flightP:descentV.
@@ -392,9 +392,9 @@ function airlineDirect {
         local endPos to endGeo:position.
         local endDist to geoBodyPosDistance(zeroV, endPos).
 
-        local movingToEnd to vdot(velocity:surface, endPos) > 0.
+        // local movingToEnd to vdot(velocity:surface, endPos) > 0.
         local closeToEnd to endDist < stopDist.
-        if (closeToEnd or not movingToEnd) {
+        if closeToEnd {
             break.
         }
         set flightP:xacc to airlineBearingXacc(endGeo:bearing,
