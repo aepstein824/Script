@@ -3,21 +3,42 @@
 runOncePath("0:common/math.ks").
 
 function geoNorthFrame {
-    parameter lzgeo.
+    parameter lzGeo.
 
-    local out to (lzgeo:position - body:position).
-    local localNorth to removeComp(unitY, out).
+    // This method is slower than using unitY as north, but may be more stable
+    // close to the poles. It would also work on planets with tilt.
+    local bod to lzGeo:body.
+    local bodPos to bod:position.
+    local lng to lzGeo:lng.
+    local outVec to (lzGeo:position - bodPos):normalized.
+    local geoNp to bod:geoPositionLatLng(90, lng).
+    local toNp to geoNp:position - lzGeo:position.
+    local northVec to vxcl(outVec, toNp):normalized.
 
-    return lookDirUp(localNorth, out).
-} 
+    return lookDirUp(northVec, outVec).
+}
+
+function geoNorth2dToGeo {
+    parameter geo, northFrame, pos2d.
+
+    local bod to geo:body.
+    local norm2d to vcrs(pos2d, unitY).
+    local normRaw to northFrame * norm2d.
+    local rotateRad to pos2d:mag / bod:radius.
+    local outPos to rotateVecAroundR(geo:position - bod:position, normRaw,
+        rotateRad).
+    local outGeo to bod:geopositionof(outPos + bod:position).
+
+    return outGeo.
+}
 
 function geoApproach {
     parameter lzgeo, head, dist.
 
     local lzFrame to geoNorthFrame(lzgeo).
     local approach to rotateVecAround(dist * unitZ, unitY, -1 * head).
-    local pos to lzFrame * approach + lzgeo:position.
-    return body:geoPositionof(pos).
+    local approachGeo to geoNorth2dToGeo(lzgeo, lzFrame, approach).
+    return approachGeo.
 }
 
 function geoBodyPosDistance {
@@ -26,6 +47,16 @@ function geoBodyPosDistance {
         posA - bod:position,
         posB - bod:position
     ).
+}
+
+function geoHeadingTo {
+    parameter geoFrom, geoTo.
+
+    local dp to geoTo:position - geoFrom:position.
+    local northFrame to geoNorthFrame(geoFrom).
+    local nfdp to northFrame:inverse * dp.
+    local hdg to -1 * vectorAngleAround(unitZ, unitY, nfdp).
+    return posAng(hdg).
 }
 
 function turn2d {
@@ -199,4 +230,24 @@ function turnPathDistance {
     }
 
     return dist.
+}
+
+function geoRound {
+    parameter geo, n to 4.
+    local bod to geo:body.
+    return bod:geopositionlatlng(round(geo:lat, n), round(geo:lng, n)).
+}
+
+function geoRoundStr {
+    parameter geo, n to 4.
+    local bod to geo:body.
+    return bod:name + ":(" + round(geo:lat, n) + ", " + round(geo:lng, n) + ")".
+}
+
+function shipVHeading {
+    local frame to geoNorthFrame(geoPosition).
+    local vel to velocity:surface.
+    local frameVel to noy(frame:inverse * vel).
+    local hdg to vectorAngleAround(frameVel, unitY, unitZ).
+    return hdg.
 }

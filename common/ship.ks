@@ -1,5 +1,6 @@
 @LAZYGLOBAL OFF.
 
+
 function shipNorm {
     return vCrs(ship:prograde:vector, ship:position - body:position):normalized.
 }
@@ -97,7 +98,7 @@ function printPids {
 }
 
 function shipHeading {
-    local northPole to latlng(90,0).
+    local northPole to latlng(90, 0).
     local comp to mod(360 - northPole:bearing, 360).
     return comp.
 }
@@ -130,4 +131,8 @@ function shipControlFromCommand {
     // TODO choose this in some reasonable way
     local commandMod to ship:modulesnamed("ModuleCommand")[0].
     commandMod:part:controlfrom().
+}
+
+function shipIsLandOrSplash {
+    return status = "LANDED" or status = "SPLASHED".
 }

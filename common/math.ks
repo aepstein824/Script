@@ -73,6 +73,11 @@ function rotateVecAround {
     return dir * vec.
 }
 
+function rotateVecAroundR {
+    parameter vec, upRef, x.
+    return rotateVecAround(vec, upRef, x * 57.2958).
+}
+
 function vecAlong {
     parameter vec, along.
     return along:normalized * vDot(vec, along).

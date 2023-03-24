@@ -65,8 +65,10 @@ function opsCheckFull {
 global anytimeScienceParts to list(
     "sensorBarometer",
     "sensorThermometer",
-    "sensorGravimeter",
     "cupola-telescope"
+).
+global inertialScienceParts to list(
+    "sensorGravimeter"
 ).
 global spaceScienceParts to list(
     "magnetometer",
@@ -96,6 +98,9 @@ function sciencePartNames {
     if useOnce {
         set names to mergeList(names, useOnceScienceParts).
     }
+    if status <> "FLYING" and ship:thrust < 0.0001 {
+        set names to mergeList(names, inertialScienceParts).
+    }
     if status = "LANDED" or status = "PRELAUNCH" {
         set names to mergeList(names, groundOnlyScienceParts).
         if body:atm:exists {
@@ -108,6 +113,7 @@ function sciencePartNames {
     if status = "FLYING" {
         set names to mergeList(names, atmoOnlyScienceParts).
     }
+    print "Doing science with: " + opsCommaList(names) + ".".
     return names.
 }
 
@@ -147,8 +153,9 @@ function opsExperimentModules {
 
 function opsAwaitModules {
     parameter mods.
+    local start to time:seconds.
     for m in mods {
-        wait until m:hasData.
+        wait until m:hasData or ((time:seconds - start) > 15).
     }
     wait 0.
 }
@@ -465,8 +472,13 @@ function groundAlt {
 
 function terrainHAt {
     parameter p.
-    local ground to body:geopositionof(p):terrainheight.
-    if body:hasOcean() {
+    return terrainHGeo(body:geopositionof(p)).
+}
+
+function terrainHGeo {
+    parameter geo.
+    local ground to geo:terrainheight.
+    if geo:body:hasOcean() {
         set ground to max(ground, 0).
     }
     return ground.
@@ -590,13 +602,25 @@ function setThrustReverser {
     return allReversers.
 }
 
-function geoRound {
-    parameter geo, n to 4.
-    local bod to geo:body.
-    return bod:geopositionlatlng(round(geo:lat, n), round(geo:lng, n)).
-}
-
 function pressAnyKey {
     print "Press ANY key to continue ".
     terminal:input:getchar().
+}
+
+function repeatForDuration {
+    parameter func, dur.
+
+    local start to time:seconds.
+    until time:seconds - start > dur {
+        func().
+    }
+}
+
+function opsCommaList {
+    parameter lst.
+    local acc to "".
+    for item in lst {
+        set acc to acc + item + ", ".
+    }
+    return acc.
 }

@@ -18,13 +18,16 @@ function pilotHybrid {
     until false {
         if flyNext {
             clearAll().
+            print "Beginning flight mode".
+            print vang(facing:forevector, up:forevector) > 30.
             pilotFlight().
             set flyNext to false.
             clearAll().
-            print "Switching to Hover".
+            print " Switching to hover".
             hoverFlightToHover().
         } else {
             clearAll().
+            print "Beginning hover mode".
             pilotHover().
             set flyNext to true.
             hoverHoverToFlight().
@@ -66,23 +69,31 @@ function pilotHover {
         local pRot  to ship:control:pilotrotation.
 
         set params:vspdCtrl to params:vspdCtrl + 3 * pTrans:z * timeDiff.
+        if abs(pTrans:z) > 0.5 {
+            print "Vspd: " + params:vspdCtrl.
+        }
 
         if pRot:y > 0.5 {
             // press S
             setTarget(params).
             set params:seek to true.
+            print "Seeking".
         } else if pRot:y < -0.5 {
             // press W
             set params:seek to false.
+            print "Not Seeking".
         } else if pRot:z < -0.5 {
             // press Q
             set params:mode to kHover:Vspd.
+            print "Vspd Mode".
         } else if pRot:x < -0.5 {
             // press A
             set params:mode to kHover:Hover.
+            print "Hover Mode".
         } else if pRot:z > 0.5 {
             // press E
             set params:mode to kHover:Stop.
+            print "Stop Mode".
         } else if pRot:x > 0.5 {
             // press D
             return.

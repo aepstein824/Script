@@ -10,7 +10,9 @@ local tests to lexicon(
     "removeComp", testRemove@,
     "intervals", testLerps@,
     "posmod", testPosmod@,
-    "vecClamp", testVecClamp@
+    "vecClamp", testVecClamp@,
+    "smallAng", testSmallAng@,
+    "posAng", testPosAng@
 ).
 
 testRun(tests).
@@ -102,5 +104,27 @@ function testVecClamp {
     t:add(testEq(vecClampMag(unitX, 1), unitX)).
     t:add(testEq(vecClampMag(2 * unitX, 1), unitX)).
     t:add(testEq(vecClampMag(2 * unitX, 2), 2 * unitX)).
+    return t.
+}
+
+function testSmallAng {
+    local t to list().
+    t:add(testEq(smallAng(-1), -1)).
+    t:add(testEq(smallAng(1), 1)).
+    t:add(testEq(smallAng(-181), 179)).
+    t:add(testEq(smallAng(181), -179)).
+    t:add(testEq(smallAng(-541), 179)).
+    t:add(testEq(smallAng(541), -179)).
+    return t.
+}
+
+function testPosAng {
+    local t to list().
+    t:add(testEq(posAng(-1), 359)).
+    t:add(testEq(posAng(1), 1)).
+    t:add(testEq(posAng(-181), 179)).
+    t:add(testEq(posAng(181), 181)).
+    t:add(testEq(posAng(-541), 179)).
+    t:add(testEq(posAng(541), 181)).
     return t.
 }

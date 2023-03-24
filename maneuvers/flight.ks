@@ -16,7 +16,7 @@ set kFlight:hAccKp to 1.
 set kFlight:hAccMax to 20.
 set kFlight:vAccKp to 1.
 set kFlight:vAccMax to 20.
-set kFlight:TurnMax to 45.
+set kFlight:TurnMax to 60.
 
 set kFlight:Park to "PARK".
 set kFlight:Takeoff to "TAKEOFF".
@@ -86,7 +86,10 @@ function flightSteering {
         // equivalent rotational velocity. Because kp = 1, I believe this is an
         // exact solution.
         local spd to groundspeed.
-        local turnOmega to flightSpdToOmega(spd, params:xacc).
+        local realBank to params:reality:Bank.
+        local realXacc to sin(realBank) * params:reality:lift / ship:mass.
+        // print round(realXacc, 2) + " vs " + round(params:xacc, 2).
+        local turnOmega to flightSpdToOmega(spd, realXacc). 
         local turnHack to angleAxis(turnOmega, up:vector).
         local proUp to lookDirUp(velocity:surface, up:vector).
         local steer to  turnHack * proUp * params:steering.
@@ -205,6 +208,15 @@ function flightRealityUpdate {
     set reality:Time to time:seconds.
     set reality:Alt to altitude.
     set reality:Pro to lookDirUp(reality:Surf, facing:upvector).
+
+    local thrustAccRaw to ship:facing:forevector * ship:thrust / ship:mass.
+    local gravAccRaw to reality:Grav * body:position:normalized.
+    local aeroAccRaw to (reality:Acc - thrustAccRaw - gravAccRaw).
+    local aeroAcc to reality:Pro:inverse * aeroAccRaw.
+    local aeroforce to aeroAcc * ship:mass.
+
+    set reality:Lift to aeroforce:y.
+    set reality:Drag to aeroforce:z.
 }
 
 function flightModelCreate {
@@ -223,16 +235,8 @@ function flightModelCreate {
 function flightModelUpdate {
     parameter model, reality.
 
-    local thrustAccRaw to ship:facing:forevector * ship:thrust / ship:mass.
-    local gravAccRaw to reality:Grav * body:position:normalized.
-    local aeroAccRaw to (reality:Acc - thrustAccRaw - gravAccRaw).
-    local aeroAcc to reality:Pro:inverse * aeroAccRaw.
-    local aeroforce to aeroAcc * ship:mass.
-
-    local lift to aeroforce:y.
-    local drag to aeroforce:z.
-    local cLift to lift / reality:Dyn.
-    local cDrag to drag / reality:Dyn.
+    local cLift to reality:Lift / reality:Dyn.
+    local cDrag to reality:Drag / reality:Dyn.
     local aoa to reality:Aoa.
 
     local liftLinReg to model:LiftLinReg.
@@ -287,16 +291,7 @@ function flightControlUpdate {
     local xacc to clampAbs(accel:x, abs(totalY) * maxTanTurn).
 
     local liftAcc to v(xacc, totalY, 0).
-    local rollUp to liftAcc:vec.
     local sgnY to sgn(totalY).
-    if sgnY < 0 {
-        // In theory, we should roll the opposite way to get a turn while our
-        // lift is negative. In practice, negative lift is only maintained for
-        // short periods of time, and this kind of inverse roll just causes me
-        // trouble.
-        set liftAcc:x to 0.
-        set rollUp to liftAcc * -1.
-    }
     local liftMag to liftAcc:mag * ship:mass * sgnY.
 
     local nowThrust to ship:thrust.
@@ -319,6 +314,15 @@ function flightControlUpdate {
     local stableDrag to -1 * (md * stable + bd) * dyn.
     local stableThrust to (1 / cos(stable)) * (ship:mass * accel:z 
         + stableDrag + liftDotDrag).
+
+    local rollUp to v(xacc, reality:lift / ship:mass, 0).
+    if sgn(reality:lift) < 0 {
+        // In theory, we should roll the opposite way to get a turn while our
+        // lift is negative. In practice, negative lift is only maintained for
+        // short periods of time, and this kind of inverse roll just causes me
+        // trouble.
+        set rollUp to unitY.
+    }
 
     set control:rollUp to rollUp.
     set control:Aoa to stable.

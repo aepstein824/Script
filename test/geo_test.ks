@@ -6,6 +6,8 @@ runOncePath("0:test/test_utils.ks").
 local tests to lexicon(
     "northFrame", testNorth@,
     "approach", testApproach@,
+    "headingTo", testHeadingTo@,
+    "north2dToGeo", testNorth2dToGeo@,
     "turnCircles", testTurnCircles@,
     "turnXVec", testTurnIntersectVec@,
     "turnXPoint", testTurnIntersectPoint@,
@@ -41,9 +43,52 @@ function testNorth {
 function testApproach {
     local t to list().
     local geo0 to latlng(10, 10).
-    local approachGeo to geoApproach(geo0, 90, 1000).
-    t:add(testEq(approachGeo:lat, geo0:lat)).
-    t:add(testGr(approachGeo:lng, geo0:lng)).
+    local approachGeo00 to geoApproach(geo0, 0, 1000).
+    t:add(testGr(approachGeo00:lat, geo0:lat)).
+    t:add(testEq(approachGeo00:lng, geo0:lng)).
+    local approachGeo09 to geoApproach(geo0, 90, 1000).
+    t:add(testEq(approachGeo09:lat, geo0:lat)).
+    t:add(testGr(approachGeo09:lng, geo0:lng)).
+    return t.
+}
+
+function testHeadingTo {
+    local t to list().
+    local geo0 to latlng(80, 10).
+    local hdg00 to geoHeadingTo(geo0, latlng(80, 189)). // slightly above 0
+    local hdg09 to geoHeadingTo(geo0, latlng(80, 10.1)).
+    local hdg18 to geoHeadingTo(geo0, latlng(-10, 10)).
+    local hdg27 to geoHeadingTo(geo0, latlng(80, 9.9)).
+    t:add(testEq(hdg00, 0, 1)).
+    t:add(testEq(hdg09, 90, 1)).
+    t:add(testEq(hdg18, 180, 1)).
+    t:add(testEq(hdg27, 270, 1)).
+    return t.
+}
+
+function testNorth2dToGeo {
+    local t to list().
+    local geoNp to latlng(89.99, 0).
+    local dist to 30000.
+    local frame to geoNorthFrame(geoNp).
+    local pos05 to dist * v( 1, 0,  1):normalized.
+    local pos14 to dist * v( 1, 0, -1):normalized.
+    local pos23 to dist * v(-1, 0, -1):normalized.
+    local pos32 to dist * v(-1, 0,  1):normalized.
+
+    local geo05 to geoNorth2dToGeo(geoNp, frame, pos05).
+    local geo14 to geoNorth2dToGeo(geoNp, frame, pos14).
+    local geo23 to geoNorth2dToGeo(geoNp, frame, pos23).
+    local geo32 to geoNorth2dToGeo(geoNp, frame, pos32).
+
+    t:add(testEq(geoHeadingTo(geoNp, geo05),  45, 1)).
+    t:add(testEq(geoHeadingTo(geoNp, geo14), 135, 1)).
+    t:add(testEq(geoHeadingTo(geoNp, geo23), 225, 1)).
+    t:add(testEq(geoHeadingTo(geoNp, geo32), 315, 1)).
+    t:add(testEq(geoBodyPosDistance(geoNp:position, geo05:position), dist, 1)).
+    t:add(testEq(geoBodyPosDistance(geoNp:position, geo14:position), dist, 1)).
+    t:add(testEq(geoBodyPosDistance(geoNp:position, geo23:position), dist, 1)).
+    t:add(testEq(geoBodyPosDistance(geoNp:position, geo32:position), dist, 1)).
     return t.
 }
 

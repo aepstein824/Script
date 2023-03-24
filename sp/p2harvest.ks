@@ -200,7 +200,7 @@ local function scooperIteration {
     core:doaction("Open Terminal", true).
 
     print "Landing".
-    local flatLz to vacNearestFlat(lz).
+    local flatLz to geoNearestFlat(lz).
     vacDescendToward(flatLz).
     lights on.
     vacLandGeo(flatLz).

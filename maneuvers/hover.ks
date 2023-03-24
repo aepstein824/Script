@@ -54,7 +54,7 @@ function hoverDefaultParams {
         "favAAT", 12,
         "cruiseCrab", true,
         "minG", 0.8,
-        "spdPerH", 0.3,
+        "spdPerH", 0.5,
         "jerkH", 0.4,
         "maxAccelH", 0.2,
         "maxSpdH", 50,
@@ -84,6 +84,7 @@ function hoverLock {
 
     lock steering to hoverSteering(params).
     lock throttle to hoverThrottle(params).
+    set params:bounds to ship:bounds.
 }
 
 function hoverUnlock {
@@ -231,6 +232,9 @@ function hoverHAccel {
     local toTgt to travelInv * params:tgt:position.
     local travelV to travelInv * velocity:surface.
     local jerk to params:jerkH.
+    if params:mode <> kHover:Hover {
+        set jerk to jerk / 4.
+    }
     set curA:z to 0.
     set toTgt:z to 0.
     set travelV:z to 0.
@@ -281,19 +285,20 @@ function hoverPid {
 
 function hoverHoverToFlight {
     lock throttle to 1.
-    lock steering to heading(shipHeading(), 85, 0).
+    lock steering to heading(shipVHeading(), 85, 0).
+    print " Transition to 85".
     wait 5.
-    lock steering to heading(shipHeading(), 45, 0).
-    wait 10.
+    lock steering to heading(shipVHeading(), 30, 0).
+    print " Transition to 30".
+    wait until velocity:surface:mag > 100.
 }
 
 function hoverFlightToHover {
-    print "Transition to 45".
-    lock steering to heading(shipHeading(), 45, 0).
-    lock throttle to 1.
+    print " Transition to 45".
+    lock steering to heading(shipVHeading(), 45, 0).
+    lock throttle to 1.1 * ship:mass * gat(altitude) / ship:maxthrust.
     wait 3.
-    print "Transition to 85".
-    lock steering to heading(shipHeading(), 85, 0).
-    lock throttle to ship:mass * gat(altitude) / ship:maxthrust.
+    print " Transition to 85".
+    lock steering to heading(shipVHeading(), 85, 0).
     wait 3.
 }

@@ -297,10 +297,14 @@ function vacClimb {
     wait 1.
 }
 
-function vacNearestFlat {
+function geoNearestFlat {
     parameter lz.
     local dspace to 10.
     local success to 0.15.
+
+    if lz:body:hasOcean() and lz:terrainheight < 0 {
+        return lz.
+    }
 
     local function lzF {
         parameter pos.
@@ -323,13 +327,14 @@ function vacNearestFlat {
         parameter df.
         return (abs(df:x) + abs(df:y)) < success.
     }
+    print "Searching for flat landing site".
     local start to lz:position.
     local top to optimizeFixedWalk(lzNF@, lzCombine@, lzSuccess@, lz, dspace).
     local topClimb to (top:position - start):mag.
-    print " Uphill " + geoRound(top) + " : " + round(topClimb, 2).
+    print " Uphill " + geoRoundStr(top) + " : " + round(topClimb, 2).
     local bottom to optimizeFixedWalk(lzF@, lzCombine@, lzSuccess@, lz, dspace).
     local bottomClimb to (bottom:position - start):mag.
-    print " Downhill " + geoRound(bottom) + " : " + round(bottomClimb, 2).
+    print " Downhill " + geoRoundStr(bottom) + " : " + round(bottomClimb, 2).
     local chosen to bottom.
     // Prefer top for safer and more efficient landings
     if topClimb < 2 * bottomClimb {
