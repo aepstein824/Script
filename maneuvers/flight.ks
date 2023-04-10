@@ -1,6 +1,6 @@
 @LAZYGLOBAL OFF.
 
-runOncePath("0:common/filters.ks").
+runOncePath("0:common/control.ks").
 runOncePath("0:common/info.ks").
 runOncePath("0:common/math.ks").
 runOncePath("0:common/operations.ks").
@@ -37,6 +37,7 @@ function flightDefaultParams {
 
         // calculations
         "differ", flightDifferCreate(),
+        "thrust", thrustCreate(),
         "reality", flightRealityCreate(),
         "model", flightModelCreate(),
         "control", flightControlCreate(),
@@ -60,7 +61,7 @@ function flightDefaultParams {
         "landingUpdateK", 0.001,
         "levelUpdateK", 0.1,
         "maneuverV", 100,
-        "cruiseV", 250,
+        "cruiseV", 100,
         "descentV", -2,
         "landTime", -1
     ).
@@ -208,8 +209,12 @@ function flightRealityUpdate {
     set reality:Time to time:seconds.
     set reality:Alt to altitude.
     set reality:Pro to lookDirUp(reality:Surf, facing:upvector).
+    set reality:MaxiThrust to maxThrust.
+    local thrust to ship:thrust.
+    set reality:Thrust to thrust.
+    set reality:Mass to mass.
 
-    local thrustAccRaw to ship:facing:forevector * ship:thrust / ship:mass.
+    local thrustAccRaw to ship:facing:forevector * thrust / mass.
     local gravAccRaw to reality:Grav * body:position:normalized.
     local aeroAccRaw to (reality:Acc - thrustAccRaw - gravAccRaw).
     local aeroAcc to reality:Pro:inverse * aeroAccRaw.
@@ -222,11 +227,8 @@ function flightRealityUpdate {
 function flightModelCreate {
     return lexicon(
         "LiftLinReg", linearRegressionCreate(kFlight:AeroCount),
-        "DragLinReg", linearRegressionCreate(kFlight:AeroCount),
         "LiftM", 0.01,
         "LiftB", 0,
-        "DragM", 0.01,
-        "DragB", 0,
         "UpdateLandingSpd", false,
         "LandingSpd", 0
     ).
@@ -236,18 +238,13 @@ function flightModelUpdate {
     parameter model, reality.
 
     local cLift to reality:Lift / reality:Dyn.
-    local cDrag to reality:Drag / reality:Dyn.
     local aoa to reality:Aoa.
 
     local liftLinReg to model:LiftLinReg.
-    local dragLinReg to model:DragLinReg.
     linearRegressionUpdate(liftLinReg, aoa, cLift).
-    linearRegressionUpdate(dragLinReg, aoa, cDrag).
 
     set model:AoaM to liftLinReg:m.
     set model:AoaB to liftLinReg:b.
-    set model:DragM to dragLinReg:m.
-    set model:DragB to dragLinReg:b.
 
     // stall speed is level flight at 10 degrees
     local stallAngle to 10. // TODO incorporate zero lift angle
@@ -299,8 +296,6 @@ function flightControlUpdate {
 
     local m to max(model:AoaM, 1).
     local b to model:AoaB.
-    local md to model:DragM.
-    local bd to model:DragB.
 
     // small angle approximation of thrust * sin(aoa).
     local stable to ((reqLift) / (dyn) - b) 
@@ -311,12 +306,12 @@ function flightControlUpdate {
 
     local sinP to vspd / air.
     local liftDotDrag to liftMag * sinP.
-    local stableDrag to -1 * (md * stable + bd) * dyn.
-    local stableThrust to (1 / cos(stable)) * (ship:mass * accel:z 
-        + stableDrag + liftDotDrag).
+    local nowDrag to -reality:drag.
+    local stableThrust to (1 / cos(stable)) * (ship:mass * accel:z + nowDrag
+        + liftDotDrag).
 
     local rollUp to v(xacc, reality:lift / ship:mass, 0).
-    if sgn(reality:lift) < 0 {
+    if reality:lift < 1 {
         // In theory, we should roll the opposite way to get a turn while our
         // lift is negative. In practice, negative lift is only maintained for
         // short periods of time, and this kind of inverse roll just causes me
@@ -341,20 +336,21 @@ function flightLevel {
     set hAccPid:setpoint to hspd.
     local vAccPid to params:VAccPid.
     set vAccPid:setpoint to vspd.
+    local seconds to time:seconds.
+    local reality to params:reality.
 
     local desiredAccel to v(0, 0, 0).
     set desiredAccel:x to params:xacc.
-    set desiredAccel:y to vAccPid:update(time:seconds, verticalSpeed).
-    set desiredAccel:z to hAccPid:update(time:seconds, groundSpeed).
+    set desiredAccel:y to vAccPid:update(seconds, verticalSpeed).
+    set desiredAccel:z to hAccPid:update(seconds, groundSpeed).
 
     local acc to params:differ:D[0].
-    flightRealityUpdate(params:reality, acc).
-    flightModelUpdate(params:model, params:reality).
-    flightControlUpdate(params:control, params:model, params:reality,
-        desiredAccel).
+    flightRealityUpdate(reality, acc).
+    flightModelUpdate(params:model, reality).
+    flightControlUpdate(params:control, params:model, reality, desiredAccel).
     
     local aoa to params:control:Aoa.
-    local thrust to params:control:Thrust.
+    local tgtThrust to params:control:Thrust.
     local newLandingSpd to params:model:LandingSpd.
     if params:model:UpdateLandingSpd {
         set params:landV to stepLowpassUpdate(params:landV, newLandingSpd,
@@ -363,7 +359,7 @@ function flightLevel {
     }
 
     // noise to feed data to the flight model
-    local pitchNoise to kPitchNoiseAmp * sin(360 * mod(time:seconds, 1) / 4).
+    local pitchNoise to kPitchNoiseAmp * sin(360 * mod(seconds, 1) / 4).
 
     // pitch
     local aoaRots to flightPitch(aoa + pitchNoise).
@@ -372,8 +368,12 @@ function flightLevel {
     set params:steering to flight.
 
     // throttle
+    local thrustState to params:thrust.
+    thrustUpdate(thrustState, seconds, reality:maxiThrust, reality:thrust,
+        tgtThrust).
+
     // Keep throttle above 0 to keep it ready for throttling up.
-    local idealThrot to clamp(thrust / max(ship:maxThrust, 0.02), 0, 1).
+    local idealThrot to clamp(max(thrustState:throt, 0.02), 0, 1).
     set params:throttle to idealThrot.
 
     // For the report only
@@ -416,7 +416,7 @@ function flightLanding {
 
     local flaring to groundAlt() < kFlight:FlareHeight.
     // We want to fly stably into the landing
-    if flaring{
+    if flaring {
         set params:vspd to params:descentV / 2.
     }
     flightLevel(params).
@@ -506,7 +506,7 @@ function flightCreateReport {
 function flightHAccPid {
     local kp to kFlight:HAccKp.
     // horizontal should not have I term 
-    local pid to pidloop(kp, 0, kp / 5).
+    local pid to pidloop(kp, 0, kp).
     set pid:minoutput to -kFlight:HAccMax.
     set pid:maxoutput to kFlight:HAccMax.
     return pid.
@@ -514,7 +514,7 @@ function flightHAccPid {
 
 function flightVAccPid {
     local kp to kFlight:VAccKp.
-    local pid to pidloop(kp, kp / 20, kp / 3).
+    local pid to pidloop(kp, kp / 30, kp / 5).
     set pid:minoutput to -kFlight:VAccMax.
     set pid:maxoutput to kFlight:VAccMax.
     return pid.

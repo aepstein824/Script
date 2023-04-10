@@ -20,7 +20,7 @@ function differCreate {
 function differUpdate {
     parameter differ, newValues, t.
 
-    local dt to t - differ:T.
+    local dt to max(t - differ:T, 0.02).
     local oldValues to differ:Last.
     local derivatives to list().
 
@@ -88,4 +88,22 @@ function linearRegressionUpdate {
         / (count * linReg:sumX2 - linReg:sumX ^ 2)
     ).
     set linReg:b to (linReg:sumY - linReg:m * linReg:sumX) / count.
+}
+
+function meanCreate {
+    parameter lim.
+    return lex(
+        "y", 0,
+        "count", 0,
+        "lim", lim
+    ).
+}
+
+function meanUpdate {
+    parameter mean, x.
+
+    local count to min(mean:count, mean:lim - 1).
+    local newY to (x + mean:y * count) / (count + 1).
+    set mean:y to newY.
+    set mean:count to count + 1.
 }

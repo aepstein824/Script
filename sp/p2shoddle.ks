@@ -9,7 +9,7 @@ runOncePath("0:phases/landKsc.ks").
 runOncePath("0:phases/launchToOrbit.ks").
 
 // Testing
-set kPhases:startInc to 0.
+set kPhases:startInc to 2.
 set kPhases:stopInc to 4.
 // set kPhases:phase to 4.
 

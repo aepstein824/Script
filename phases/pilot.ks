@@ -19,7 +19,6 @@ function pilotHybrid {
         if flyNext {
             clearAll().
             print "Beginning flight mode".
-            print vang(facing:forevector, up:forevector) > 30.
             pilotFlight().
             set flyNext to false.
             clearAll().

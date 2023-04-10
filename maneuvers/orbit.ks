@@ -387,6 +387,11 @@ function orbitDispose {
     sas off.
 
     orbitSeparate(7, s).
+    for e in ship:engines {
+        if not e:ignition {
+            e:activate.
+        }
+    }
     lock steering to retrograde.
     lock throttle to 0.05.
     wait 3.

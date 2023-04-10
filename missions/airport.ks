@@ -11,10 +11,11 @@ set kAirline:Vtol to (vang(facing:forevector, up:forevector) < 30).
 clearAll().
 airlineInit().
 
-airlineToTo(kAirline:Wpts:NP27).
-airlineToTo(kAirline:Wpts:Dessert18).
-airlineToTo(kAirline:Wpts:Ksc09).
-// airlineToTo(kAirline:Wpts:Island09).
+airlineTo(kAirline:Wpts:NP27).
+airlineTo(kAirline:Wpts:Dessert18).
+airlineTo(kAirline:Wpts:Island09).
+
+// airlineTo(kAirline:Wpts:Ksc09).
 
 
 

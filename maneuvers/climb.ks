@@ -1,7 +1,9 @@
 @LAZYGLOBAL OFF.
 
 runOncePath("0:common/control").
+runOncePath("0:common/math").
 runOncePath("0:common/orbital").
+runOncePath("0:common/ship").
 
 declare global kClimb to lexicon().
 
@@ -26,10 +28,17 @@ function climbSuccess  {
 function climbInit {
     set jettisoned to false.
     controlLock().
+
+    when not shipIsLandOrSplash() then { 
+        if legs legs off.
+        if gear gear off.
+    }
 }
 
 function climbLoop {
     local surfaceV to ship:velocity:surface:mag.
+
+    local atmHeight to body:atm:height.
 
     local staged to handleStage().
     if staged {
@@ -41,9 +50,10 @@ function climbLoop {
     } else if surfaceV < kClimb:SteerV {
         set controlSteer to acHeading(90 - kClimb:Turn).
         set controlThrot to slowThrottle().
-    } else if ship:apoapsis < kClimb:ClimbAp and ship:altitude < 70000 {
+    } else if ship:apoapsis < kClimb:ClimbAp 
+        and (obt:eta:apoapsis < obt:eta:periapsis) {
         gravityTurn().
-    } else if ship:altitude < 70000 {
+    } else if ship:altitude < atmHeight {
         warpUp().
     } else {
         if not jettisoned {

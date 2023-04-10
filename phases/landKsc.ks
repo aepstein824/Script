@@ -118,11 +118,15 @@ function landPlaneRunway {
     set flightP:maneuverV to 100.
     set flightP:cruiseV to 250.
 
-    airlineCruise(approachWpt).
+    airlineCruise(approachWpt, false).
+
+    print " Finished cruise "+ geoRound(geoPosition).
+    airlineShortHaul(approachWpt).
 
     kuniverse:timewarp:cancelwarp().
 
-    print " Fly to runway from " + geoRound(geoPosition).
-    airlineLoop(landWpt).
-    airlineLanding(approachWpt).
+    print " Loop to runway". 
+    airlineLoop(approachWpt).
+    print " Begin landing".
+    airlineLanding(landWpt).
 }

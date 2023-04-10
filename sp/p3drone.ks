@@ -20,52 +20,69 @@ set kAirline:Vtol to true.
 set kAirline:FinalS to 60.
 set kAirline:HoverP:minAGL to 30.
 set kAirline:HoverP:favAAT to 30.
-set kAirline:FlightP:cruiseV to 215.
-set kAirline:cruiseAlti to 9000.
+set kAirline:FlightP:cruiseV to 100.
+set kAirline:cruiseAlti to 7000.
 local baseName to "Laythe Base".
 
-local lzGeos to p3droneGeos().
+if core:part:tag = "base" {
+    set kClimb:Turn to 3.
+    set kClimb:VertV to 100.
+    set kClimb:SteerV to 200.
+    set kClimb:ClimbAp to 100000.
+    set kClimb:ClimbPe to 95000.
+    set kClimb:Heading to 180.
+    set kClimb:TLimAlt to 10000.
+    set kClimb:OrbitStage to 1.
 
-clearAll().
-flightSetSteeringManager().
-flightCreateReport(kAirline:FlightP).
-
-for lzGeo in lzGeos {
-    local flatGeo to geoNearestFlat(lzGeo).
-    local wptHdg to posAng(180 + geoHeadingTo(flatGeo, geoPosition)).
-    local wpt to airlineWptCreate(flatGeo, wptHdg).
-
-    opsUndockPart(core:part).
-    wait 3.
-    shipControlFromCommand().
-    for e in ship:engines {
-        if not e:ignition {
-            e:activate.
-        }
+    climbInit().
+    until climbSuccess() {
+        climbLoop().
     }
-    set kuniverse:activevessel to ship.
-    // set kAirline:VlSpd to -2.
-    // airlineTo(wpt).
-    // wait 5.
-    // when shipIsLandOrSplash() then {
-    //     doUseOnceScience().
-    //     when groundAlt() > 10 then {
-    //         doAnytimeScience(). 
-    //     }
-    // }
-    // wait 5.
+    climbCleanup().
+} else {
+    local lzGeos to p3droneGeos().
 
-    local baseVessel to vessel(baseName).
-    local baseGeo to baseVessel:geoposition.
-    local baseHdg to posAng(180 + geoHeadingTo(baseGeo, geoPosition)).
-    local baseWpt to airlineWptCreate(baseGeo, baseHdg).
-    set kAirline:VlSpd to -0.5.
-    airlineTo(baseWpt).
-    wait until procCount() > 1.
-    print "Docked".
-    opsCollectRestoreScience().
-    opsRefuel().
-    wait 3.
+    clearAll().
+    flightSetSteeringManager().
+    flightCreateReport(kAirline:FlightP).
+
+    for lzGeo in lzGeos {
+        local flatGeo to geoNearestFlat(lzGeo).
+        local wptHdg to posAng(180 + geoHeadingTo(flatGeo, geoPosition)).
+        local wpt to airlineWptCreate(flatGeo, wptHdg).
+
+        opsUndockPart(core:part).
+        wait 3.
+        shipControlFromCommand().
+        for e in ship:engines {
+            if not e:ignition {
+                e:activate.
+            }
+        }
+        set kuniverse:activevessel to ship.
+        set kAirline:VlSpd to -2.
+        airlineTo(wpt).
+        wait 5.
+        when shipIsLandOrSplash() then {
+            doUseOnceScience().
+            when groundAlt() > 10 then {
+                doUseOnceScience(). 
+            }
+        }
+        wait 5.
+
+        local baseVessel to vessel(baseName).
+        local baseGeo to baseVessel:geoposition.
+        local baseHdg to posAng(180 + geoHeadingTo(baseGeo, geoPosition)).
+        local baseWpt to airlineWptCreate(baseGeo, baseHdg).
+        set kAirline:VlSpd to -0.5.
+        airlineTo(baseWpt).
+        wait until procCount() > 1.
+        print "Docked".
+        opsCollectRestoreScience().
+        opsRefuel().
+        wait 3.
+    }
 }
 
 function p3droneGeos {
@@ -75,8 +92,8 @@ function p3droneGeos {
         laythe:geopositionlatlng(  35,  159.5), // crescent bay
         laythe:geopositionlatlng(46.34, -124.833), // peaks
         laythe:geopositionlatlng(  52,     14), // degrasse sea
-        laythe:geopositionlatlng(  65,     48), // shallows
         laythe:geopositionlatlng(  73,     40), // shores
+        laythe:geopositionlatlng(  75,     38), // shallows
         laythe:geopositionlatlng(  76,  -15.5), // dunes
         laythe:geopositionlatlng(  77,     25)  // sagen
     ).

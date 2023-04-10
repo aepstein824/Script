@@ -1,4 +1,11 @@
 clearScreen.
+
+runOncePath("0:test/airline_test.ks").
+runOncePath("0:test/geo_test.ks").
+runOncePath("0:test/math_test.ks").
+runOncePath("0:test/optimize_test.ks").
+runOncePath("0:test/orbital_test.ks").
+
 runOncePath("0:common/control.ks").
 runOncePath("0:common/filters.ks").
 runOncePath("0:common/geo.ks").
@@ -19,8 +26,3 @@ runOncePath("0:maneuvers/lambert.ks").
 runOncePath("0:maneuvers/landAtm.ks").
 runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/orbit.ks").
-runOncePath("0:test/airline_test.ks").
-runOncePath("0:test/geo_test.ks").
-runOncePath("0:test/math_test.ks").
-runOncePath("0:test/optimize_test.ks").
-runOncePath("0:test/orbital_test.ks").

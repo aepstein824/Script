@@ -39,15 +39,18 @@ function testEq {
         }
     }
     if xname = "Lexicon" {
+        // only check the keys in y, x can have extra keys
         for k in y:keys {
             if not x:haskey(k) {
                 return testError("Missing key " + k).
             }
             local xv to x[k].
             local yv to y[k].
-            local diff to yv - xv.
-            if abs(diff) > eps {
-                return testError("Difference in key " + k + " " + errorString).
+
+            local valTest to testEq(xv, yv, eps).
+            if not valTest:ok {
+                return testError("Difference in key " + k
+                    + " " + valTest:message).
             }
         }
         return testOk().

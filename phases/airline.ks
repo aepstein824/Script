@@ -9,7 +9,7 @@ runOncePath("0:maneuvers/flight.ks").
 runOncePath("0:maneuvers/hover.ks").
 
 global kAirline to lexicon().
-set kAirline:DiffToVspd to 1.0 / 30.
+set kAirline:DiffToVspd to 1.0 / 15.
 set kAirline:MaxTurnAngle to 20.
 set kAirline:MaxTurnAdjustment to 2.
 set kAirline:MaxStraightAngle to 5.
@@ -50,6 +50,7 @@ function airlineTo {
     set kAirline:TakeoffHeading to shipHeading().
     airlineTakeoff(landWpt).
 
+    set kuniverse:timewarp:mode to "PHYSICS".
     set kuniverse:timewarp:rate to 4.
 
     if geoBodyPosDistance(zeroV, approachGeo:position) > kAirline:CruiseDist {
@@ -168,7 +169,9 @@ function airlineFlightTakeoff {
 function airlineHoverTakeoff {
     print "Vertical takeoff".
 
+    lights on.
     local startLiftoff to time:seconds.
+    // point directly up but don't rotate, just to get off ground
     lock steering to lookDirUp(up:forevector, facing:upvector).
     lock throttle to 1.
     wait until time:seconds - startLiftoff > 10.
@@ -477,19 +480,59 @@ function airlineBearingXacc {
 }
 
 function airlineDirect {
-    parameter endGeo, cruiseAlti, cruiseSpd, stopDist.
+    parameter endGeo, cruiseAlti, cruiseSpd, stopDist, optimize.
 
     local turnXacc to airlineTurnXacc(gat(0)).
+    local printed to false.
+
+    local lfI to 0.
+    for i in range(ship:resources:length) {
+        if ship:resources[i]:name = "LiquidFuel" {
+            set lfI to i.
+            break.
+        }
+    }
+    local liquidFuel to ship:resources[lfI].
+    local lfDensity to liquidFuel:density.
+    local startFuel to liquidFuel:amount * lfDensity.
+    local cruiseFuel to 0.
+    local tanDescentAngle to tan(kAirline:VspdAng).
+
+    local optimizeCtx to lex().
+    if optimize {
+        set optimizeCtx to cruiseContextCreate(cruiseAlti, cruiseSpd,
+                0, 0, time:seconds).
+    }
 
     local flightP to kAirline:FlightP.
     flightBeginLevel(flightP).
     setFlaps(0).
-    set flightP:hspd to cruiseSpd. 
     until false {
+        if optimize {
+            local mpt to cruiseShipMpt().
+            local throt to ship:thrust / ship:maxthrust.
+            local now to time:seconds.
+            local isSteady to cruiseCheckSteady(optimizeCtx, altitude, 
+                groundspeed, verticalSpeed, throt, now).
+            if isSteady {
+                set optimizeCtx to cruiseSteadyUpdate(optimizeCtx, throt, mpt,
+                    now).
+                set cruiseAlti to optimizeCtx:alti.
+                set cruiseSpd to optimizeCtx:spd.
+            }
+        }
+
+        set flightP:hspd to cruiseSpd. 
+
         local endPos to endGeo:position.
         local endDist to geoBodyPosDistance(zeroV, endPos).
+        if endDist > kAirline:CruiseDist {
+            local altiAboveCruise to altitude - kAirline:CruiseAlti. 
+            if altiAboveCruise > 0 {
+                set endDist to endDist - altiAboveCruise / tanDescentAngle.
+            }
+        }
 
-        // local movingToEnd to vdot(velocity:surface, endPos) > 0.
         local closeToEnd to endDist < stopDist.
         if closeToEnd {
             break.
@@ -502,16 +545,33 @@ function airlineDirect {
         local altiAngLim to max(abs(endAngle), 10).
         set flightP:vspd to airlineCruiseVspd(cruiseAlti, altitude, altiAngLim).
 
+        if not printed and abs(altiErr) < 30 {
+            set printed to true.
+            set cruiseFuel to liquidFuel:amount * lfDensity.
+            print " Fuel to reach alti " + round(startFuel - cruiseFuel, 2).
+        }
+
         airlineIterWait().
     }
+
+    local destFuel to liquidFuel:amount * lfDensity.
+    print " Fuel to reach dest " + round(startFuel - destFuel, 2).
 }
 
 function airlineCruise {
-    parameter endWpt.
-    airlineDirect(endWpt:geo, kAirline:CruiseAlti, kAirline:FlightP:cruiseV,
-        kAirline:CruiseDist).
+    parameter endWpt, optimize to true.
+
+    local cruiseAlti to kAirline:CruiseAlti.
+    airlineDirect(endWpt:geo, cruiseAlti, kAirline:FlightP:cruiseV,
+        kAirline:CruiseDist, optimize).
 
     local flightP to kAirline:FlightP.
+
+    until altitude < cruiseAlti + 100 {
+        set flightP:vspd to airlineCruiseVspd(cruiseAlti, altitude, 10).
+        airlineIterWait().
+    } 
+
     setFlaps(1).
     flightResetSpds(flightP, flightP:maneuverV).
     until groundSpeed < flightP:maneuverV * 1.1 {
@@ -525,7 +585,8 @@ function airlineShortHaul {
     local flightP to kAirline:FlightP.
     local maneuverSpd to flightP:maneuverV.
 
-    airlineDirect(endWpt:geo, endWpt:alti, maneuverSpd, kAirline:FlatDist).
+    airlineDirect(endWpt:geo, endWpt:alti, maneuverSpd, kAirline:FlatDist,
+        false).
 }
 
 function airlineIterWait {
@@ -554,3 +615,121 @@ set kAirline:Wpts to lex(
     "NP27", airlineWptCreate(
         kerbin:geopositionlatlng(80, -100), 270)
 ).
+
+global kCruise to lex(
+    "AltiDown", 500,
+    "AltiUpFast", 2000,
+    "AltiUpSlow", 500,
+    "AltiThrotSlow", 0.5,
+    "AltiThrotLim", 0.7,
+    "AltiThrotDesc", 0.85,
+    "SpdChange", 5,
+    "SpdDelay", 300
+).
+
+function cruiseContextCreate {
+    parameter alti, spd, throt, mpt, now.
+
+    return lex(
+        "differ", differCreate(list(spd, throt), now),
+
+        "lastMpt", mpt,
+        "lastTime", now,
+        "lastSpd", spd,
+
+        "altiPeaked", false,
+        "alti", alti, 
+
+        "spdPeaked", false,
+        "spd", spd
+    ).
+}
+
+function cruiseShipMpt {
+    local thrust to ship:thrust.
+    if thrust <= 0 {
+        return 1.
+    }
+    return groundspeed / (thrust / (ship:engines[0]:isp * constant:g0)).
+}
+
+function cruiseCheckSteady {
+    parameter ctx, alti, spd, vspd, throt, now.
+
+    differUpdate(ctx:differ, list(spd, throt), now).
+
+    return (
+        abs(vspd) < 0.5
+        and abs(ctx:spd - spd) < 1
+        and abs(ctx:alti - alti) < 10
+        and abs(ctx:differ:D[1]) < 0.005
+        and abs(ctx:differ:D[0]) < 0.005 
+    ).
+}
+
+function cruiseSteadyUpdate {
+    parameter ctx, throt, mpt, now. 
+
+    if ctx:altiPeaked and ctx:spdPeaked 
+        and now < ctx:lastTime + kCruise:SpdDelay {
+        // don't update time
+        return ctx.
+    }
+
+    local newCtx to ctx:copy().
+
+    set newCtx:lastMpt to mpt.
+    set newCtx:lastTime to now.
+    set newCtx:lastSpd to ctx:spd.
+
+    print " Mpt " + round(mpt).
+    if throt > kCruise:AltiThrotLim {
+        set newCtx:altiPeaked to true.
+        set newCtx:spdPeaked to false.
+        if throt > kCruise:AltiThrotDesc {
+            set newCtx:alti to ctx:alti - kCruise:AltiDown.
+            print " Peak alti, descending to " + newCtx:alti.
+            return newCtx.
+        } else if not ctx:altiPeaked {
+            print " Peak alti, holding " + newCtx:alti.
+            return newCtx.
+        }
+    }
+    
+
+    if ctx:spdPeaked {
+        if not ctx:altiPeaked {
+            set newCtx:spdPeaked to false.
+            set newCtx:lastMpt to 0.
+            if throt > kCruise:AltiThrotSlow {
+                set newCtx:alti to ctx:alti + kCruise:AltiUpSlow.
+            } else {
+                set newCtx:alti to ctx:alti + kCruise:AltiUpFast.
+            }
+            print " Peak spd, climbing to " + newCtx:alti.
+            return newCtx.
+        } else {
+            // alti peaked
+            if mpt < ctx:lastMpt {
+                set newCtx:spd to ctx:lastSpd.
+                print " Peak spd, correcting back to " + newCtx:spd.
+                return newCtx.
+            } else {
+                set newCtx:spd to ctx:spd - kCruise:SpdChange.
+                print " Peak spd, checking lower speed " + newCtx:spd.
+                return newCtx.
+            }
+        }
+    } else {
+        if mpt < ctx:lastMpt {
+            set newCtx:spdPeaked to true.
+            set newCtx:spd to ctx:lastSpd.
+            print " Found peak spd, decelerating to " + newCtx:spd.
+            return newCtx.
+        } else {
+            set newCtx:spd to ctx:spd + kCruise:SpdChange.
+            print " Finding peak spd, accelerating to " + newCtx:spd.
+            return newCtx.
+        }
+    }
+}

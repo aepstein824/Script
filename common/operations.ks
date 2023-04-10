@@ -98,7 +98,7 @@ function sciencePartNames {
     if useOnce {
         set names to mergeList(names, useOnceScienceParts).
     }
-    if status <> "FLYING" and ship:thrust < 0.0001 {
+    if status <> "FLYING" {
         set names to mergeList(names, inertialScienceParts).
     }
     if status = "LANDED" or status = "PRELAUNCH" {
@@ -113,7 +113,6 @@ function sciencePartNames {
     if status = "FLYING" {
         set names to mergeList(names, atmoOnlyScienceParts).
     }
-    print "Doing science with: " + opsCommaList(names) + ".".
     return names.
 }
 
@@ -209,6 +208,7 @@ function scienceModules {
             }
         }
     }
+    print "Doing science with: " + opsCommaList(scienceMods:keys) + ".".
     return scienceMods:values.
 }
 
