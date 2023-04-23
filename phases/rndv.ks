@@ -2,6 +2,7 @@
 
 runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/lambert.ks").
+runOncePath("0:common/control.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/math.ks").
 
@@ -45,25 +46,26 @@ function ballistic {
         return (target:position - ship:position):mag.
     }
     local floatDist to kRndvParams:floatDist.
-    if distance < floatDist {
-        print " No need to rndv".
-        return.
-    }
     local currentSpeed to (target:velocity:orbit - ship:velocity:orbit):mag.
-    if distance() < floatDist and currentSpeed < 2 {
-        return.
-    }
-    local maxAccel to 0.5. // accel for 1/4 total
-    local shortestHalftime to sqrt((distance() - floatDist) / shipAccel()).
-    local infFuelSpd to shipAccel() * shortestHalftime * maxAccel.
-    print " Infinite Fuel Speed " + round(infFuelSpd).
-    local maxSpeed to min(infFuelSpd, max(kRndvParams:maxSpeed, currentSpeed)). 
-    print " Max Speed " + round(maxSpeed).
-    local burnTime to 1.3 * shipTimeToDV(maxSpeed) + 5.
-    local burnDist to 0.5 * maxSpeed * burnTime.
-    print " Slow dist " + burnDist.
-    local switchDist to 2 * burnDist. 
+    local switchDist to floatDist.
     local endSpd to 5.
+    local maxSpeed to endSpd.
+    local burnDist to 0.
+    if distance() > floatDist {
+        local maxAccel to 0.5. // accel for 1/4 total
+        local shortestHalftime to sqrt((distance() - floatDist) / shipAccel()).
+        local infFuelSpd to shipAccel() * shortestHalftime * maxAccel.
+        print " Infinite Fuel Speed " + round(infFuelSpd).
+        set maxSpeed to min(infFuelSpd, max(kRndvParams:maxSpeed,
+            currentSpeed)). 
+        print " Max Speed " + round(maxSpeed).
+        local burnTime to 1.3 * shipTimeToDV(maxSpeed) + 5.
+        set burnDist to 0.5 * maxSpeed * burnTime.
+        print " Slow dist " + burnDist.
+        set switchDist to 2 * burnDist. 
+    }
+
+    local respond to true.
 
     controlLock().
     enableRcs().
@@ -74,7 +76,8 @@ function ballistic {
         local shortDist to dist - 2 * floatDist.
         local desiredSpd to rndvSpd(shortDist, burnDist, maxSpeed, endSpd).
         local relV to velocity:orbit - target:velocity:orbit.
-        local movingAway to vdot(relV, towards) < 0.
+        local relTowards to vdot(relV, towards:normalized).
+        local movingAway to relTowards < 0.
 
         if shortDist > switchDist or movingAway {
             // while far, push velocity towards the target
@@ -89,8 +92,18 @@ function ballistic {
             local magFactor to invLerp(5 * delta:mag, 0, shipAccel()).
             local thrust to angFactor * magFactor.
 
+            if delta:mag < 0.1 and respond {
+                set respond to false.
+            }
+            if delta:mag > 0.3 and not respond or distance < (floatDist * 3) {
+                set respond to true.
+            }
             set controlSteer to delta.
-            set controlThrot to thrust.
+            if respond {
+                set controlThrot to thrust.
+            } else {
+                set controlThrot to 0.
+            }
         } else {
             // while close, only burn retrograde
             local steer to -relV.
@@ -106,7 +119,8 @@ function ballistic {
                 set controlThrot to 0.
             }
             set controlSteer to steer.
-            if relV:mag < endSpd {
+            local sideV to vxcl(towards, relV):mag.
+            if relV:mag < endSpd and relTowards > -1 and sideV < 1 {
                 break.
             }
         }

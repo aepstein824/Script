@@ -56,7 +56,7 @@ function pilotHover {
     local params to hoverDefaultParams().
 
     setTarget(params).
-    set params:mode to kHover:Hover.
+    hoverSwitchMode(params, kHover:Hover).
     set params:seek to false.
 
     lock steering to hoverSteering(params).
@@ -83,16 +83,16 @@ function pilotHover {
             print "Not Seeking".
         } else if pRot:z < -0.5 {
             // press Q
-            set params:mode to kHover:Vspd.
+            hoverSwitchMode(params, kHover:Vspd).
             print "Vspd Mode".
         } else if pRot:x < -0.5 {
             // press A
-            set params:mode to kHover:Hover.
+            hoverSwitchMode(params, kHover:Hover).
             print "Hover Mode".
         } else if pRot:z > 0.5 {
             // press E
-            set params:mode to kHover:Stop.
-            print "Stop Mode".
+            hoverSwitchMode(params, kHover:Descend).
+            print "Descend Mode".
         } else if pRot:x > 0.5 {
             // press D
             return.

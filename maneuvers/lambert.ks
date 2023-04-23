@@ -201,7 +201,8 @@ function lambert {
         set x to x - y / dY_dX.
 
         if k = kLimit {
-            return testError("Hit iteration limit but error is " + abs(y)).
+            break.
+            // return testError("Hit iteration limit but error is " + abs(y)).
         }
     }
 

@@ -242,19 +242,16 @@ function vacLandGeo {
 
     print "Initial Suicide Burn".
     suicideBurn(20, geoAlt + overheadAlt / 4, 5).
-    // print "Descent Suicide Burn".
-    // suicideBurn(300).
 
     print "Controlled Descent to target".
+    lights on.
     local params to hoverDefaultParams().
-    set params:mode to kHover:Hover.
     set params:tgt to wGeo.
     set params:seek to true.
-    set params:cruiseCrab to false.
-    set params:minG to 0.2.
-    set params:jerkH to 0.4.
-    set params:spdPerH to 1.
-    set params:maxAccelH to 0.2.
+    set params:crab to false.
+    set params:minG to 0.5.
+    set params:maxAccelH to 0.4.
+    hoverSwitchMode(params, kHover:Hover).
     hoverLock(params).
 
     until vxcl(body:position, wGeo:position):mag < 5 
@@ -264,14 +261,8 @@ function vacLandGeo {
     }
 
     print " Descending.".
-    set params:mode to kHover:Vspd.
-    set params:vspdCtrl to -kWaypointsCoastSpeed.
+    hoverSwitchMode(params, kHover:Descend).
     until ship:status = "LANDED"  or ship:status = "SPLASHED" {
-        local scaredAlt to groundAlt() / 5.
-        if kWaypointsCoastSpeed > scaredAlt {
-            set params:seek to false.
-            set params:vspdCtrl to -1 * max(scaredAlt, 1).
-        }
         hoverIter(params).
         wait 0.
     }
@@ -281,6 +272,7 @@ function vacLandGeo {
     lock throttle to 0.
     print " Landing Successful?".
     wait 5.
+    lights off.
 }
 
 function vacClimb {

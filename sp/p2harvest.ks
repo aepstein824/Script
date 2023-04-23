@@ -68,7 +68,7 @@ if shouldPhase(1) {
             stageTo(0).
             wait 1.
             local radius to altitude + body:radius.
-            local semi to (1.5 * body:radius + tgt:altitude + radius) / 2.
+            local semi to (body:radius + 2 * tgt:altitude + radius) / 2.
             local spd to orbitalSpeed(body:mu, semi, radius).
             local correctionTime to time + 60.
             local thenV to velocityAt(ship, correctionTime):orbit:mag.
@@ -81,6 +81,8 @@ if shouldPhase(1) {
         local interceptContext to lexicon(
             "dest", tgt
         ).
+        changeApAtPe(2 * tgt:altitude).
+        nodeExecute().
         travelTo(interceptContext).
         rcsApproach().
         print " Waiting to dock".
@@ -93,6 +95,8 @@ if shouldPhase(2) {
     }
     if amShoddle {
         dockRecv().
+        print " Waiting to dock".
+        wait until procCount() > 1.
     }
     // tank will wait in stage 3
 }
@@ -194,7 +198,7 @@ local function scooperIteration {
 
     print " Undock".
     opsUndockPart(core:part).
-    orbitSeparate(3, vessel(shoddleName)).
+    orbitSeparate(5, vessel(shoddleName)).
     set kuniverse:activevessel to core:vessel.
     wait 1.
     core:doaction("Open Terminal", true).

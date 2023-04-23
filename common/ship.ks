@@ -134,5 +134,18 @@ function shipControlFromCommand {
 }
 
 function shipIsLandOrSplash {
-    return status = "LANDED" or status = "SPLASHED".
+    return status = "LANDED" or status = "SPLASHED" or status = "PRELAUNCH".
+}
+
+function shipActiveEnginesAirbreathe {
+    for e in ship:engines {
+        if e:ignition {
+            for res in e:consumedresources:keys {
+                if res:contains("Intake") {
+                    return true.
+                }
+            }
+        }
+    }
+    return false.
 }

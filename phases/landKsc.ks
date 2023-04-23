@@ -117,15 +117,19 @@ function landPlaneRunway {
     set flightP:descentV to -1.3. // plenty of runway
     set flightP:maneuverV to 100.
     set flightP:cruiseV to 250.
+    set kuniverse:timewarp:mode to "PHYSICS".
+    set kuniverse:timewarp:rate to 4.
 
     airlineCruise(approachWpt, false).
 
     print " Finished cruise "+ geoRound(geoPosition).
+    set kuniverse:timewarp:rate to 3.
     airlineShortHaul(approachWpt).
 
     kuniverse:timewarp:cancelwarp().
 
     print " Loop to runway". 
+    set kuniverse:timewarp:rate to 2.
     airlineLoop(approachWpt).
     print " Begin landing".
     airlineLanding(landWpt).

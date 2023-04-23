@@ -114,7 +114,8 @@ function travelIntercept {
         travelIntoSatOrbit(ctx, target, hl:arrivalTime).
         travelCaptureToInc(ctx).
     } else {
-        local closestTime to closestApproach(ship, target).
+        local expectedTime to hl:start + hl:duration.
+        local closestTime to closestApproachNear(ship, target, expectedTime).
         local tgtV to velocityAt(target, closestTime):orbit.
         local shipV to velocityAt(ship, closestTime):orbit.
         local diff to (tgtV - shipV):mag.

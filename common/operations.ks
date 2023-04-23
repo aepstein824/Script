@@ -216,6 +216,7 @@ function waitWarp {
     parameter endTime.
     local warper to kuniverse:timewarp.
 
+    // print " Begin waitWarp to " + endTime.
     wait until warper:issettled.
     set warper:mode to "RAILS".
 
@@ -239,6 +240,7 @@ function waitWarp {
     wait until warper:issettled.
     wait until ship:unpacked.
     wait 1.
+    // print " End waitWarp to " + endTime.
 }
 
 function waitWarpPhsx {

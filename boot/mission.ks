@@ -1,5 +1,4 @@
-core:doevent("Open Terminal").
-wait 0.1.
+wait 0.
 switch to 0.
 
-run "sp/p2dish".
+runPath("0:boot/impl/mission_impl.ks").

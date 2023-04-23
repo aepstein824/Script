@@ -200,3 +200,58 @@ function posAng {
     parameter x.
     return posmod(x, 360).
 }
+
+function smoothAccelFunc {
+    parameter accel, linearTime, maxV.
+
+    // This function is the result describing a smoothly increasing acceleration
+    // for some time, then switching to a constant acceleration.
+    // Let j = jerk, a = acceleration, v = spd, x = position, t = time
+    // For the first stage
+    //  a = j * t
+    //  v = 1/2 * j * t^2
+    //  x = 1/6 * j * t^3
+    // For the second stage
+    //  v = A * (t - T) + V 
+    //  x = 1/2 * A * (t - T) + V * (t - T) + P
+    //  where capital letters are the value when we hit constant acceleration
+    // Solve for v in terms of X and you get the equations below
+
+    local linearSpd to linearTime * accel / 2.
+    local linearX to (2 / 3) * (linearSpd ^ 2) / accel.
+    local jerk to accel / linearTime.
+    local linearCoeff to 0.5 * (jerk * 36) ^ (1 / 3).
+    local sqrtCoeff to 2 * accel.
+    local sqrtOffset to (-1 / 3) * linearSpd ^ 2.
+
+    function func {
+        parameter x.
+
+        local absX to abs(x).
+        local sgnX to sgn(x).
+        local absY to 0.
+
+        if absX < linearX {
+            set absY to linearCoeff * (absX ^ (2 / 3)).
+        } else {
+            set absY to sqrt(sqrtCoeff * absX + sqrtOffset).
+        }
+        set absY to min(absY, maxV).
+
+        return sgnX * absY.
+    }
+
+    return func@.
+}
+
+function funcAndDeriv {
+    parameter func, x.
+
+    local eps to 0.0001.
+    local val to func(x).
+
+    local valEps to func(x + eps).
+    local dVdX to (valEps - val) / eps.
+
+    return list(val, dVdX).
+}

@@ -12,7 +12,9 @@ local tests to lexicon(
     "posmod", testPosmod@,
     "vecClamp", testVecClamp@,
     "smallAng", testSmallAng@,
-    "posAng", testPosAng@
+    "posAng", testPosAng@,
+    "smoothAccel", testSmoothAccel@,
+    "funcAndDeriv", testFuncAndDeriv@
 ).
 
 testRun(tests).
@@ -126,5 +128,36 @@ function testPosAng {
     t:add(testEq(posAng(181), 181)).
     t:add(testEq(posAng(-541), 179)).
     t:add(testEq(posAng(541), 181)).
+    return t.
+}
+
+function testSmoothAccel {
+    local t to list().
+    local simple to smoothAccelFunc(1, 2, 10).
+    // values obtained through desmos graphing calculator
+    t:add(testEq(simple(0), 0)).
+    t:add(testEq(simple(.235), 0.5)).
+    t:add(testEq(simple(2/3), 1)).
+    t:add(testEq(simple(2.165), 2)).
+    t:add(testEq(simple(1000), 10)).
+    t:add(testEq(simple(-.235), -0.5)).
+    t:add(testEq(simple(-2/3), -1)).
+    t:add(testEq(simple(-2.165), -2)).
+    t:add(testEq(simple(-1000), -10)).
+    local realistic to smoothAccelFunc(0.5, 5, 1000).
+    t:add(testEq(realistic(.2), .2621)).
+    t:add(testEq(realistic(4.5), 1.9948)).
+    t:add(testEq(realistic(36.5), 5.9983)).
+    return t.
+}
+
+function testFuncAndDeriv {
+    local t to list().
+
+    local f to { parameter x. return x ^ 2. }.
+    local at1 to funcAndDeriv(f, 1).
+    local atM1 to funcAndDeriv(f, -1).
+    t:add(testEq(at1, list(1, 2))).
+    t:add(testEq(atM1, list(1, -2))).
     return t.
 }

@@ -48,7 +48,7 @@ function airlineTo {
     local approachGeo to approachWpt:geo.
 
     set kAirline:TakeoffHeading to shipHeading().
-    airlineTakeoff(landWpt).
+    airlineTakeoff(approachWpt).
 
     set kuniverse:timewarp:mode to "PHYSICS".
     set kuniverse:timewarp:rate to 4.
@@ -144,7 +144,7 @@ function airlineSwitchToHover {
     hoverLock(kAirline:HoverP).
     set hovering to true.
 
-    set kAirline:HoverP:mode to kHover:Hover.
+    hoverSwitchMode(kAirline:HoverP, kHover:Hover).
 }
 
 function airlineFlightTakeoff {
@@ -226,9 +226,17 @@ function airlineWptCreate {
     ).
 }
 
-// function airlineWptAddName {
-//     parameter vesselName.
-// }
+function airlineWptFromVesselName {
+    parameter vesselName.
+
+    local baseVessel to vessel(vesselName).
+    local baseGeo to baseVessel:geoposition.
+    local baseHdg to posAng(180 + geoHeadingTo(baseGeo, geoPosition)).
+    local baseWpt to airlineWptCreate(baseGeo, baseHdg).
+    set baseWpt:vesselName to vesselName.
+    
+    return baseWpt.
+}
 
 // Wpt refers to my struct, waypoint to the built in type.
 function airlineWptFromWaypoint {
@@ -440,7 +448,12 @@ function airlineLanding {
 
         if kAirline:Vtol and app:mag < kAirline:VtolLandDistance {
             kuniverse:timewarp:cancelwarp(). 
-            set kAirline:hoverP:tgt to runwayGeo.
+            if runwayWpt:haskey("vesselName") {
+                local baseVessel to vessel(runwayWpt:vesselName).
+                set kAirline:hoverP:tgt to getPort(baseVessel).
+            } else {
+                set kAirline:hoverP:tgt to runwayGeo.
+            }
             break.
         }
 
@@ -463,7 +476,7 @@ function airlineLanding {
         } 
 
         set kAirline:HoverP:vspdCtrl to kAirline:VlSpd.
-        set kAirline:HoverP:mode to kHover:Vspd.
+        hoverSwitchMode(kAirline:HoverP, kHover:Vspd).
         print " Descent".
 
         until shipIsLandOrSplash() {
@@ -476,7 +489,7 @@ function airlineBearingXacc {
     parameter brg, lim.
 
     local scaledBearing to brg / kAirline:MaxStraightAngle.
-    return clampAbs(scaledBearing , lim).
+    return clampAbs(scaledBearing, lim).
 }
 
 function airlineDirect {
@@ -567,11 +580,13 @@ function airlineCruise {
 
     local flightP to kAirline:FlightP.
 
+    print "  Descending from cruise alti".
     until altitude < cruiseAlti + 100 {
         set flightP:vspd to airlineCruiseVspd(cruiseAlti, altitude, 10).
         airlineIterWait().
     } 
 
+    print "  Slowing from cruise spd".
     setFlaps(1).
     flightResetSpds(flightP, flightP:maneuverV).
     until groundSpeed < flightP:maneuverV * 1.1 {

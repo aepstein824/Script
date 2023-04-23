@@ -55,6 +55,16 @@ function testEq {
         }
         return testOk().
     }
+    if xname = "List" {
+        for i in range(x:length) {
+            local valTest to testEq(x[i], y[i], eps).
+            if not valTest:ok {
+                return testError("Difference in ind " + i
+                    + " " + valTest:message).
+            }
+        }
+        return testOk().
+    }
     if x <> y {
         return testError("Unequal " + errorString).
     }

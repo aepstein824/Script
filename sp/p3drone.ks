@@ -60,6 +60,8 @@ if core:part:tag = "base" {
             }
         }
         set kuniverse:activevessel to ship.
+
+        // destination
         set kAirline:VlSpd to -2.
         airlineTo(wpt).
         wait 5.
@@ -71,10 +73,7 @@ if core:part:tag = "base" {
         }
         wait 5.
 
-        local baseVessel to vessel(baseName).
-        local baseGeo to baseVessel:geoposition.
-        local baseHdg to posAng(180 + geoHeadingTo(baseGeo, geoPosition)).
-        local baseWpt to airlineWptCreate(baseGeo, baseHdg).
+        local baseWpt to airlineWptFromVesselName(baseName).
         set kAirline:VlSpd to -0.5.
         airlineTo(baseWpt).
         wait until procCount() > 1.

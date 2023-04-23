@@ -41,10 +41,10 @@ function flightDefaultParams {
         "reality", flightRealityCreate(),
         "model", flightModelCreate(),
         "control", flightControlCreate(),
-        "hAccPid", flightHAccPid(),
         "vAccPid", flightVAccPid(),
         "landV", 65,
         "landVUpdateK", 0,
+        "airbreathing", false,
 
         // output
         "steering", ship:facing,
@@ -279,6 +279,8 @@ function flightControlUpdate {
     local vspd to reality:Vs.
     local hspd to reality:Gs.
     local aoa to reality:Aoa.
+    local shipMass to reality:Mass.
+    local thrust to reality:Thrust.
 
     local grav to reality:Grav.
     local cosP to hspd / air.
@@ -289,17 +291,14 @@ function flightControlUpdate {
 
     local liftAcc to v(xacc, totalY, 0).
     local sgnY to sgn(totalY).
-    local liftMag to liftAcc:mag * ship:mass * sgnY.
-
-    local nowThrust to ship:thrust.
-    local reqLift to liftMag.
+    local liftMag to liftAcc:mag * shipMass * sgnY.
 
     local m to max(model:AoaM, 1).
     local b to model:AoaB.
 
     // small angle approximation of thrust * sin(aoa).
-    local stable to ((reqLift) / (dyn) - b) 
-        / (m + constant:degtorad * nowThrust / dyn).
+    local stable to ((liftMag) / (dyn) - b) 
+        / (m + constant:degtorad * thrust / dyn).
     // don't set aoa to more than some degrees off current
     set stable to aoa + clampAbs(stable - aoa, 5).
     // print "Stable " + round(stable, 1) + " vs Aoa " + round(aoa, 1).
@@ -307,10 +306,10 @@ function flightControlUpdate {
     local sinP to vspd / air.
     local liftDotDrag to liftMag * sinP.
     local nowDrag to -reality:drag.
-    local stableThrust to (1 / cos(stable)) * (ship:mass * accel:z + nowDrag
-        + liftDotDrag).
+    // accel:z ignored in favor of compensating in higher layer
+    local stableThrust to (1 / cos(stable)) * (nowDrag + liftDotDrag).
 
-    local rollUp to v(xacc, reality:lift / ship:mass, 0).
+    local rollUp to v(xacc, reality:lift / shipMass, 0).
     if reality:lift < 1 {
         // In theory, we should roll the opposite way to get a turn while our
         // lift is negative. In practice, negative lift is only maintained for
@@ -332,8 +331,6 @@ function flightLevel {
     local vspd to params:vspd.
     local hspd to params:hspd.
     
-    local hAccPid to params:HAccPid.
-    set hAccPid:setpoint to hspd.
     local vAccPid to params:VAccPid.
     set vAccPid:setpoint to vspd.
     local seconds to time:seconds.
@@ -342,7 +339,7 @@ function flightLevel {
     local desiredAccel to v(0, 0, 0).
     set desiredAccel:x to params:xacc.
     set desiredAccel:y to vAccPid:update(seconds, verticalSpeed).
-    set desiredAccel:z to hAccPid:update(seconds, groundSpeed).
+    set desiredAccel:z to 0.
 
     local acc to params:differ:D[0].
     flightRealityUpdate(reality, acc).
@@ -350,7 +347,6 @@ function flightLevel {
     flightControlUpdate(params:control, params:model, reality, desiredAccel).
     
     local aoa to params:control:Aoa.
-    local tgtThrust to params:control:Thrust.
     local newLandingSpd to params:model:LandingSpd.
     if params:model:UpdateLandingSpd {
         set params:landV to stepLowpassUpdate(params:landV, newLandingSpd,
@@ -369,8 +365,21 @@ function flightLevel {
 
     // throttle
     local thrustState to params:thrust.
-    thrustUpdate(thrustState, seconds, reality:maxiThrust, reality:thrust,
-        tgtThrust).
+    local maxiThrust to reality:MaxiThrust.
+    if maxiThrust > 0 {
+        local stableThrust to params:control:Thrust.
+        local stableThrot to stableThrust / maxiThrust.
+        local nowThrot to reality:Thrust / maxiThrust.
+        local throtPromise to thrustPromiseForGoal(thrustState, nowThrot,
+            stableThrot).
+        // local throtPromise to 0.
+        local spdPromise to throtPromise * maxiThrust / reality:Mass.
+        local hspdError to (hspd - spdPromise - groundspeed).
+        local desiredZ to hspdError * kFlight:hAccKp.
+        set params:hacc to desiredZ.
+        local tgtThrust to stableThrust + reality:Mass * desiredZ.
+        thrustUpdate(thrustState, seconds, nowThrot, tgtThrust / maxiThrust).
+    }
 
     // Keep throttle above 0 to keep it ready for throttling up.
     local idealThrot to clamp(max(thrustState:throt, 0.02), 0, 1).
@@ -378,7 +387,6 @@ function flightLevel {
 
     // For the report only
     set params:vacc to desiredAccel:y.
-    set params:hacc to desiredAccel:z.
 }
 
 function flightLanding {
@@ -435,6 +443,7 @@ function flightBeginTakeoff {
     if params:mode <> kFlight:Takeoff {
         set params:mode to kFlight:Takeoff.
 
+        set params:airbreathing to shipActiveEnginesAirbreathe().
         setFlaps(2).
         setThrustReverser(kForward).
         lights on.
@@ -452,6 +461,7 @@ function flightBeginLevel {
     if params:mode <> kFlight:Level {
         set params:mode to kFlight:Level.
 
+        set params:airbreathing to shipActiveEnginesAirbreathe().
         flightResetSpds(params, params:cruiseV).
         setFlaps(0).
         setThrustReverser(kForward).
@@ -471,6 +481,7 @@ function flightBeginLanding {
     if params:mode <> kFlight:Landing {
         set params:mode to kFlight:Landing.
 
+        set params:airbreathing to shipActiveEnginesAirbreathe().
         setThrustReverser(kForward).
         set params:vspd to -1.
         setFlaps(3).
@@ -501,15 +512,6 @@ function flightCreateReport {
     set params:report:gui:x to -500.
     set params:report:gui:y to -300.
     params:report:gui:show().
-}
-
-function flightHAccPid {
-    local kp to kFlight:HAccKp.
-    // horizontal should not have I term 
-    local pid to pidloop(kp, 0, kp).
-    set pid:minoutput to -kFlight:HAccMax.
-    set pid:maxoutput to kFlight:HAccMax.
-    return pid.
 }
 
 function flightVAccPid {
