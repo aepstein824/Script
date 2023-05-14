@@ -45,6 +45,7 @@ function flightDefaultParams {
         "landV", 65,
         "landVUpdateK", 0,
         "airbreathing", false,
+        "takeoffBeacon", geoposition,
 
         // output
         "steering", ship:facing,
@@ -147,15 +148,14 @@ function flightSetSpeedsGivenMin {
 function flightTakeoff {
     parameter params.
 
+    local hdg to params:takeoffBeacon:heading.
     if status = "LANDED" {
         set params:throttle to 1.
-        set params:steering to heading(params:takeoffHeading,
-            params:takeoffAoA).
+        set params:steering to heading(hdg, params:takeoffAoA).
         flightSetSpeedsGivenMin(params, groundspeed).
     } else {
         set params:throttle to 0.5.
-        set params:steering to heading(params:takeoffHeading,
-            params:takeoffAoA / 2).
+        set params:steering to heading(hdg, params:takeoffAoA / 2).
     }
 }
 
@@ -444,6 +444,8 @@ function flightBeginTakeoff {
         set params:mode to kFlight:Takeoff.
 
         set params:airbreathing to shipActiveEnginesAirbreathe().
+        set params:takeoffBeacon to geoBeacon(geoPosition,
+            params:takeoffHeading).
         setFlaps(2).
         setThrustReverser(kForward).
         lights on.

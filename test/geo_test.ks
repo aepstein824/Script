@@ -8,6 +8,7 @@ local tests to lexicon(
     "approach", testApproach@,
     "headingTo", testHeadingTo@,
     "north2dToGeo", testNorth2dToGeo@,
+    "beacon", testBeacon@,
     "turnCircles", testTurnCircles@,
     "turnXVec", testTurnIntersectVec@,
     "turnXPoint", testTurnIntersectPoint@,
@@ -89,6 +90,20 @@ function testNorth2dToGeo {
     t:add(testEq(geoBodyPosDistance(geoNp:position, geo14:position), dist, 1)).
     t:add(testEq(geoBodyPosDistance(geoNp:position, geo23:position), dist, 1)).
     t:add(testEq(geoBodyPosDistance(geoNp:position, geo32:position), dist, 1)).
+    return t.
+}
+
+function testBeacon {
+    local t to list().
+    local geoCenter to latlng(0, 0).
+    local geo00 to latlng(90, 0).
+    local geo09 to latlng(0, 90).
+    local geo18 to latlng(-90, 0).
+    local geo27 to latlng(0, -90).
+    t:add(testEq(geoBeacon(geoCenter, 0), geo00)).
+    t:add(testEq(geoBeacon(geoCenter, 90), geo09)).
+    t:add(testEq(geoBeacon(geoCenter, 180), geo18)).
+    t:add(testEq(geoBeacon(geoCenter, 270), geo27)).
     return t.
 }
 

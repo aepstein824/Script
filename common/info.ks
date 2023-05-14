@@ -5,8 +5,8 @@ set kWarpHeights[moho] to 11000.
 set kWarpHeights[eve] to 320000.
 set kWarpHeights[gilly] to 10000.
 set kWarpHeights[kerbin] to 75000.
-set kWarpHeights[mun] to 10500.
-set kWarpHeights[minmus] to 6500.
+set kWarpHeights[mun] to 25500.
+set kWarpHeights[minmus] to 12500.
 set kWarpHeights[duna] to 100000.
 set kWarpHeights[ike] to 15500.
 set kWarpHeights[dres] to 10500.

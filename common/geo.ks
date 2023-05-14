@@ -59,6 +59,19 @@ function geoHeadingTo {
     return posAng(hdg).
 }
 
+function geoBeacon {
+    parameter geoFrom, hdg.
+
+    // I'm calling a beacon a 1/4 away around the planet. A beacon is a better
+    // way to share directions between nearby geocoords when those coords are
+    // around a pole.
+    local bod to geoFrom:body.
+    local northFrame to geoNorthFrame(geoFrom).
+    local hdgVec to v(sin(hdg), 0, cos(hdg)).
+    local around90 to bod:radius * constant:pi / 2.
+    return geoNorth2dToGeo(geoFrom, northFrame, around90 * hdgVec).
+}
+
 function turn2d {
     parameter p, rad, d.
     // These circles also have a direction. Positive Y represents a ccw turn.

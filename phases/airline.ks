@@ -54,11 +54,6 @@ function airlineTo {
     set kuniverse:timewarp:rate to 4.
 
     if geoBodyPosDistance(zeroV, approachGeo:position) > kAirline:CruiseDist {
-        // local departWpt to airlineWptCreate(geoPosition, approachWpt:geo:heading,
-        //     kAirline:CruiseAlti).
-
-        // print "Turn to depart from current location".
-        // airlineLoop(departWpt).
         print "Cruise to destination".
         airlineCruise(approachWpt).
     }
@@ -89,41 +84,11 @@ function airlineCruiseVspd {
     return clamp(vDiff * kAirline:DiffToVspd, -lim, lim).
 }
 
-function airlineTurnError {
-    parameter turn, pos2d, v2d.
-    local posC to pos2d - turn:p.
-    local dimlessR to posC:mag / turn:rad.
-    local dimlessROffset to dimlessR - 1.
-    local error to 0.
-    if abs(dimlessROffset) < kAirline:TurnR {
-        local outDir to vcrs(posC, turn:d:upvector):normalized.
-        set error to vectorAngleAround(v2d, unitY, outDir).
-    } else {
-        local radDiff to posC:mag - turn:rad.
-        local inside to radDiff < 0.
-        local posO to posC.
-        if inside {
-            set posO to posC:normalized * (turn:rad - radDiff). 
-        }
-        local posO2d to posO + turn:p.
-        local tgt2d to turnIntersectPoint(turn, posO2d).
-        set error to vectorAngleAround(v2d, unitY, tgt2d - pos2d).
-    }
+function airlineBearingXacc {
+    parameter brg, lim.
 
-    return smallAng(error).
-}
-
-function airlineTurnErrorToXacc {
-    parameter error, dimlessR, turnXacc, ccw.
-
-    local errorX to clampAbs(-error / kAirline:MaxTurnAngle,
-        kAirline:MaxTurnAdjustment).
-
-    local rDist to dimlessR - 1.
-    if abs(rDist) < kAirline:TurnR {
-        return (choose -1 if ccw else 1) * (turnXacc + 20 * rDist) + errorX.
-    }
-    return errorX * (turnXacc + 1).
+    local scaledBearing to brg / kAirline:MaxStraightAngle.
+    return clampAbs(scaledBearing, lim).
 }
 
 function airlineStraightErrorToXacc {
@@ -302,7 +267,6 @@ function airlineLoop {
     set kAirline:FlightP:hspd to maneuverSpd.
 
     local turnXacc to airlineTurnXacc(gat(0)).
-
     local nowRadius to flightSpdToRadius(maneuverSpd, turnXacc).
     local landRadius to flightSpdToRadius(maneuverSpd, turnXacc).
 
@@ -314,15 +278,10 @@ function airlineLoop {
     flightPath:remove(0).
 
     until flightPath:empty() {
-        set FlightP:vspd to airlineCruiseVspd(
-            endWpt:alti, altitude, kAirline:VspdAng).
 
         set ctx to airlineGeoContext(endGeo, zeroV, velocity:surface).
 
         local frame to ctx:frame.
-        local nowPos2d to ctx:nowPos2d.
-        local nowFore to ctx:nowFore.
-
         local path2d to flightPath[0][1].
 
         if flightPath[0][0] = "straight" or flightPath[0][0] = "start" {
@@ -330,42 +289,120 @@ function airlineLoop {
             local turn to flightPath[1][2].
             local fromCenter to (path2d - turn:p):normalized.
             local along to vcrs(fromCenter, turn:d:upvector).
-            local outHdg to posAng(arcTan2(along:x, along:z)).
-            local pathGeo to geoNorth2dToGeo(endGeo, frame, path2d).
-            local toHdg to pathGeo:heading.
-            local desired to posAng(toHdg 
-                + clampAbs(smallAng(toHdg - outHdg),90)).
-            local hdgDiff to smallAng(desired - shipVHeading()).
-            local hdgBased to airlineBearingXacc(hdgDiff, turnXacc).
-            set flightP:xacc to hdgBased.
-            local endRad to kAirline:EndRadius * groundspeed.
-            local endDist to geoBodyPosDistance(zeroV, pathGeo:position).
-            // print "P2d " + vecround(nowPos2d)
-            //     + " toHdg " + round(toHdg)
-            //     + " outHdg " + round(outHdg)
-            //     + " desired " + round(desired)
-            //     + " endDist " + round(endDist).
-            if endDist < endRad {
-                flightPath:remove(0).
-            }
+            local outHdgEnd to posAng(arcTan2(along:x, along:z)).
+            local outHdgBeacon to geoBeacon(endGeo, outHdgEnd).
+            local outGeo to geoNorth2dToGeo(endGeo, frame, path2d).
+            local outHdgOut to geoHeadingTo(outGeo, outHdgBeacon).
+            print "end " + round(outHdgEnd) + "  |  out  " + round(outHdgOut).
+
+            local outArrow to vecdraw(zeroV, {
+                return outGeo:altitudeposition(altitude).},
+                rgb(0,1,1), "Out", 0.1, true, 1.0).
+
+            airlineLoopStraight(outGeo, outHdgOut, endWpt:alti, flightP).
+
+            set outArrow:show to false.
+
+            flightPath:remove(0).
         } else if flightPath[0][0] = "turn" {
             local turn to flightPath[0][2].
-            local turnError to airlineTurnError(turn, nowPos2d, nowFore).
-            local dimlessR to (nowPos2d - turn:p):mag / turn:rad.
-            local nowXacc to flightSpdToXacc(groundspeed, turn:rad).
-            set FlightP:xacc to airlineTurnErrorToXacc(turnError, 
-                dimlessR, nowXacc, turnCCW(turn)).
-            local outDir to vcrs(path2d - turn:p, turn:d:upvector).
-            local dev to vang(nowFore, outDir).
-            // print "P2d " + vecround(nowPos2d) 
-            //     + " toOut " + vecround(path2d)
-            //     + " turnError " + round(turnError)
-            //     + " dimlessR " + round(dimlessR, 2)
-            //     + " nowXacc " + round(nowXacc, 1)
-            //     + " devation " + dev.
-            if dev < 1 {
-                flightPath:remove(0).
-            }
+            local turnGeo to geoNorth2dToGeo(endGeo, frame, turn:p).
+            local outGeo to geoNorth2dToGeo(endGeo, frame, path2d).
+            local turnFinishHdg to geoHeadingTo(turnGeo, outGeo).
+            local turnSign to choose -1 if turnCCW(turn) else 1.
+
+            local centerArrow to vecdraw(zeroV, {
+                return turnGeo:altitudeposition(altitude).},
+                rgb(1,0,0), "Turn", 0.1, true, 1.0).
+            local outArrow to vecdraw(zeroV, {
+                return outGeo:altitudeposition(altitude).},
+                rgb(0,1,1), "Out", 0.1, true, 1.0).
+
+            airlineLoopTurn(turnGeo, turn:rad, turnSign, turnFinishHdg,
+                endWpt:Alti, flightP).
+
+            set centerArrow:show to false.
+            set outArrow:show to false.
+
+            // airlineLoopTurn(endGeo, path2d, endWpt:Alti, turn, flightP).
+            flightPath:remove(0).
+        }
+
+        airlineIterWait().
+    }
+}
+
+function airlineLoopStraight {
+    parameter outGeo, outHdg, endAlti, flightP.
+
+    local turnXacc to airlineTurnXacc(gat(0)).
+
+    print " Straight".
+
+    until false {
+        set flightP:vspd to airlineCruiseVspd(
+            endAlti, altitude, kAirline:VspdAng).
+
+        local reverseHdg to geoHeadingTo(outGeo, geoPosition).
+        local hdgError to smallAng(reverseHdg - outHdg - 180).
+        local toHdg to outGeo:heading.
+        local desired to posAng(toHdg + clampAbs(hdgError, 90)).
+        local hdgDiff to smallAng(desired - shipVHeading()).
+        local hdgXacc to airlineBearingXacc(hdgDiff, turnXacc).
+        set flightP:xacc to hdgXacc.
+
+        local outRad to kAirline:EndRadius * groundspeed.
+        local outDist to geoBodyPosDistance(zeroV, outGeo:position).
+
+        if outDist < outRad {
+            return.
+        }
+
+        airlineIterWait().
+    }
+}
+
+function airlineLoopTurn {
+    parameter turnGeo, turnRad, turnSign, turnFinishHdg, endAlti, flightP.
+
+    local turnXacc to airlineTurnXacc(gat(0)).
+
+    print " Turn".
+
+    until false {
+        set FlightP:vspd to airlineCruiseVspd(
+            endAlti, altitude,kAirline:VspdAng).
+
+        local dist to geoBodyPosDistance(turnGeo:position, zeroV).
+        local dimlessRad to dist / turnRad.
+
+        local baseXacc to 0.
+        if abs(dimlessRad - 1) < kAirline:TurnR {
+            set baseXacc to turnSign * flightSpdToXacc(groundspeed, dist).
+        }
+        local tgtHdg to 0.
+
+        if dimlessRad > 1 {
+            local offsetMag to arcsin(min(1 / dimlessRad, .9999)).
+            set tgtHdg to posAng(turnGeo:heading - turnSign * offsetMag).
+        } else {
+            local offsetMag to arcsin(min(dimlessRad, .9999)).
+            set tgtHdg to posAng(180 + turnGeo:heading + turnSign * offsetMag).
+        }
+        local hdgDiff to smallAng(tgtHdg - shipVHeading()).
+        local hdgXacc to airlineBearingXacc(hdgDiff, turnXacc).
+        set flightP:xacc to baseXacc + hdgXacc.
+
+        local turnFromHdg to geoHeadingTo(turnGeo, geoPosition).
+        // print "Dimless R  " + round(dimlessRad, 3)
+        //     + "  |  tgtHdg  " + round(tgtHdg, 1)
+        //     + "  |  xacc  " + round(flightP:xacc, 1)
+        //     + "  |  turnFromHdg  " + round(turnFromHdg)
+        //     + "  |  turnFinishHdg  " + round(turnFinishHdg).
+
+        local remainingAround to abs(turnFromHdg - turnFinishHdg).
+        if remainingAround < 1 or remainingAround > 359 {
+            return.
         }
 
         airlineIterWait().
@@ -483,13 +520,6 @@ function airlineLanding {
             airlineIterWait().
         }
     }
-}
-
-function airlineBearingXacc {
-    parameter brg, lim.
-
-    local scaledBearing to brg / kAirline:MaxStraightAngle.
-    return clampAbs(scaledBearing, lim).
 }
 
 function airlineDirect {
@@ -628,7 +658,8 @@ set kAirline:Wpts to lex(
     "Island27", airlineWptCreate(
         kerbin:geopositionlatlng(-1.515664, -71.85139), 270),
     "NP27", airlineWptCreate(
-        kerbin:geopositionlatlng(80, -100), 270)
+        kerbin:geopositionlatlng(80, -100), 270),
+    "NP", airlineWptCreate(kerbin:geopositionlatlng(90, 0), 0)
 ).
 
 global kCruise to lex(

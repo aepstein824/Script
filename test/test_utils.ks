@@ -65,6 +65,13 @@ function testEq {
         }
         return testOk().
     }
+    if xname = "GeoCoordinates" {
+        local dist to geoBodyPosDistance(x:position, y:position).
+        if dist > 1000 * eps {
+            return testError("Geocoords dist [" + dist + "] " + errorString).
+        }
+        return testOk().
+    }
     if x <> y {
         return testError("Unequal " + errorString).
     }

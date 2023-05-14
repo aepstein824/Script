@@ -129,6 +129,7 @@ function pilotFlight {
 
         if pRot:y < -0.5 {
             // press W
+            set params:takeoffHeading to shipHeading().
             flightBeginTakeoff(params).
             print "Takeoff".
         } else if pRot:y > 0.5 {
