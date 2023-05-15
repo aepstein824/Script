@@ -57,7 +57,7 @@ function flightDefaultParams {
         "report", false,
 
         // constants
-        "takeoffAoA", 45,
+        "takeoffAoA", 30,
         "takeoffHeading", 90,
         "landingUpdateK", 0.001,
         "levelUpdateK", 0.1,
@@ -154,8 +154,8 @@ function flightTakeoff {
         set params:steering to heading(hdg, params:takeoffAoA).
         flightSetSpeedsGivenMin(params, groundspeed).
     } else {
-        set params:throttle to 0.5.
-        set params:steering to heading(hdg, params:takeoffAoA / 2).
+        set params:throttle to 1.
+        set params:steering to heading(hdg, params:takeoffAoA / 3).
     }
 }
 
@@ -504,6 +504,10 @@ function flightResetSpds {
 
 function flightCreateReport {
     parameter params.   
+
+    if not params:report:istype("BOOLEAN") {
+        params:report:gui:hide().
+    }
 
     set params:report to reportCreate(list(
         "vspd", "hspd", "xacc", "vacc", "hacc",

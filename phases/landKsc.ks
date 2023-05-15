@@ -6,9 +6,11 @@ runOncePath("0:phases/airline.ks").
 
 local kKerbPark to 75000.
 local kLandingBudget to 200.
-global kLandingPe to 0.
-global kQToAoa to 900.
-global kReturnTanly to 120.
+
+global kLandKsc to lex().
+set kLandKsc:Pe to 0.
+set kLandKsc:QToAoa to 900.
+set kLandKsc:ReturnTanly to 120.
 
 function preventEscape {
     controlLock().
@@ -61,8 +63,8 @@ function landPlaneDeorbit {
     // land in the daytime
     opsWarpTillSunAngle(waypoint("ksc"), 270).
     wait 5.
-    set kLandAtm:ReturnTanly to kReturnTanly.
-    set kLandAtm:EntryPe to kLandingPe.
+    set kLandAtm:ReturnTanly to kLandKsc:ReturnTanly.
+    set kLandAtm:EntryPe to kLandKsc:Pe.
     planLandingBurn().
     nodeExecute().
     print " End burn at " + geoRound(geoPosition).
@@ -92,7 +94,7 @@ function landPlaneReentry {
             set aoa to 2.
         } else {
             // emperically measured formula in stock
-            set aoa to kQToAoa / sqrt(max(dyn, 1)).
+            set aoa to kLandKsc:QToAoa / sqrt(max(dyn, 1)).
             set aoa to clamp(aoa, 2, 90).
         }
 

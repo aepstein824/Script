@@ -293,7 +293,6 @@ function airlineLoop {
             local outHdgBeacon to geoBeacon(endGeo, outHdgEnd).
             local outGeo to geoNorth2dToGeo(endGeo, frame, path2d).
             local outHdgOut to geoHeadingTo(outGeo, outHdgBeacon).
-            print "end " + round(outHdgEnd) + "  |  out  " + round(outHdgOut).
 
             local outArrow to vecdraw(zeroV, {
                 return outGeo:altitudeposition(altitude).},
