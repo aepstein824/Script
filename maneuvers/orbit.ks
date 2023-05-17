@@ -1,5 +1,6 @@
 @LAZYGLOBAL OFF.
 
+runOncePath("0:common/control.ks").
 runOncePath("0:common/math.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
@@ -369,24 +370,35 @@ function orbitSeparate {
     parameter t, s to activeShip.
     enableRcs().
 
-    lock steering to retrograde.
+    local rcsInvThrust to shipRcsInvThrust().
+
+    controlLock().
     for i in range(t / 0.1) {
+        if i > 30 {
+            set controlSteer to retrograde.
+        } else {
+            set controlSteer to "KILL".
+        }
         local away to -s:position.
         local retro to retrograde:forevector.
-        shipFacingRcs(vxcl(retro, away):normalized).
+        shipRcsDoThrust(0.5 * vxcl(retro, away):normalized, rcsInvThrust).
         wait 0.1.
     }
-    unlock steering.
+    controlUnlock().
 
     disableRcs().
 }
 
 function orbitDispose {
     parameter s to activeShip.
-    print "Deorbit".
+    print "Separate".
     sas off.
 
-    orbitSeparate(7, s).
+    orbitSeparate(5, s).
+    print "Deorbit burn".
+
+    enableRcs().
+
     for e in ship:engines {
         if not e:ignition {
             e:activate.

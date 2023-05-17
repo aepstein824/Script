@@ -40,4 +40,3 @@ if shouldPhase(3) {
 if shouldPhase(4) {
     landPlaneRunway().
 }
-

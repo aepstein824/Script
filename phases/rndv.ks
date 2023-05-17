@@ -6,15 +6,13 @@ runOncePath("0:common/control.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/math.ks").
 
-
-
 global kRndvParams to Lexicon().
 set kRndvParams:floatDist to 200.
 set kRndvParams:maxSpeed to 50.
 set kRndvParams:thrustAng to 5.
-set kRndvParams:rcsSpd to 5.
+set kRndvParams:rcsSpdMult to 5.
 set kRndvParams:rcsSlowDist to 150.
-
+set kRndvParams:rcsKp to 2.
 
 function planIntercept {
     local best to Lexicon().
@@ -143,13 +141,15 @@ function rcsNeutralize {
     lock throttle to 0.
     lock steering to "kill".
 
+    local rcsInvThrust to shipRcsInvThrust().
+
     enableRcs().
     until false {
         local tr to target:velocity:orbit - ship:velocity:orbit.
         if (tr:mag < 0.3){
             break.
         }
-        shipFacingRcs(tr).
+        shipRcsDoThrust(tr, rcsInvThrust).
         wait 0.
     }
     disableRcs().
@@ -168,6 +168,17 @@ function rcsApproach {
     lock throttle to 0.
     wait 3. 
 
+    local rcsThrust to shipRcsGetThrust().
+    local rcsInvThrust to vecInvertComps(rcsThrust).
+
+    local rcsMaxSpd to kRndvParams:rcsSpdMult * rcsThrust:z.
+    local slowDist to kRndvParams:rcsSlowDist.
+    local rcsSpdFunc to {
+        parameter dist.
+        return rndvSpd(dist, slowDist, rcsMaxSpd, 0.3).
+    }.
+    local kp to kRndvParams:rcsKp.
+
     until false {
         local towards to tgtPort:position - ourPort:position.
         local dist to towards:mag.
@@ -176,18 +187,20 @@ function rcsApproach {
             break.
         }
 
-        local slowDist to kRndvParams:rcsSlowDist.
-        local desiredSpd to rndvSpd(dist, slowDist, kRndvParams:rcsSpd, 0.4).
-        local desired to desiredSpd * towards:normalized.
+
+        local spdAndAcc to funcAndDeriv(rcsSpdFunc, dist).
+        local desiredSpd to spdAndAcc[0].
+        local desiredAcc to spdAndAcc[1] * desiredSpd.
+
+        local desiredV to desiredSpd * towards:normalized.
+        local accV to desiredAcc * towards:normalized.
         local relV to ship:velocity:orbit - target:velocity:orbit.
-        // print "desired " + facing:inverse * desired.
-        // print "relV " + facing:inverse * relV.
-        local delta to desired - relV.
+        local delta to kp * (desiredV - relV).
+        print "desired " + vecround(facing:inverse * desiredV, 2)
+            + "  |  delta " + vecround(facing:inverse * delta, 2).
 
-        local urgency to lerp(1 - (dist / slowDist), 1, 5).
-        set delta to delta * urgency.
+        shipRcsDoThrust(delta + accV, rcsInvThrust).
 
-        shipFacingRcs(delta).
         wait 0.
     }
 

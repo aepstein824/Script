@@ -177,6 +177,25 @@ function vecMinMag {
     }
 }
 
+function vecInvertComps {
+    parameter vec.
+    return v(
+        choose 0 if vec:x = 0 else 1.0 / vec:x,
+        choose 0 if vec:y = 0 else 1.0 / vec:y,
+        choose 0 if vec:z = 0 else 1.0 / vec:z
+    ).
+}
+
+function vecMultiplyComps {
+    parameter a, b.
+
+    return v(
+        a:x * b:x,
+        a:y * b:y,
+        a:z * b:z
+    ).
+}
+
 function sgnSqrt {
     parameter x.
     return sgn(x) * sqrt(abs(x)).

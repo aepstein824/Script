@@ -1,5 +1,6 @@
 @LAZYGLOBAL OFF.
 
+runOncePath("0:common/math.ks").
 
 function shipNorm {
     return vCrs(ship:prograde:vector, ship:position - body:position):normalized.
@@ -110,12 +111,6 @@ function shipLevel {
     return level.
 }
 
-function shipFacingRcs {
-    parameter vt.
-    local vFace to ship:facing:inverse * vt.
-    set ship:control:translation to vFace.
-}
-
 function shipProcessors {
     local procs to list().
     list processors in procs.
@@ -148,4 +143,44 @@ function shipActiveEnginesAirbreathe {
         }
     }
     return false.
+}
+
+function shipRcsDoThrust {
+    parameter accRaw, rcsInvThrust.
+
+    local accFace to ship:facing:inverse * accRaw.
+    local thrustFace to accFace * ship:mass.
+    set ship:control:translation to vecMultiplyComps(thrustFace, rcsInvThrust).
+}
+
+function shipRcsGetThrust {
+    local rcsList to list().
+    list rcs in rcsList.
+    local posThrust to v(0, 0, 0).
+    local negThrust to v(0, 0, 0).
+    for thruster in rcsList {
+        local thrusterThrust to thruster:availableThrust.
+        for vec in thruster:thrustvectors {
+            local facingThrust to facing:inverse * vec.
+            set posThrust to posThrust + thrusterThrust * v(
+                max(facingThrust:x, 0),
+                max(facingThrust:y, 0),
+                max(facingThrust:z, 0)
+            ).
+            set negThrust to negThrust + thrusterThrust * v(
+                min(facingThrust:x, 0),
+                min(facingThrust:y, 0),
+                min(facingThrust:z, 0)
+            ).
+        }
+    }
+
+    // All algorithms will assume symmetry for now.
+    return posThrust.
+}
+
+function shipRcsInvThrust {
+    local rcsThrust to shipRcsGetThrust().
+    local rcsInvThrust to vecInvertComps(rcsThrust).
+    return rcsInvThrust.
 }

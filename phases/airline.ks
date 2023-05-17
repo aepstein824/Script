@@ -323,7 +323,6 @@ function airlineLoop {
             set centerArrow:show to false.
             set outArrow:show to false.
 
-            // airlineLoopTurn(endGeo, path2d, endWpt:Alti, turn, flightP).
             flightPath:remove(0).
         }
 
