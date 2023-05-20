@@ -432,15 +432,6 @@ function launchQuicksave {
     }
 }
 
-function detimestamp {
-    parameter t.
-
-    if t:typename = "TimeStamp" or t:typename = "TimeSpan" {
-        return t:seconds.
-    }
-    return t.
-}
-
 function getPort {
     parameter s.
     if s:dockingPorts:empty() {

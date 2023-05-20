@@ -14,7 +14,7 @@ runOncePath("0:maneuvers/orbit.ks").
 
 global kWaypointsClimbLeap to 300.
 global kWaypointsClimbAngle to 45.
-global kWaypointsOverhead to 600.
+global kWaypointsOverhead to 300.
 global kWaypointsCoastSpeed to 5.
 
 function doWaypoints {
@@ -240,7 +240,7 @@ function vacLandGeo {
     add res:burnnode.
     nodeExecute().
 
-    print "Initial Suicide Burn".
+    print "Suicide Burn".
     suicideBurn(20, geoAlt + overheadAlt / 4, 5).
 
     print "Controlled Descent to target".
@@ -289,22 +289,12 @@ function vacClimb {
     wait 1.
 }
 
-function geoNearestFlat {
-    parameter lz.
-    local dspace to 10.
-    local success to 0.15.
-
-    if lz:body:hasOcean() and lz:terrainheight < 0 {
-        return lz.
-    }
+function geoFlatSearch {
+    parameter lz, dspace, success, optimizeSgn.
 
     local function lzF {
         parameter pos.
-        return pos:terrainHeight.
-    }
-    local function lzNF {
-        parameter pos.
-        return -1 * pos:terrainHeight.
+        return optimizeSgn * pos:terrainHeight.
     }
     local function lzCombine {
         parameter geo, ds.
@@ -319,19 +309,37 @@ function geoNearestFlat {
         parameter df.
         return (abs(df:x) + abs(df:y)) < success.
     }
-    print "Searching for flat landing site".
-    local start to lz:position.
-    local top to optimizeFixedWalk(lzNF@, lzCombine@, lzSuccess@, lz, dspace).
-    local topClimb to (top:position - start):mag.
-    print " Uphill " + geoRoundStr(top) + " : " + round(topClimb, 2).
-    local bottom to optimizeFixedWalk(lzF@, lzCombine@, lzSuccess@, lz, dspace).
-    local bottomClimb to (bottom:position - start):mag.
-    print " Downhill " + geoRoundStr(bottom) + " : " + round(bottomClimb, 2).
-    local chosen to bottom.
-    // Prefer top for safer and more efficient landings
-    if topClimb < 2 * bottomClimb {
-        set chosen to top.
+
+    return optimizeFixedWalk(lzF@, lzCombine@, lzSuccess@, lz, dspace).
+}
+
+function geoNearestFlat {
+    parameter lz.
+    local dspace to 10.
+    local success to 0.15.
+
+    if lz:body:hasOcean() and lz:terrainheight < 0 {
+        return lz.
     }
 
-    return chosen.
+    print " Searching for flat landing site".
+    local start to lz:position.
+    local top to geoFlatSearch(lz, dspace, success, -1).
+    local topClimb to (top:position - start):mag.
+    print " Uphill " + geoRoundStr(top) + " : " + round(topClimb, 2).
+    local bottom to geoFlatSearch(lz, dspace, success, 1).
+    local bottomClimb to (bottom:position - start):mag.
+    print " Downhill " + geoRoundStr(bottom) + " : " + round(bottomClimb, 2).
+
+    local refineDS to 2.
+    local refineSuccess to 0.01.
+    // Prefer top for safer and more efficient landings
+    if topClimb < 2 * bottomClimb {
+        local refined to geoFlatSearch(top, refineDS, refineSuccess, -1).
+        print " Refined " + geoRoundStr(refined).
+        return refined.
+    }
+    local refined to geoFlatSearch(bottom, refineDS, refineSuccess, 1).
+    print " Refined " + geoRoundStr(refined).
+    return refined.
 }

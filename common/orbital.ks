@@ -6,11 +6,11 @@ function tanlyToEanly {
     parameter ecc.
     parameter tanly.
 
-    local quad1 to arcCos((ecc + cos(tanly)) / (1 + ecc * cos(tanly))).
+    local eanly to arctan2(sqrt(1 - ecc ^ 2) * sin(tanly), ecc + cos(tanly)).
     if tanly > 180 {
-        return 360 - quad1.
+        set eanly to eanly + 360.
     }
-    return quad1.
+    return eanly.
 }
 
 function eanlyToManly {
@@ -126,6 +126,11 @@ function normOf {
     parameter obt1.
     return vCrs(obt1:velocity:orbit, 
         obt1:position - obt1:body:position):normalized.
+}
+
+function obtRnpFromPV {
+    parameter pos, vel.
+    return lookDirUp(vel, pos) * r(0, 0, 90).
 }
 
 function orbitalRelativeV {

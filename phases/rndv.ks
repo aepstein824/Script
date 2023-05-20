@@ -10,7 +10,6 @@ global kRndvParams to Lexicon().
 set kRndvParams:floatDist to 200.
 set kRndvParams:maxSpeed to 50.
 set kRndvParams:thrustAng to 5.
-set kRndvParams:rcsSpdMult to 5.
 set kRndvParams:rcsSlowDist to 150.
 set kRndvParams:rcsKp to 2.
 
@@ -64,6 +63,7 @@ function ballistic {
     }
 
     local respond to true.
+    local stageTowards to true.
 
     controlLock().
     enableRcs().
@@ -75,9 +75,8 @@ function ballistic {
         local desiredSpd to rndvSpd(shortDist, burnDist, maxSpeed, endSpd).
         local relV to velocity:orbit - target:velocity:orbit.
         local relTowards to vdot(relV, towards:normalized).
-        local movingAway to relTowards < 0.
 
-        if shortDist > switchDist or movingAway {
+        if stageTowards {
             // while far, push velocity towards the target
             local desired to desiredSpd * towards:normalized.
             local delta to desired - relV.
@@ -102,18 +101,26 @@ function ballistic {
             } else {
                 set controlThrot to 0.
             }
+            if shortDist < switchDist {
+                set stageTowards to false.
+            }
         } else {
             // while close, only burn retrograde
             local steer to -relV.
-            if movingAway or shortDist < 0 {
+            if shortDist < 0 {
                 set desiredSpd to 0.
             }
-            if vang(steer, facing:vector) < kRndvParams:thrustAng {
+
+            if vang(relV, towards) > 20 {
+                set controlThrot to 1.
+            } else {
                 local magError to relV:mag - desiredSpd.
                 // if desiredSpd is greater, throt will be 0
                 local magFactor to invLerp(5 * magError, 0, shipAccel()).
                 set controlThrot to magFactor.
-            } else {
+            }
+
+            if vang(steer, facing:vector) > kRndvParams:thrustAng {
                 set controlThrot to 0.
             }
             set controlSteer to steer.
@@ -123,13 +130,6 @@ function ballistic {
             }
         }
 
-        // if dist > 10 * burnDist {
-        //     set kuniverse:timewarp:mode to "PHYSICS".
-        //     set kuniverse:timewarp:rate to 4.
-        // } else {
-        //     set kuniverse:timewarp:rate to 1.
-        // }
-    
         wait 0.
     }
     disableRcs().
@@ -171,11 +171,11 @@ function rcsApproach {
     local rcsThrust to shipRcsGetThrust().
     local rcsInvThrust to vecInvertComps(rcsThrust).
 
-    local rcsMaxSpd to kRndvParams:rcsSpdMult * rcsThrust:z.
     local slowDist to kRndvParams:rcsSlowDist.
+    local rcsMaxSpd to sqrt(rcsThrust:z / ship:mass * slowDist).
     local rcsSpdFunc to {
         parameter dist.
-        return rndvSpd(dist, slowDist, rcsMaxSpd, 0.3).
+        return rndvSpd(dist, slowDist, rcsMaxSpd, 0.2).
     }.
     local kp to kRndvParams:rcsKp.
 
@@ -196,8 +196,8 @@ function rcsApproach {
         local accV to desiredAcc * towards:normalized.
         local relV to ship:velocity:orbit - target:velocity:orbit.
         local delta to kp * (desiredV - relV).
-        print "desired " + vecround(facing:inverse * desiredV, 2)
-            + "  |  delta " + vecround(facing:inverse * delta, 2).
+        // print "desired " + vecround(facing:inverse * desiredV, 2)
+        //     + "  |  delta " + vecround(facing:inverse * delta, 2).
 
         shipRcsDoThrust(delta + accV, rcsInvThrust).
 
@@ -210,7 +210,7 @@ function rcsApproach {
 
 function rndvSpd {
     parameter dist, slowDist, maxSpd, minSpd.
-    if dist < 2 {
+    if dist < 3 {
         return minSpd.
     }
     if dist < 0 {
@@ -218,7 +218,7 @@ function rndvSpd {
     }
     local curve to 1.
     if dist < slowDist {
-        set curve to sqrt(invLerp(dist - 2, 0, slowDist)).
+        set curve to sqrt(invLerp(dist - 3, 0, slowDist)).
     }
     local clamped to lerp(curve, minSpd, maxSpd).
     return clamped.

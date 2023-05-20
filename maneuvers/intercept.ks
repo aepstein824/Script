@@ -6,8 +6,8 @@ runOncePath("0:common/ship.ks").
 runOncePath("0:maneuvers/node.ks").
 
 global kIntercept to lexicon().
-set kIntercept:StartSpan to 2.
-set kIntercept:DurSpan to 2.
+set kIntercept:StartSpan to 4.
+set kIntercept:DurSpan to 4.
 
 function hohmannTransfer {
     parameter rd, ra, mu.
@@ -164,13 +164,13 @@ function lambertGrid {
         set guessDur to guessDur + dj.
     }
 
-    for i in range(lowI, highJ) {
+    for i in range(lowI, highI) {
         for j in range (lowJ, highJ) {
             local startTime to guessT + i * di.
             local flightDuration to guessDur + j * dj.
             // print "Duration " + round(flightDuration * sToHours, 2).
-            local results to lambertIntercept(obtable1, obtable2, v(0,0,0),
-                startTime, flightDuration).
+            local results to lambertIntercept(obtable1, obtable2, startTime,
+                flightDuration).
             if results:ok {
                 set results:totalV to results:burnVec:mag. 
                 set results:totalV to results:totalV + results:matchVec:mag.

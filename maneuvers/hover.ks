@@ -309,11 +309,10 @@ function hoverHAccField {
     local expectedAcc to tgtAcc.
     local desiredAcc to correctionAcc + expectedAcc.
 
-    print "tgtVel  " + vecround(tgtVel, 2)
-        + "  |  tgtAcc  " + vecround(tgtAcc, 2)
-        + "  |  desAcc  " + vecround(desiredAcc, 2)
-        + "  |  toTgt  " + vecround(toTgt, 2).
-        // + "  |  hacc   " + round(.45 * params:maxAccelH * gat(0), 1).
+    // print "tgtVel  " + vecround(tgtVel, 2)
+    //     + "  |  tgtAcc  " + vecround(tgtAcc, 2)
+    //     + "  |  desAcc  " + vecround(desiredAcc, 2)
+    //     + "  |  toTgt  " + vecround(toTgt, 2).
 
     local newA to desiredAcc.
     set newA to vecClampMag(newA, params:maxAccelH * gat(altitude)).

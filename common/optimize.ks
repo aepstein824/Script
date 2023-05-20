@@ -20,8 +20,8 @@ function optimizeFixedWalk {
             local walk to -1 * dspace * dFdSpace:normalized.
             set point to combine(point, walk).
         }
-        if i = tries - 1{
-            print " Fixed walk optimizer failed to find success".
+        if i = tries - 1 {
+            print " Fixed walk optimizer gave up at " + vecRound(dFdSpace, 4).
         }
     }
     return point.

@@ -367,14 +367,14 @@ function orbitTunePeriod {
 }
 
 function orbitSeparate {
-    parameter t, s to activeShip.
+    parameter sepTime, killTime, s to activeShip.
     enableRcs().
 
     local rcsInvThrust to shipRcsInvThrust().
 
     controlLock().
-    for i in range(t / 0.1) {
-        if i > 30 {
+    for i in range(sepTime * 10) {
+        if i > killTime * 10 {
             set controlSteer to retrograde.
         } else {
             set controlSteer to "KILL".
@@ -394,7 +394,7 @@ function orbitDispose {
     print "Separate".
     sas off.
 
-    orbitSeparate(5, s).
+    orbitSeparate(5, 3, s).
     print "Deorbit burn".
 
     enableRcs().
@@ -408,9 +408,10 @@ function orbitDispose {
     lock throttle to 0.05.
     wait 3.
     lock throttle to 1.0.
-    wait until periapsis < -1000.
+    wait until periapsis < 0.
     lock throttle to 0.
     wait 1.
+    print "Finished Deorbit burn".
 }
 
 function orbitPatchesInclude {

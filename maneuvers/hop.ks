@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 
 runOncePath("0:common/control.ks").
+runOncePath("0:common/geo.ks").
 runOncePath("0:common/math.ks").
 runOncePath("0:common/operations.ks").
 runOncePath("0:common/orbital.ks").
@@ -13,7 +14,7 @@ runOncePath("0:common/ship.ks").
 // coast(12).
 
 function gHere {
-    local g to body:mu / (groundAlt() + body:radius) ^ 2.
+    local g to body:mu / (altitude + body:radius) ^ 2.
     return g.
 }
 
@@ -212,4 +213,20 @@ function spinPos {
     local bodyMm to -body:angularvel:y * constant:radtodeg.
     local spun to rotateVecAround(pos, unitY, bodyMm * dur).
     return spun.
+}
+
+function hopLz {
+    parameter height.
+
+    // h = (1/2) * a ^ 2 + v0 * t + h0
+    local accel to gHere().
+    local quadList to quadraticBoth(-0.5 * accel, 
+        verticalSpeed, altitude - height).
+    if quadList:length = 0 {
+        return geoposition.
+    }
+    local t to quadraticFirstPos(quadList).
+    local groundV to velocity:surface.
+    local lzGeo to body:geopositionof(groundV * t).
+    print round(t) + "  |  " + geoRoundStr(lzGeo).
 }

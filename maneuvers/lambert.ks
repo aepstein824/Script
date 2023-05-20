@@ -5,14 +5,11 @@ runOncePath("0:common/orbital.ks").
 runOncePath("0:common/math.ks").
 runOncePath("0:test/test_utils.ks").
 
-local pi to constant:pi.
-local eul to constant:e.
 local badResult to lexicon("ok", false).
 
 function lambertIntercept {
     parameter obtable1.
     parameter obtable2.
-    parameter offset. // r n p
     parameter startTime.
     parameter flightDuration.
 
@@ -24,13 +21,8 @@ function lambertIntercept {
     local endTime to startTime + flightDuration.
 
     local p2 to positionAt(obtable2, endTime) - obt1:body:position.
-    local pro2 to velocityAt(obtable2, endTime):orbit:normalized.
-    local norm2 to vCrs(pro2, p2):normalized.
-    local rad2 to vCrs(norm2, pro2):normalized.
-    set p2 to p2 + offset:x * rad2 + offset:y * norm2 + offset:z * pro2.
-
     local factory to lambertInterceptFitnessFactory@.
-    set factory to factory:bind(flightDuration).
+    set factory to factory:bind(detimestamp(flightDuration)).
 
     local res to lambert(obtable1, p2, startTime, true, factory).
     if res:ok {
@@ -45,10 +37,10 @@ function lambertInterceptFitnessFactory {
 
     local radRat to r2 / r1.
     local nRef to sqrt(mu / (r1 ^ 3)).
-    local tauS to detimestamp(flightDuration * nRef).
+    local tauS to flightDuration * nRef.
     local yS to ln(tauS).
     local cDimless to cvec:mag / r1.
-    local epsilon to (1 / 10 ^ 10) / min(1, tauS).
+    local epsilon to 1e-10 / min(1, tauS).
 
     local function fitness {
         parameter et.
@@ -69,7 +61,7 @@ function lambertPosOnly {
 
 
     local factory to lambertInterceptFitnessFactory@.
-    set factory to factory:bind(flightDuration).
+    set factory to factory:bind(detimestamp(flightDuration)).
 
     local res to lambert(obtable1, p2, startTime, true, factory).
     return res.
@@ -94,8 +86,6 @@ function lambertLandingFitnessFactory {
         local tanlyReverse to arcTan2R(ef * sinR(cang) + et * cosR(cang),
             ef * cosR(cang) - et * sinR(cang)).
         local p1Tanly to -1 * tanlyReverse.
-        print p1Tanly.
-        // return p1Tanly.
         local ecc_ to ef ^ 2 + et ^ 2.
         local flightA to arcTan2R(ecc_ * sinR(p1Tanly), 
             1 + ecc_ * cosR(p1Tanly)).
@@ -118,6 +108,8 @@ function lambert {
     local focus to obt1:body.
 
     local p1 to positionAt(obtable1, startTime) - focus:position.
+    local startVec to velocityAt(obtable1, startTime):orbit.
+    local p1Rnp to obtRnpFromPV(p1, startVec).
     // clearVecDraws().
     // vecdraw(focus:position, p1, rgb(0, 0, 1), "p1", 1.0, true).
     // vecdraw(focus:position, p2, rgb(0, 1, 0), "p2", 1.0, true).
@@ -128,12 +120,14 @@ function lambert {
     local cvec to p2 - p1.
     local r1 to p1:mag.
     local r2 to p2:mag.
-
     
     local ih to -1 * vCrs(p1, p2):normalized.
+    if vdot(ih, p1Rnp:upvector) < 0 {
+        set ih to -ih.
+    }
 
     local dTheta to vectorAngleAroundR(p1, ih, p2).
-    local isShort to dTheta <= pi.
+    local isShort to dTheta <= kPi.
 
     // print "Theta = " + dTheta.
 
@@ -156,23 +150,24 @@ function lambert {
     if isShort {
         set fromX to {
             parameter x_.
-            return ep * (1 - eul ^ (-x_ / ep)).
+            return -ep * expm1(-x_ / ep).
         }.
     } else {
         set fromX to {
             parameter x_.
-            local bigX to eul ^ (x_ * (1 / eh + 1 / ep)).
+            local bigX to kEul ^ (x_ * (1 / eh + 1 / ep)).
             return ep * eh * (bigX - 1) / (ep + eh * bigX).
         }.
     }
 
     local cAng to vectorAngleAroundR(p1, ih, cvec).
-    local specifics to fitnessFactory:call(r1, r2, focus:mu, dTheta, cvec, cang, ef).
+    local specifics to fitnessFactory:call(r1, r2, focus:mu, dTheta, cvec, cang,
+        ef).
 
     // find good eT
     local epsilon to specifics:epsilon.
     local x to 0.
-    local dX to 0.0001.
+    local dX to 1e-6.
     local et to 0.
     local kLimit to 12.
     from { local k to 0. } until k > kLimit step {set k to k + 1.} do {
@@ -182,7 +177,7 @@ function lambert {
  
         local y to specifics:fitness:call(et).
         if abs(y) < epsilon {
-            // print "Found good orbit".
+            // print k.
             break.
         }
 
@@ -213,6 +208,7 @@ function lambert {
     
     // build orbit
     local ecc to evec:mag.
+    // print "calculated ecc " + round(ecc, 3).
     //print "Ip = " + ip.
     //vecdraw(focus:position + p1, ip * 1000000, rgb(0, 0, 1), "ip", 1.0, true).
     //print "Ic = " + ic.
@@ -254,18 +250,14 @@ function lambert {
 
     local ejectVec to transVAtPos(p1).
     // print "ejectVec " + ejectVec.
-    local startVec to velocityAt(obtable1, startTime):orbit.
     // print "startVec " + startVec.
-    local startPro to startVec:normalized.
-    local startRad to removeComp(p1, startPro):normalized.
-    local startNorm to vCrs(startPro, startRad).
+
     local burnVec to ejectVec - startVec.
-    local burnPro to vdot(burnVec, startPro).
-    local burnNorm to vdot(burnVec, startNorm).
-    local burnRad to vdot(burnVec, startRad).
+    local burnRnp to p1Rnp:inverse * burnVec.
+
     set results["ok"] to true.
     set results["burnVec"] to burnVec.
-    set results["burnNode"] to node(startTime, burnRad, burnNorm, burnPro).
+    set results["burnNode"] to node(startTime, burnRnp:x, burnRnp:y, burnRnp:z).
     set results["norm"] to ih.
     set results:vAtP2 to transVAtPos(p2).
     return results.
@@ -275,36 +267,27 @@ function dimlessEllipse {
     parameter p1Tanly, p2Tanly.
     parameter rho, c, dTheta, ef, et.
 
-    local ecc to sqrt (ef ^ 2 + et ^ 2).
+    local p1TanlyDeg to p1Tanly * constant:radtodeg.
+    local p2TanlyDeg to p2Tanly * constant:radtodeg.
+
+    local ecc2 to ef ^ 2 + et ^ 2.
+    local ecc to sqrt(ecc2).
     local function dimlessManly {
         parameter tanly.
-        local cosTanly to cosR(tanly).
-        local eanly to arcCosR((ecc + cosTanly) / (1 + ecc * cosTanly)).
-        if tanly > pi {
-            set eanly to 2 * pi - eanly.
-        }
-        return eanly - ecc * sinR(eanly).
+        local eanly to arctan2(sqrt(1 - ecc2) * sin(tanly), ecc+cos(tanly)).
+        return eanly - ecc * sin(eanly) * 57.2957795131.
     }
-    // dimless mean motion 
-    //print " ecc = " + ecc.
-    local funMajor to (1 + rho) / 2.
-    // print " af = " + funMajor.
-    local funRectum to funMajor * (1 - ef ^2).
-    // print " pf = " + funRectum.
-    local rectum to funRectum - sinR(dTheta) * et * rho / c.
-    // print " p = "  + rectum.
-    local semiMajorDen to (1 - ecc ^ 2).
-    local semiMajor to rectum / semiMajorDen.
-    // print " a = " + semiMajor.
-    local meanMotion to semiMajor ^ (-3/2).
-    // print " dimlessMeanMotion = " + meanMotion.
 
-    local p1Manly to dimlessManly(p1Tanly).
-    local p2Manly to dimlessManly(p2Tanly).
-    // print " p1Manly = " + p1Manly * constant:radtodeg.
-    // print " p2Manly = " + p2Manly * constant:radtodeg.
+    // semiMajor is ((1 + ecc * cosR(p1Tanly)) / (1 - ecc2)).
+    local meanMotion to constant:radtodeg * (
+        (1 - ecc2) / (1 + ecc * cos(p1TanlyDeg))
+    ) ^ (3/2).
 
-    local t to abs(p2Manly - p1Manly) / meanMotion.
+    local p1ManlyDeg to dimlessManly(p1TanlyDeg).
+    local p2ManlyDeg to dimlessManly(p2TanlyDeg).
+    local manlyDiff to posmod(p2ManlyDeg - p1ManlyDeg, 360).
+
+    local t to manlyDiff / meanMotion.
     return t.
 }
 
@@ -365,38 +348,3 @@ function dimlessKepler {
         return dimlessHyper(p1Tanly, p2Tanly, rho, c, dTheta, ef, et).
     }
 }
-
-
-
-// if hyper are allowed
-    // if isShort {
-    //     set toX to {
-    //         parameter et_.
-    //         return -1 * ep * ln(1 - et_ / ep).
-    //     }.
-    //     set fromX to {
-    //         parameter x_.
-    //         return ep * (1 - constant:e ^ (1 - x_ / ep)).
-    //     }.
-    // } else {
-    //     set toX to {
-    //         parameter et_.
-    //         local coeff to ep * eh / (ep + eh).
-    //         local limits to (et_ + eh) / (ep - eh). 
-    //         return coeff * ln(limits * ep / eh).
-    //     }.
-    //     set fromX to {
-    //         parameter x_.
-    //         local bigX to constant:e ^ (x_ * (1 / eh + 1/ ep)).
-    //         return ep * eh * (bigX - 1) / (ep + eh * bigX).
-    //     }.
-    // }
-
-
-    // local toX to { parameter et_. return et_. }.
-    // set toX to {
-    //     parameter et_.
-    //     local coeff to ep * eh / (ep + eh).
-    //     local limits to (et_ + eh) / (ep - eh). 
-    //     return coeff * ln(limits * ep / eh).
-    // }.

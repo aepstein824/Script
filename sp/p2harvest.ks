@@ -129,8 +129,10 @@ if shouldPhase(3) {
     if amShoddle {
         print "Shoddle waiting for tank to be ejected".
         wait until procCount() = 1.
-        print "Shoddle returns home".
         shipControlFromCommand().
+        print "Shoddle waits for others to deorbit".
+        wait 20.
+        print "Shoddle returns home".
     }
 }
 if shouldPhase(4) and amShoddle {
@@ -198,7 +200,7 @@ local function scooperIteration {
 
     print " Undock".
     opsUndockPart(core:part).
-    orbitSeparate(5, vessel(shoddleName)).
+    orbitSeparate(5, 5, vessel(shoddleName)).
     set kuniverse:activevessel to core:vessel.
     wait 1.
     core:doaction("Open Terminal", true).

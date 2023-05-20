@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 
-local eul to constant:e.
+global kEul to constant:e.
+global kPi to constant:pi.
 global zeroV to v(0, 0, 0).
 global unitX to v(1, 0, 0).
 global unitY to v(0, 1, 0).
@@ -18,37 +19,37 @@ function sgn {
 
 function sinR {
     parameter x.
-    return sin(x * 57.2958).
+    return sin(x * 57.2957795131).
 }
 
 function cosR {
     parameter x.
-    return cos(x * 57.2958).
+    return cos(x * 57.2957795131).
 }
 
 function tanR {
     parameter x.
-    return tan(x * 57.2958).
+    return tan(x * 57.2957795131).
 }
 
 function arcCosR {
     parameter x.
-    return arcCos(x) * 0.017453.
+    return arcCos(x) * 0.01745329251.
 }
 
 function arcTanR {
     parameter x.
-    return arctan(x) * 0.017453.
+    return arctan(x) * 0.01745329251.
 }
 
 function arcTan2R {
     parameter x, y.
-    return arcTan2(x, y) * 0.017453.
+    return arcTan2(x, y) * 0.01745329251.
 }
 
 function vectorAngleR {
     parameter x, y.
-    return vang(x, y) * 0.017453.
+    return vang(x, y) * 0.01745329251.
 }
 
 function vectorAngleAround {
@@ -64,7 +65,7 @@ function vectorAngleAround {
 
 function vectorAngleAroundR {
     parameter base, upRef, x.
-    return vectorAngleAround(base, upRef, x) * 0.017453.
+    return vectorAngleAround(base, upRef, x) * 0.01745329251.
 }
 
 function rotateVecAround {
@@ -75,7 +76,7 @@ function rotateVecAround {
 
 function rotateVecAroundR {
     parameter vec, upRef, x.
-    return rotateVecAround(vec, upRef, x * 57.2958).
+    return rotateVecAround(vec, upRef, x * 57.2957795131).
 }
 
 function vecAlong {
@@ -138,6 +139,35 @@ function qfMax {
     return max(p, m).
 }
 
+function quadraticBoth {
+    parameter a, b, c.
+    local det to b^2 - 4 * a * c.
+    if det < 0 {
+        return list().
+    }
+    local left to -b / 2 / a.
+    if det = 0 {
+        return list(left).
+    }
+    local right to sqrt(det) / 2 / a.
+    return list(left - right, left + right).
+}
+
+function quadraticFirstPos {
+    parameter quadList.
+    if quadList:length = 0 {
+        return 0.
+    } else if quadList:length = 1 {
+        return quadList[0].
+    }
+    local left to quadList[0].
+    local right to quadList[1].
+    if left > 0 {
+        return left.
+    }
+    return right.
+}
+
 function posmod {
     parameter dividend, divisor.
     local badmod to mod(dividend, divisor).
@@ -149,7 +179,7 @@ function posmod {
 
 function sinHR {
     parameter x.
-    return (eul^x - eul^(-x)) / 2.
+    return (kEul^x - kEul^(-x)) / 2.
 }
 
 function arcCosHR {
@@ -273,4 +303,25 @@ function funcAndDeriv {
     local dVdX to (valEps - val) / eps.
 
     return list(val, dVdX).
+}
+
+function detimestamp {
+    parameter t.
+
+    if t:typename = "TimeStamp" or t:typename = "TimeSpan" {
+        return t:seconds.
+    }
+    return t.
+}
+
+function expm1 {
+    parameter x.
+    local u to kEul ^ x.
+    if u = 1.0 {
+        return x.
+    }
+    if (u - 1.0) = -1.0 {
+        return -1.0.
+    }
+    return (u - 1.0) * x / ln(u).
 }
