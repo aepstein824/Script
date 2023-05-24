@@ -39,7 +39,7 @@ function hohmannIntercept {
     local ra to obt2:semimajoraxis.
     local mm2 to 0.
     if ra < 0 {
-        // hyperbolic, just use periapse
+        // hyperbolic, just use periapsis
         set ra to obt2:periapsis.
         local spd2 to obt2:velocity:orbit:mag.
         set mm2 to 360 * spd2 / (constant:pi * ra).
@@ -53,22 +53,24 @@ function hohmannIntercept {
     set hi:transAngle to 180 - mm2 * hi:duration.
     local rel0 to posToTanly(obt2:position, obt1) - obt1:trueanomaly.
     // assume same direction
+    // mmRel is the motion of 2 with respect to 1, eg Mun going backwards
+    // relative to a ship in LKO.
     local mmRel to mm2 - mm1.
-    // print "Rel Mean Motion = " + mmRel.
     // print "MM2 = " + mm2.
     // print "MM1 = " + mm1.
     // print "Rel0 = " + rel0.
 
     local t to (hi:transAngle - rel0) / mmRel.
+    local period to 360 / abs(mmRel).
+    set hi:relPeriod to period.
+    print " Rel period around " + obt1:body:name + " = " + period.
     if t < 0 {
-        local period to 360 / abs(mmRel).
         set t to posmod(t, period).
     }
     set hi:when to t.
     set hi:start to t + time.
     set hi:arrivalTime to time + hi:when + hi:duration.
     set hi:burnNode to node(hi:start, 0, 0, hi:vd).
-    // print hi.
 
     return hi.
 }
@@ -84,7 +86,8 @@ function hlIntercept {
         local norm2 to normOf(obtable2:obt).
 
         local incNodeP to vcrs(norm1, norm2):normalized.
-        local bodyP to positionAt(obtable1, hi:start) - obtable1:obt:body:position.
+        local bodyP to positionAt(obtable1, hi:start)
+            - obtable1:obt:body:position.
 
         local kNodeAllow to 3.
         local nodeAng to vang(bodyP, incNodeP).
@@ -105,7 +108,7 @@ function hlIntercept {
     set hi:dest to obtable2.
     local roughT to hi:start.
     local roughDur to hi:duration.
-    local di to obtable1:obt:period * 0.1.
+    local di to hi:relPeriod * 0.1.
     local dj to hi:duration * 0.1.
 
     local fine to doubleLambert(obtable1, obtable2, roughT, roughDur, di, dj).
@@ -143,8 +146,8 @@ function lambertGrid {
     parameter obtable1, obtable2, guessT, guessDur, di, dj.
 
     print (" LGrid to " + obtable2:name + " in "
-        + round((guessT - time):seconds * sToDays) + "d, " 
-        + round(detimestamp(guessDur) * sToDays) + "d long").
+        + timeRoundStr(detimestamp(guessT - time)) + ", " 
+        + timeRoundStr(detimestamp(guessDur)) + " long").
 
     local best to lexicon().
     set best:totalV to 10 ^ 20.
@@ -172,8 +175,8 @@ function lambertGrid {
             local results to lambertIntercept(obtable1, obtable2, startTime,
                 flightDuration).
             if results:ok {
-                set results:totalV to results:burnVec:mag. 
-                set results:totalV to results:totalV + results:matchVec:mag.
+                set results:totalV to results:burnVec:mag
+                    + 0.8 * results:matchVec:mag.
                 // print "(" + i + ", " + j + ") "
                 //     + round(results:burnVec:mag) + " -> "
                 //     + round(results:matchVec:mag).

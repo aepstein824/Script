@@ -8,8 +8,7 @@ runOncePath("0:maneuvers/orbit.ks").
 
 declare global kLandAtm to lexicon().
 
-set kLandAtm:EntryPe to 45000.
-set kLandAtm:BurnAlt to 55000.
+set kLandAtm:EntryPe to 0.
 set kLandAtm:ReturnTanly to 100.
 set kLandAtm:Winged to false.
 set kLandAtm:Coast to false.
@@ -30,10 +29,12 @@ function landFromDeorbit {
         print "Winged Descent".
         wingedDescent().
     } else {
-        print "Burning Fuel".
-        burnExtraFuel().
+        lock throttle to 0.
+        wait 0.
+        stageTo(0).
     }
 
+    set kuniverse:timewarp:rate to 3.
 
     wait until altitude < kLandAtm:SurrenderH.
     print "Surrender and Slow".
@@ -72,21 +73,6 @@ function getToAtm {
 function wingedDescent {
     lock throttle to 0.
     lock steering to heading(90, 10, kLandAtm:Roll).
-}
-
-function burnExtraFuel {
-    lock steering to ship:srfretrograde.
-    
-    set kuniverse:timewarp:rate to 2.
-    wait until ship:altitude < kLandAtm:BurnAlt.
-    kuniverse:timewarp:cancelwarp().
-    lock throttle to 0.75.
-    until (kLandAtm:Coast and ship:deltav:current < kLandAtm:CoastReserve) 
-        or stage:number = 0 {
-        shipStage().
-        wait 0.
-    }
-    lock throttle to 0.
 }
 
 // Burn to descend toward KSC.

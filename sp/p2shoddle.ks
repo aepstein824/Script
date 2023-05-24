@@ -22,7 +22,7 @@ clearAll().
 
 if shouldPhase(0) {
     print "Launch to Orbit!".
-    launchQuicksave("shoddle_launch").
+    launchQuicksave("shoddle").
     launchToOrbit().
     wait 3.
 }

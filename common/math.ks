@@ -325,3 +325,24 @@ function expm1 {
     }
     return (u - 1.0) * x / ln(u).
 }
+
+function lnp1 {
+    parameter x.
+    local u to 1.0 + x.
+    if u = 1 {
+        return x.
+    }
+    return ln(u) * x / (u - 1).
+}
+
+function timeRoundStr {
+    parameter seconds.
+    local stamp to timestamp(seconds).
+    if stamp:year > 1 or stamp:day > 1 {
+        local year to stamp:year - 1.
+        local day to stamp:day - 1.
+        return year + "y " + day + "d".
+    } else {
+        return stamp:clock.
+    }
+}

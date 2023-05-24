@@ -24,63 +24,82 @@ set kAirline:FlightP:cruiseV to 100.
 set kAirline:cruiseAlti to 7000.
 local baseName to "Laythe Base".
 
-if core:part:tag = "base" {
-    set kClimb:Turn to 3.
-    set kClimb:VertV to 100.
-    set kClimb:SteerV to 200.
-    set kClimb:ClimbAp to 100000.
-    set kClimb:ClimbPe to 95000.
-    set kClimb:Heading to 180.
-    set kClimb:TLimAlt to 10000.
-    set kClimb:OrbitStage to 1.
+set kPhases:phase to 0.
+local amBase to core:part:tag = "base".
+local amDrone to core:part:tag = "drone".
 
-    climbInit().
-    until climbSuccess() {
-        climbLoop().
+if shouldPhase(0) {
+    if  amBase {
+        print "Launch Base".
+        set kClimb:Turn to 9.
+        set kClimb:ClimbAp to 100000.
+        set kClimb:ClimbPe to 90000.
+        launchQuicksave("p3_base").
+        launchToOrbit().
+        wait 3.
     }
-    climbCleanup().
-} else {
-    local lzGeos to p3droneGeos().
+}
 
-    clearAll().
-    flightSetSteeringManager().
-    flightCreateReport(kAirline:FlightP).
+if shouldPhase(1) {
+    if amBase {
+        set kClimb:Turn to 3.
+        set kClimb:VertV to 100.
+        set kClimb:SteerV to 200.
+        set kClimb:ClimbAp to 100000.
+        set kClimb:ClimbPe to 95000.
+        set kClimb:Heading to 180.
+        set kClimb:TLimAlt to 10000.
+        set kClimb:OrbitStage to 1.
 
-    for lzGeo in lzGeos {
-        local flatGeo to geoNearestFlat(lzGeo).
-        local wptHdg to posAng(180 + geoHeadingTo(flatGeo, geoPosition)).
-        local wpt to airlineWptCreate(flatGeo, wptHdg).
-
-        opsUndockPart(core:part).
-        wait 3.
-        shipControlFromCommand().
-        for e in ship:engines {
-            if not e:ignition {
-                e:activate.
-            }
+        climbInit().
+        until climbSuccess() {
+            climbLoop().
         }
-        set kuniverse:activevessel to ship.
+        climbCleanup().
+    } 
+    if amDrone {
+        local lzGeos to p3droneGeos().
 
-        // destination
-        set kAirline:VlSpd to -2.
-        airlineTo(wpt).
-        wait 5.
-        when shipIsLandOrSplash() then {
-            doUseOnceScience().
-            when groundAlt() > 10 then {
-                doUseOnceScience(). 
+        clearAll().
+        flightSetSteeringManager().
+        flightCreateReport(kAirline:FlightP).
+
+        for lzGeo in lzGeos {
+            local flatGeo to geoNearestFlat(lzGeo).
+            local wptHdg to posAng(180 + geoHeadingTo(flatGeo, geoPosition)).
+            local wpt to airlineWptCreate(flatGeo, wptHdg).
+
+            opsUndockPart(core:part).
+            wait 3.
+            shipControlFromCommand().
+            for e in ship:engines {
+                if not e:ignition {
+                    e:activate.
+                }
             }
-        }
-        wait 5.
+            set kuniverse:activevessel to ship.
 
-        local baseWpt to airlineWptFromVesselName(baseName).
-        set kAirline:VlSpd to -0.5.
-        airlineTo(baseWpt).
-        wait until procCount() > 1.
-        print "Docked".
-        opsCollectRestoreScience().
-        opsRefuel().
-        wait 3.
+            // destination
+            set kAirline:VlSpd to -2.
+            airlineTo(wpt).
+            wait 5.
+            when shipIsLandOrSplash() then {
+                doUseOnceScience().
+                when groundAlt() > 10 then {
+                    doUseOnceScience(). 
+                }
+            }
+            wait 5.
+
+            local baseWpt to airlineWptFromVesselName(baseName).
+            set kAirline:VlSpd to -0.5.
+            airlineTo(baseWpt).
+            wait until procCount() > 1.
+            print "Docked".
+            opsCollectRestoreScience().
+            opsRefuel().
+            wait 3.
+        }
     }
 }
 

@@ -63,11 +63,22 @@ function ensureHibernate {
 }
 
 function shipStage {
-    local shouldStage to maxThrust = 0 and stage:ready and stage:number > 0.
+    if not stage:ready  and stage:number > 0 {
+        return.
+    }
 
-    if shouldStage {
-        print "Staging " + stage:number.
+    if maxThrust = 0 {
+        print "Staging " + stage:number + " due to zero total thrust".
         stage.
+        return.
+    }
+
+    for e in ship:engines {
+        if e:ignition and e:flameout {
+            print "Staging " + stage:number + " due to flameout of " + e:name.
+            stage.
+            return.
+        }
     }
 }
 
@@ -183,4 +194,12 @@ function shipRcsInvThrust {
     local rcsThrust to shipRcsGetThrust().
     local rcsInvThrust to vecInvertComps(rcsThrust).
     return rcsInvThrust.
+}
+
+function shipActivateAllEngines {
+    for e in ship:engines {
+        if not e:ignition {
+            e:activate.
+        }
+    }
 }

@@ -18,6 +18,8 @@ set kClimb:TLimAlt to 10000.
 set kClimb:Heading to 90.
 set kClimb:Roll to 0.
 set kClimb:DragFactor to 1.05.
+set kClimb:CircleVertKp to 0.5.
+set kClimb:CircleVertMax to 5.
 
 local jettisoned to false.
 
@@ -40,10 +42,7 @@ function climbLoop {
 
     local atmHeight to body:atm:height.
 
-    local staged to handleStage().
-    if staged {
-        return.
-    }
+    shipStage().
 
     if surfaceV <  kClimb:VertV {
         verticalClimb().
@@ -88,38 +87,6 @@ function slowThrottle {
     return goal / throttleThrust.
 }
 
-function handleStage {
-    local shouldStage to ((maxThrust = 0 or solidCheck()) and stage:ready).
-
-    if shouldStage {
-        local interimThrot to 1.
-        if stage:number <= maxPartStage {
-            print " Staging " + stage:number.
-            set interimThrot to 0.2.
-        } else {
-            print " Launch Stage " + stage:number.
-        }
-        set controlThrot to interimThrot.
-        stage.
-        wait 0.5.
-    }
-
-    return shouldStage.
-}
-
-function solidCheck {
-    local allEngines to list().
-    list engines in allEngines.
-    for e in allEngines {
-        if e:ignition and e:flameout and e:throttlelock {
-            print " Solid Fuel depleted.".
-            return true.
-        }
-    }
-
-    return false.
-}
-
 function verticalClimb {
     set controlSteer to acHeading(90).
     set controlThrot to slowThrottle().
@@ -151,8 +118,10 @@ function circularize {
         local centripetalAcc to velocity:orbit:mag ^ 2 
             / (altitude + body:radius).
         local verticalAcc to gacc - centripetalAcc.
-        set pitch to arcsin(verticalAcc / acc).
-        set pitch to min(pitch, 30).
+        local balancePitch to arcsin(verticalAcc / acc).
+        local offset to clampAbs(-1 * kClimb:CircleVertKp * verticalSpeed, 
+            kClimb:CircleVertMax).
+        set pitch to min(balancePitch + offset, 45).
     }
     set controlSteer to acHeading(pitch).
     set controlThrot to climbCircularizeThrottle().
@@ -173,23 +142,21 @@ function climbOrbitSpeed {
 }
 
 function climbCircularizeThrottle {
+    if vang(facing:forevector, controlSteer:forevector) > 5 {
+        enableRcs().
+    } else {
+        disableRcs().
+    }
     if ship:maxthrust = 0 {
         return 1.0.
     }
     if obt:eta:apoapsis > obt:eta:periapsis {
         return 1.0.
     }
-    if vang(facing:forevector, controlSteer:forevector) > 10 {
-        // that little extra kick to get a long heavy craft horizontal
-        enableRcs().
-        return 0.05.
-    } else {
-        disableRcs().
-    }
     local cSpd to climbOrbitSpeed().
     local apTime to time:seconds + obt:eta:apoapsis.
     local apSpd to shipVAt(apTime):mag.
-    local burnDur to shipTimeToDV(cSpd - apSpd) / 2.
+    local burnDur to shipTimeToDV((cSpd - apSpd) / 2).
     local apDur to obt:eta:apoapsis.
     local throt to invlerp(burnDur - apDur, -5, 0) + 0.05.
 

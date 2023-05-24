@@ -295,32 +295,28 @@ function dimlessHyper {
     parameter p1Tanly, p2Tanly.
     parameter rho, c, dTheta, ef, et.
 
-    local ecc to sqrt (ef ^ 2 + et ^ 2).
+    local ecc2 to ef ^ 2 + et ^ 2.
+    local ecc to sqrt(ecc2).
 
     local function dimlessManly {
         parameter tanly.
         local cosTanly to cosR(tanly).
         local cosHF to (ecc + cosTanly) / (1 + ecc * cosTanly).
-        local F to arcCosHR(cosHF).
-        // local sinHF to sqrt((cosHF  - 1) / (cosHF + 1)) * (cosHF + 1).
-        local sinHF to sinHR(F).
-        local manly to ecc * sinHf - F.
+        local sgnTanly to sgn(tanly).
+        local F to sgnTanly * arcCosHR(cosHF).
+        local sinHF to sgnTanly * sqrt((cosHF  - 1)
+            / (cosHF + 1)) * (cosHF + 1).
+        local manly to ecc * sinHF - F.
         return manly.
     }
 
     // dimless mean motion 
-    //print " ecc = " + ecc.
-    local funMajor to (1 + rho) / 2.
-    //print " af = " + funMajor.
-    local funRectum to funMajor * (1 - ef ^2).
-    //print " pf = " + funRectum.
-    local rectum to funRectum - sinR(dTheta) * et * rho / c.
-    //print " p = "  + rectum.
-    local semiMajorDen to (1 - ecc ^ 2).
-    local semiMajor to rectum / semiMajorDen.
-    //print " a = " + semiMajor.
+    local semiMajor to (1 + ecc * cosR(p1Tanly)) / (1 - ecc2).
+    if semiMajor >= 0 {
+        print " fixing semimajor in lambert " + semiMajor + " ecc " + ecc.
+        return 0.
+    }
     local meanMotion to (-semiMajor) ^ (-3/2).
-    //print " dimlessMeanMotion = " + meanMotion.
 
     local p1Manly to dimlessManly(p1Tanly).
     local p2Manly to dimlessManly(p2Tanly).

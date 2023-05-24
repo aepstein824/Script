@@ -85,7 +85,7 @@ function doSomething {
         local l1 to a1:tonumber(0).
         local lz to latlng(l0, l1).
         vacDescendToward(lz).
-        vacLand(). 
+        vacLandGeo(lz). 
     } else if it = "node" {
         nodeExecute().
     } else if it = "circle" {

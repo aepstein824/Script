@@ -107,16 +107,18 @@ function travelIntercept {
     parameter ctx.
 
     set target to ctx:dest:name.
+    wait 0.
+    local tgt to target.
 
-    local hl to travelDoubleHl(target).
+    local hl to travelDoubleHl(tgt).
 
     if (target:typename = "BODY") {
-        travelIntoSatOrbit(ctx, target, hl:arrivalTime).
+        travelIntoSatOrbit(ctx, tgt, hl:arrivalTime).
         travelCaptureToInc(ctx).
     } else {
         local expectedTime to hl:start + hl:duration.
-        local closestTime to closestApproachNear(ship, target, expectedTime).
-        local tgtV to velocityAt(target, closestTime):orbit.
+        local closestTime to closestApproachNear(ship, tgt, expectedTime).
+        local tgtV to velocityAt(tgt, closestTime):orbit.
         local shipV to velocityAt(ship, closestTime):orbit.
         local diff to (tgtV - shipV):mag.
         waitWarp(closestTime - 300).
@@ -126,13 +128,15 @@ function travelIntercept {
 }
 
 function travelEscape {
-    escapeWith(body:obt:velocity:orbit:normalized * 100, 0).
+    escapeWith(body:obt:velocity:orbit:normalized * 50, 0).
     nodeExecute().
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
 }
 
 function travelEscapeTo {
     parameter ctx, tgtBody, planeOf.
+
+    circleNextExec(apoapsis).
 
     local hl to hlIntercept(body, tgtBody).
     set hl:dest to tgtBody.
@@ -171,10 +175,19 @@ function travelIntoSatOrbit {
         if orbit:hasnextpatch() and orbit:nextpatch:body = tgtBody {
             break.
         }
-        print " Refining Intercept " + i.
         local arrivalEta to arrivalTime - time.
+        local shipPos to positionAt(ship, arrivalTime).
+        local tgtPos to positionAt(tgtBody, arrivalTime).
+        local relDistance to (shipPos - tgtPos):mag / tgtBody:soiradius.
+        if relDistance < 0.8 {
+            print " Distance / soi " + round(relDistance, 2).
+            print " Intercept will happen, but it isn't recorded as a patch".
+            waitWarp(detimestamp(time + (arrivalEta / 2))).
+            break.
+        }
+        print " Refining Intercept " + i.
         local cc to courseCorrect(tgtBody, arrivalEta).
-        set arrivalEta to cc:arrivalTime.
+        set arrivalTime to cc:arrivalTime.
         nodeExecute().
     }
 
@@ -195,10 +208,10 @@ function travelCaptureToInc {
         set ctx:inclination to 0.
     }
     local norm to inclinationToNorm(ctx:inclination).
-    hyperPe(ctx:altitude + 500, norm).
+    entryPe(ctx:altitude + 500, norm).
     nodeExecute().
     if periapsis < ctx:altitude {
-        hyperPe(ctx:altitude + 500, norm).
+        entryPe(ctx:altitude + 500, norm).
         nodeExecute().
     }
     circleNextExec(ctx:altitude).
@@ -210,7 +223,7 @@ function travelCaptureToPlaneOf {
     // TODO efficient plane change.
     local pe to tgt:obt:periapsis * 1.5.
     local norm to normOf(tgt:obt).
-    hyperPe(pe, norm).
+    entryPe(pe, norm).
     nodeExecute().
     circleNextExec(pe).
 

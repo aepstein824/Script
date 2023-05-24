@@ -233,7 +233,8 @@ function vacLandGeo {
     local correctionTime to impactTime - correctionLen.
     waitWarp(correctionTime - 10).
     local wOverheadPos to groundPosition(wGeo, overheadAlt).
-    local wPosImpact to spinPos(wOverheadPos, impactTime - time:seconds).
+    local wPosImpact to spinPos(wOverheadPos, correctionLen).
+    print " distance from impact " + (wPosImpact + body:position):mag.
 
     local res to lambertPosOnly(ship, wPosImpact,
         correctionTime, correctionLen).
@@ -282,7 +283,7 @@ function vacClimb {
     lock steering to heading(compass, kWaypointsClimbAngle, 0).
     lock throttle to 1.
     until apoapsis > height {
-        nodeStage().
+        shipStage().
         wait 0.
     }
     lock throttle to 0.

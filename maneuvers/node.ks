@@ -8,9 +8,10 @@ runOncePath("0:common/ship.ks").
 function nodeExecute {
     wait 0.
     local nd to nextnode.
-    print " Node in: " + round(nd:eta) 
-        + ", DeltaV: " + round(nd:deltav:mag).
+    local ndRnp to v(nd:radialout, nd:normal, nd:prograde).
     local dv to nd:deltav:mag.
+    print " Node in: " + timeRoundStr(nd:eta) 
+        + ", DeltaV: " + round(dv) + " " + vecround(ndRnp, 2).
     
     if dv < 0.1 {
         print " Removing small node with dv " + dv.
@@ -19,9 +20,8 @@ function nodeExecute {
         return.
     }
 
-    local steer to facing.
+    enableRcs().
     local throt to 0.
-    lock steering to steer.
     lock throttle to throt.
 
     local halfBurn to shipTimeToDV(dv / 2).
@@ -30,7 +30,7 @@ function nodeExecute {
     waitWarp(time:seconds + warpTime).
     local done to false.
     local nodeDv0 to nd:deltav.
-    set steer to nd:deltav.
+    lock steering to lookDirUp(nodeDv0, facing:upvector).
     until vang(nodeDv0, ship:facing:vector) < 3 { wait 0. }
     if nd:eta > halfBurn + 2 * kWarpCancelDur {
         set kuniverse:timewarp:rate to 5.
@@ -38,13 +38,28 @@ function nodeExecute {
     wait until nd:eta <= halfBurn + kWarpCancelDur.
     kuniverse:timewarp:cancelwarp().
     wait until nd:eta <= halfBurn.
+    set kuniverse:timewarp:mode to "PHYSICS".
+    local warped to false.
+    local unWarped to false.
 
     until done {
         local maxAcceleration to ship:maxthrust / ship:mass.
+        local remaining to nd:deltav:mag.
+        local burnTime to remaining / maxAcceleration.
+
+        if burnTime > 10 and not warped {
+            set kuniverse:timewarp:rate to 4.
+            set warped to true.
+        }
+        if burnTime <= 10 and not unWarped {
+            set kuniverse:timewarp:rate to 1.
+            set unWarped to true.
+        }
+
         local minTime to 0.05. 
         local minThrot to 0.05.
         if maxAcceleration > 0 {
-            set throt to min(nd:deltav:mag / maxAcceleration, 1).
+            set throt to min(burnTime, 1).
             if nd:deltav:mag < maxAcceleration * minTime * minThrot {
                 // Too small for this engine
                 set done to true.
@@ -56,37 +71,19 @@ function nodeExecute {
             set done to true.
         }
 
-        nodeStage().
-        wait 0.04.
+        shipStage().
+        wait 0.
     }
 
     set throt to 0.
+    kuniverse:timewarp:cancelwarp().
     wait 0.1.
 
     unlock steering.
     unlock throttle.
+    disableRcs().
     remove nd.
     wait 1.
     clearVecDraws().
 }
 
-function nodeStage {
-    local shouldStage to maxThrust = 0 and stage:ready and stage:number > 0.
-
-    if shouldStage {
-        local hasFlamedOut to false.
-        local allEngines to list().
-        list engines in allEngines.
-        for e in allEngines {
-            if e:ignition and e:flameout {
-                set hasFlamedOut to true.
-                break.
-            }
-        }
-        if hasFlamedOut {
-            print "Staging " + stage:number.
-            stage.
-        }
-    }
-}
-        

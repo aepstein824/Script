@@ -156,7 +156,7 @@ function escapeWith {
     // v_x is the excess velocity in the parent orbit
     parameter v_x, delay.
 
-    if body = sun { return. }
+    if body = sun { return false. }
 
     local startTime to time + delay.
     local r0 to altitude + body:radius.
@@ -218,8 +218,10 @@ function escapeWith {
     local alignDur to timeBetweenTanlies(startTanly, burnTanly, obt).
     // print "alignDur " + round(alignDur / 60) + " min".
 
+    wait 0.
     add node(startTime + alignDur, 0, spdNorm,
         spdPro - ship:velocity:orbit:mag).
+    wait 0.
     return true.
 }
 
@@ -271,7 +273,7 @@ function refinePe {
     wait 10.
     until ship:periapsis > low and ship:periapsis < high {
         lock throttle to 0.1.
-        nodeStage().
+        shipStage().
         wait 0.
     }
     lock throttle to 0.
@@ -291,6 +293,16 @@ function inclinationToNorm {
     return norm.
 }
 
+function entryPe {
+    parameter pe, norm.
+
+    if obt:eccentricity > 1 {
+        hyperPe(pe, norm).
+    } else {
+        ellipseEntryPe(pe, norm).
+    }
+}
+
 function spdToHyperTurn {
     parameter spd, rpe, rad, mu.
 
@@ -303,8 +315,8 @@ function spdToHyperTurn {
 function hyperPe {
     parameter pe, norm.
 
-    local burnTime to time + 2 * 60.
     local rPe to pe + body:radius.
+    local burnTime to time + 2 * 60.
     local shipPos to shipPAt(burnTime).
     local rad to shipPos:mag.
     local startVec to shipVAt(burnTime).
@@ -341,29 +353,64 @@ function hyperPe {
     add node(burnTime, burnRad, burnNorm, burnPro).
 }
 
+function ellipseEntryPe {
+    parameter pe, norm.
+
+    local burnTime to time + 2 * 60.
+    local shipPos to  shipPAt(burnTime).
+    local rAp to shipPos:mag.
+    local rPe to pe + body:radius.
+    local semi to (rAp + rPe) / 2.
+    // local ecc to (rAp / rPe) - 1.
+    local tgtNorm to vxcl(shipPos, norm):normalized.
+    local tgtSpd to sqrt(body:mu * (2 / rAp - 1 / semi)).
+    local tgtV to tgtSpd * vCrs(shipPos:normalized, tgtNorm).
+    local startV to shipVAt(burnTime).
+    local startRnp to obtRnpFromPV(shipPos, startV).
+    local burnRnp to startRnp:inverse * (tgtV - startV).
+    add node(burnTime, burnRnp:x, burnRnp:y, burnRnp:z).
+}
+
 // At Ap, use RCS to tune the period
 function orbitTunePeriod {
     parameter tgtPeriod, dur, eps to 0.01.
 
-    controlLock().
-    set controlSteer to prograde.
+    local rcsThrust to shipRcsGetThrust().
+    local rcsInvThrust to vecInvertComps(rcsThrust).
+
+    enableRcs().
+    if vang(facing:forevector, prograde:forevector) < 90 {
+        lock steering to lookdirup(prograde:forevector, facing:upvector).
+    } else {
+        lock steering to lookdirup(retrograde:forevector, facing:upvector).
+    }
     set controlThrot to 0.
-    wait until vang(facing:forevector, prograde:forevector) < 3.
+    wait until vang(facing:forevector, steering:forevector) < 3.
     local startTime to time.
     local stopTime to startTime + dur.
-    local gain to -0.1.
-    enableRcs().
+    // use a=(1/(2/r - 1/v^2)) and period to solve for dp / dv
+    local dTdv to 3 * obt:period * obt:semimajoraxis / body:mu
+        * obt:velocity:orbit:mag.
+    local gain to 10 / dTdV.
 
     until abs(obt:period - tgtPeriod) < eps or time > stopTime {
-        local error to obt:period - tgtPeriod.
-        local output to v(0, 0, gain * error).
-        local clampedOut to vecMinMag(output, 0.06).
-        set ship:control:translation to clampedOut.
+        local error to tgtPeriod - obt:period.
+        local accMag to gain * error.
+        local minAcc to .06 * rcsThrust:z / ship:mass.
+        set accMag to sgn(accMag) * max(abs(accMag), minAcc).
+        local acc to accMag * prograde:forevector.
+        shipRcsDoThrust(acc, rcsInvThrust).
         wait 0.
+        if abs(accMag) < 1.5 {
+            // orbit doesn't update every frame
+            set ship:control:translation to zeroV.
+            wait 0.1.
+        }
     }
+    print " orbit error " + (tgtPeriod - obt:period).
 
     disableRcs().
-    controlUnlock().
+    unlock steering.
 }
 
 function orbitSeparate {
@@ -394,16 +441,11 @@ function orbitDispose {
     print "Separate".
     sas off.
 
-    orbitSeparate(5, 3, s).
+    orbitSeparate(7, 3, s).
     print "Deorbit burn".
 
     enableRcs().
-
-    for e in ship:engines {
-        if not e:ignition {
-            e:activate.
-        }
-    }
+    shipActivateAllEngines().
     lock steering to retrograde.
     lock throttle to 0.05.
     wait 3.

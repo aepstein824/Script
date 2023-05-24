@@ -133,12 +133,14 @@ function doUseOnceScience {
 function opsScienceToBox {
     parameter mods.
 
+    opsCleanModules(mods).
     opsExperimentModules(mods).
     opsAwaitModules(mods).
     local hasBox to opsCollectScience().
     if hasBox {
         opsCleanModules(mods).
     }
+    wait 1.
 }
 
 function opsExperimentModules {
@@ -156,7 +158,7 @@ function opsAwaitModules {
     for m in mods {
         wait until m:hasData or ((time:seconds - start) > 15).
     }
-    wait 0.
+    wait 1.
 }
 
 function opsCollectScience {
@@ -216,6 +218,9 @@ function waitWarp {
     parameter endTime.
     local warper to kuniverse:timewarp.
 
+    local lightStack to lights.
+    lights off.
+
     // print " Begin waitWarp to " + endTime.
     wait until warper:issettled.
     set warper:mode to "RAILS".
@@ -240,6 +245,8 @@ function waitWarp {
     wait until warper:issettled.
     wait until ship:unpacked.
     wait 1.
+
+    if lightStack lights on.
     // print " End waitWarp to " + endTime.
 }
 
@@ -295,8 +302,17 @@ function opsWarpTillParentAligns {
 function opsDecouplePart {
     parameter part.
 
-    local module to part:getmodule("ModuleAnchoredDecoupler").
-    module:doAction("decouple", true).
+    local decoupleMods to list(
+        "ModuleAnchoredDecoupler",
+        "ModuleDecouple"
+    ).
+
+    for decoupleMod in decoupleMods {
+        if part:hasmodule(decoupleMod) {
+            local module to part:getmodule(decoupleMod).
+            module:doAction("decouple", true).
+        }
+    }
 }
 
 function keyOrDefault {
@@ -385,6 +401,7 @@ function cleanModule {
     parameter m.
 
     // remove duplicates
+    wait 0.
     m:dump().
     wait 0.
     if not m:inoperable {
@@ -461,6 +478,11 @@ function opsControlFromPort {
 function groundAlt {
     local galt to altitude - terrainHAt(ship:position).
     return galt.
+}
+
+function atmHeightOr0 {
+    parameter bod.
+    return choose 0 if not bod:atm:exists else bod:atm:height.
 }
 
 function terrainHAt {
@@ -616,4 +638,11 @@ function opsCommaList {
         set acc to acc + item + ", ".
     }
     return acc.
+}
+
+local astSizes to list("A", "B", "C", "D", "E", "F", "G", "H", "I").
+function vesselIsAsteroid {
+    parameter vess.
+
+    return astSizes:find(vess:sizeclass) <> -1.
 }
