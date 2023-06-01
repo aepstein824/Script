@@ -4,6 +4,7 @@ runOncePath("0:common/math.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 runOncePath("0:maneuvers/node.ks").
+runOncePath("0:maneuvers/orbit.ks").
 
 global kIntercept to lexicon().
 set kIntercept:StartSpan to 4.
@@ -63,24 +64,31 @@ function hohmannIntercept {
     local t to (hi:transAngle - rel0) / mmRel.
     local period to 360 / abs(mmRel).
     set hi:relPeriod to period.
-    print " Rel period around " + obt1:body:name + " = " + period.
+    print " Rel period around " + obt1:body:name + " = " + timeRoundStr(period).
     if t < 0 {
         set t to posmod(t, period).
     }
-    set hi:when to t.
-    set hi:start to t + time.
-    set hi:arrivalTime to time + hi:when + hi:duration.
+    set hi:delay to t.
+    set hi:start to t + time:seconds.
+    set hi:arrivalTime to time:seconds + hi:delay + hi:duration.
     set hi:burnNode to node(hi:start, 0, 0, hi:vd).
 
     return hi.
 }
 
 function hlIntercept {
-    parameter obtable1, obtable2. 
+    parameter obtable1, obtable2.
 
     local hi to hohmannIntercept(obtable1:orbit, obtable2:orbit).
-    local deviations to obtable2:typename = "Body".
-    
+    local isBody1 to obtable1:typename = "Body".
+    local isBody2 to obtable2:typename = "Body".
+
+    set hi:dest to obtable2.
+    local roughT to hi:start.
+    local roughDur to hi:duration.
+    local di to hi:relPeriod * 0.1.
+    local dj to hi:duration * 0.1.    
+
     if obtable1:obt:eccentricity < 0.2 and obtable1:obt:eccentricity < 0.2 { 
         local norm1 to normOf(obtable1:obt).
         local norm2 to normOf(obtable2:obt).
@@ -92,28 +100,32 @@ function hlIntercept {
         local kNodeAllow to 3.
         local nodeAng to vang(bodyP, incNodeP).
         if vang(norm1, norm2) > 2 {
-            if deviations and nodeAng > kNodeAllow
-                and nodeAng < (180 - kNodeAllow) {
+            print " AN is " + round(nodeAng) + " away, want 0 or 180".
+            local nodeBad to nodeAng > kNodeAllow
+                and nodeAng < (180 - kNodeAllow).
+            if nodeBad and isBody1 {
+                print " Ignoring planes, will require midcourse correction".
+                local lamb to doubleLambert(obtable1, obtable2,
+                    roughT, roughDur, di, dj, true).
+                local merged to mergeLex(hi, lamb).
+                return merged.
+                 
+            } else if nodeBad and isBody2 {
                 print " Changing planes first".
                 local nd to matchPlanesNode(norm2).
                 set hi:burnNode to nd.
                 set hi:planes to true.
                 return hi.
-            } else {
-                print " AN is " + round(nodeAng) + " away, want 0 or 180".
+            }
+            if not nodeBad {
+                print " Node is good for single burn".
             }
         }
     }
 
-    set hi:dest to obtable2.
-    local roughT to hi:start.
-    local roughDur to hi:duration.
-    local di to hi:relPeriod * 0.1.
-    local dj to hi:duration * 0.1.
+    local lamb to doubleLambert(obtable1, obtable2, roughT, roughDur, di, dj).
 
-    local fine to doubleLambert(obtable1, obtable2, roughT, roughDur, di, dj).
-
-    local merged to mergeLex(hi, fine).
+    local merged to mergeLex(hi, lamb).
 
     // clearVecDraws().
     // local bodyPos to obtable1:obt:body:position.
@@ -127,23 +139,27 @@ function hlIntercept {
 
 function doubleLambert {
     parameter obtable1, obtable2, guessT, guessDur, di, dj.
+    parameter ignorePlane to false.
 
     local roughT to guessT.
     local roughDur to guessDur.
 
-    local rough to lambertGrid(obtable1, obtable2, roughT, roughDur, di, dj).
+    local rough to lambertGrid(obtable1, obtable2, roughT, roughDur, di, dj,
+        ignorePlane).
 
     local fineT to rough:start.
     local fineDur to rough:duration.
     set di to di / (kIntercept:StartSpan + 1) / 2.
     set dj to dj / (kIntercept:DurSpan + 1) / 2.
 
-    local fine to lambertGrid(obtable1, obtable2, fineT, fineDur, di, dj).
+    local fine to lambertGrid(obtable1, obtable2, fineT, fineDur, di, dj,
+        ignorePlane).
     return fine.
 }
 
 function lambertGrid {
     parameter obtable1, obtable2, guessT, guessDur, di, dj.
+    parameter ignorePlane to false.
 
     print (" LGrid to " + obtable2:name + " in "
         + timeRoundStr(detimestamp(guessT - time)) + ", " 
@@ -159,11 +175,9 @@ function lambertGrid {
     local highJ to kIntercept:DurSpan * extra + 1.
 
     until guessT + di * lowI > time {
-        print " advancing guess time".
         set guessT to guessT + di.
     }
     until guessDur + dj * lowJ > 1 {
-        print " advancing guess dur".
         set guessDur to guessDur + dj.
     }
 
@@ -173,7 +187,7 @@ function lambertGrid {
             local flightDuration to guessDur + j * dj.
             // print "Duration " + round(flightDuration * sToHours, 2).
             local results to lambertIntercept(obtable1, obtable2, startTime,
-                flightDuration).
+                flightDuration, ignorePlane).
             if results:ok {
                 set results:totalV to results:burnVec:mag
                     + 0.8 * results:matchVec:mag.
@@ -182,7 +196,7 @@ function lambertGrid {
                 //     + round(results:matchVec:mag).
                 if results:totalV < best:totalV {
                     set results:start to startTime.
-                    set results:when to startTime - time.
+                    set results:delay to startTime - time:seconds.
                     set results:duration to flightDuration.
                     set results:arrivalTime to startTime + flightDuration.
                     set best to results.
@@ -197,7 +211,7 @@ function lambertGrid {
 function courseCorrect {
     parameter dest, duration.
 
-    local dt to .1 * duration.
+    local dt to duration * .1.
     local startTime to time + dt * kIntercept:StartSpan + 5 * 60.
     local correction to doubleLambert(ship, dest, startTime, duration, dt, dt).
     add correction:burnNode.

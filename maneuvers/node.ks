@@ -19,6 +19,7 @@ function nodeExecute {
         wait 1.
         return.
     }
+    shipStage().
 
     enableRcs().
     local throt to 0.
@@ -35,6 +36,7 @@ function nodeExecute {
     if nd:eta > halfBurn + 2 * kWarpCancelDur {
         set kuniverse:timewarp:rate to 5.
     }
+    disableRcs().
     wait until nd:eta <= halfBurn + kWarpCancelDur.
     kuniverse:timewarp:cancelwarp().
     wait until nd:eta <= halfBurn.
@@ -81,7 +83,6 @@ function nodeExecute {
 
     unlock steering.
     unlock throttle.
-    disableRcs().
     remove nd.
     wait 1.
     clearVecDraws().

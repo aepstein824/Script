@@ -14,7 +14,8 @@ local tests to lexicon(
     "smallAng", testSmallAng@,
     "posAng", testPosAng@,
     "smoothAccel", testSmoothAccel@,
-    "funcAndDeriv", testFuncAndDeriv@
+    "funcAndDeriv", testFuncAndDeriv@,
+    "firstSecondDeriv", testFirstSecondDeriv@
 ).
 
 testRun(tests).
@@ -155,9 +156,27 @@ function testFuncAndDeriv {
     local t to list().
 
     local f to { parameter x. return x ^ 2. }.
-    local at1 to funcAndDeriv(f, 1).
-    local atM1 to funcAndDeriv(f, -1).
+    local at1 to funcAndDeriv(f@, 1).
+    local atM1 to funcAndDeriv(f@, -1).
     t:add(testEq(at1, list(1, 2))).
     t:add(testEq(atM1, list(1, -2))).
+    return t.
+}
+
+function testFirstSecondDeriv {
+    local t to list().
+
+    local f to { parameter x. return x ^ 2. }.
+    local at1 to funcFirstSecondDeriv(f@, 1).
+    local atM1 to funcFirstSecondDeriv(f@, -1).
+    t:add(testEq(at1, list(2, 2))).
+    t:add(testEq(atM1, list(-2, 2))).
+
+    local fexp to { parameter x. return kEul ^ x. }.
+    local exp0 to funcFirstSecondDeriv(fexp@, 0, 1e-4).
+    local exp1 to funcFirstSecondDeriv(fexp@, 1, 1e-4).
+    t:add(testEq(exp0, list(1, 1))).
+    t:add(testEq(exp1, list(kEul, kEul))).
+
     return t.
 }

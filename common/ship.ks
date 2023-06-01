@@ -63,7 +63,7 @@ function ensureHibernate {
 }
 
 function shipStage {
-    if not stage:ready  and stage:number > 0 {
+    if not (stage:ready and stage:number > 0) {
         return.
     }
 

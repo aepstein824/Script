@@ -294,15 +294,27 @@ function smoothAccelFunc {
 }
 
 function funcAndDeriv {
-    parameter func, x.
+    parameter func, x, dx to 1e-4.
 
-    local eps to 0.0001.
-    local val to func(x).
+    local y to func(x).
+    local y_p to func(x + dx).
+    local dy_dx to (y_p - y) / dx.
 
-    local valEps to func(x + eps).
-    local dVdX to (valEps - val) / eps.
+    return list(y, dy_dx).
+}
 
-    return list(val, dVdX).
+function funcFirstSecondDeriv {
+    parameter func, x, dx to 1e-4.
+
+    local y to func(x).
+    local y_p to func(x + dx).
+    local y_n to func(x - dx).
+    // print "x " + x.
+    // print "y and yp and yn = " + y + " " + y_p + " " + y_n.
+    local dy_dx to (y_p - y) / dx.
+    local d2y_dx2 to (y_p - 2 * y + y_n) / dx / dx.
+
+    return list(dy_dx, d2y_dx2).
 }
 
 function detimestamp {
@@ -338,6 +350,9 @@ function lnp1 {
 function timeRoundStr {
     parameter seconds.
     local stamp to timestamp(seconds).
+    if stamp:seconds < 0 {
+        return stamp:full.
+    }
     if stamp:year > 1 or stamp:day > 1 {
         local year to stamp:year - 1.
         local day to stamp:day - 1.

@@ -5,7 +5,8 @@ runOncePath("0:common/optimize.ks").
 runOncePath("0:test/test_utils.ks").
 
 local tests to lexicon(
-    "fixed", testFixed@
+    "fixed", testFixed@,
+    "solve", testNewtonSolve@
 ).
 
 testRun(tests).
@@ -36,6 +37,28 @@ function testFixed {
     local fromFar to optimizeFixedWalk(parabF@, parabCombine@, parabSuccess@,
         v(-40, -2, 0), 0.5).
     t:add(testEq(fromFar, zeroV, 1)).
+
+    return t.
+}
+
+function testNewtonSolve {
+    local t to list().
+
+    local function fAndD { 
+        parameter x.
+        return funcAndDeriv({ parameter x_. return (x_^3 - 1).}, x, 1e-12). 
+    }.
+
+    t:add(testEq(optimizeNewtonSolve(fAndD@, 1.5), 1)).
+
+    local function fDAndS { 
+        parameter x.
+        return funcFirstSecondDeriv({
+            parameter x_.
+            return (x_^2 + 1).}, x, 1e-4). 
+    }.
+
+    t:add(testEq(optimizeNewtonSolve(fDAndS@, 1.5), 0)).
 
     return t.
 }

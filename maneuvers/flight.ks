@@ -347,6 +347,7 @@ function flightLevel {
     flightControlUpdate(params:control, params:model, reality, desiredAccel).
     
     local aoa to params:control:Aoa.
+    set aoa to clampAbs(aoa, 20).
     local newLandingSpd to params:model:LandingSpd.
     if params:model:UpdateLandingSpd {
         set params:landV to stepLowpassUpdate(params:landV, newLandingSpd,

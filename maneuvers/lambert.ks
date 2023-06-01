@@ -5,22 +5,33 @@ runOncePath("0:common/orbital.ks").
 runOncePath("0:common/math.ks").
 runOncePath("0:test/test_utils.ks").
 
-local badResult to lexicon("ok", false).
-
 function lambertIntercept {
     parameter obtable1.
     parameter obtable2.
     parameter startTime.
     parameter flightDuration.
+    parameter ignorePlane to false.
 
     local obt1 to obtable1:obt.
     if obt1:body <> obtable2:obt:body {
-        print "Orbits must have same body.".
-        return badResult:copy().
+        return testError("Orbits must have same body.").
     }
-    local endTime to startTime + flightDuration.
+    if detimestamp(startTime) < (time:seconds - 1) {
+        return testError("Negative start " + (startTime - time:seconds < 0)).
+    }
+    if flightDuration < 0 {
+        return testError("Negative duration " + flightDuration).
+    }
 
+    local endTime to startTime + flightDuration.
     local p2 to positionAt(obtable2, endTime) - obt1:body:position.
+    if ignorePlane {
+        local norm1 to normOf(obtable1:obt).
+        local norm2 to normOf(obtable2:obt).
+        local planeNode to vCrs(norm1, norm2).
+        local rotateAngle to vectorAngleAround(norm2, planeNode, norm1).
+        set p2 to rotateVecAround(p2, planeNode, rotateAngle).
+    }
     local factory to lambertInterceptFitnessFactory@.
     set factory to factory:bind(detimestamp(flightDuration)).
 
@@ -102,7 +113,7 @@ function lambert {
     parameter allowLong.
     parameter fitnessFactory.
 
-    local results to badResult:copy().
+    local results to lex().
 
     local obt1 to obtable1:obt.
     local focus to obt1:body.
@@ -170,7 +181,7 @@ function lambert {
     local dX to 1e-6.
     local et to 0.
     local kLimit to 12.
-    from { local k to 0. } until k > kLimit step {set k to k + 1.} do {
+    for k in range(kLimit) {
         set et to fromX(x).
 
         // print " Try et = " + et + ", " + x.
@@ -187,7 +198,7 @@ function lambert {
 
         local y_p to specifics:fitness:call(et_p).
         local dY_dX to (y_p - y) / dX.
-        if abs(dy_dx) < 1/10^12 {
+        if abs(dy_dx) < 1e-12 {
             return testError("Aborting since dy_dx = " + dy_dx
                 + " " + y + ", " + y_p).
         }
@@ -207,6 +218,7 @@ function lambert {
     // print ih.
     
     // build orbit
+    // eccentricity vector points from ap to pe
     local ecc to evec:mag.
     // print "calculated ecc " + round(ecc, 3).
     //print "Ip = " + ip.

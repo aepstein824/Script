@@ -142,7 +142,9 @@ function climbOrbitSpeed {
 }
 
 function climbCircularizeThrottle {
+    local low to 0.
     if vang(facing:forevector, controlSteer:forevector) > 5 {
+        set low to 0.05.
         enableRcs().
     } else {
         disableRcs().
@@ -158,7 +160,7 @@ function climbCircularizeThrottle {
     local apSpd to shipVAt(apTime):mag.
     local burnDur to shipTimeToDV((cSpd - apSpd) / 2).
     local apDur to obt:eta:apoapsis.
-    local throt to invlerp(burnDur - apDur, -5, 0) + 0.05.
+    local throt to invlerp(burnDur - apDur, -5, 0) + low.
 
     return throt.
 }

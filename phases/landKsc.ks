@@ -59,19 +59,23 @@ local function dynamicPres {
 }
 
 function landPlaneDeorbit {
+    parameter landWpt to kAirline:Wpts:Ksc09.
+
     print "Planning deorbit".
     // land in the daytime
-    opsWarpTillSunAngle(waypoint("ksc"), 270).
+    opsWarpTillSunAngle(landWpt:geo, 270).
     wait 5.
     set kLandAtm:ReturnTanly to kLandKsc:ReturnTanly.
     set kLandAtm:EntryPe to kLandKsc:Pe.
-    planLandingBurn().
+    planLandingBurn(landWpt).
     nodeExecute().
     print " End burn at " + geoRound(geoPosition).
-    lock steering to shipNorm().
-    wait 5.
-    unlock steering.
-    stageTo(0).
+    if stage:number > 0 {
+        lock steering to shipNorm().
+        wait 5.
+        unlock steering.
+        stageTo(0).
+    }
     wait 1.
 
     getToAtm().
@@ -104,12 +108,13 @@ function landPlaneReentry {
 }
 
 function landPlaneRunway {
+    parameter landWpt to kAirline:Wpts:Ksc09.
+
     print " Begin flight at " + geoRound(geoPosition).
     set kAirline:Vtol to false.
     set kAirline:FinalS to 200.
     set kAirline:VspdAng to 20.
 
-    local landWpt to airlineWptFromWaypoint(waypoint("ksc 09"), 90).
     local approachWpt to airlineWptApproach(landWpt).
 
     airlineInit().

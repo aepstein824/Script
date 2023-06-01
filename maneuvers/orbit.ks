@@ -196,6 +196,7 @@ function escapeWith {
     local spdNorm to spd0 * (ix_dot_in / cos(deflectAngle)).
     // print "spdNorm " + spdNorm.
     if abs(spdNorm) > spd0 {
+        print " Could not escape with norm component of " + round(spdNorm).
         return false.
     }
     local spdPro to sqrt(spd0 ^ 2 - spdNorm ^ 2).
@@ -229,36 +230,14 @@ function escapeOmni {
     parameter hl.
 
     print "Escaping " + body:name + " to " + hl:dest:name.
-    local incNodeP to vcrs(normOf(hl:dest:obt), normOf(body:obt)):normalized.
-    local bodyP to positionAt(body, hl:start) - body:obt:body:position.
-    // clearVecDraws().
-    // vecdraw(kerbin:position, bodyP, red, "body", 1, true).
-    // vecdraw(kerbin:position, incNodeP * mun:altitude, blue, "an", 1, true).
-    // vecdraw(kerbin:position, normOf(body:obt) * mun:altitude, green, "mun", 1, true).
-    // vecdraw(kerbin:position, normOf(minmus:obt) * mun:altitude, yellow, "min", 1, true).
-    local kNodeAllow to 10.
-    local nodeAng to vang(bodyP, incNodeP).
-    print " AN is " + round(nodeAng) + " away, want 0 or 180".
-    if nodeAng < kNodeAllow or nodeAng > (180 - kNodeAllow) {
-        print " Attempting single burn transfer".
-        local canEscapeWith to escapeWith(hl:burnVec, hl:when).
-        if canEscapeWith {
-            return.
-        }
+    local canEscapeWith to escapeWith(hl:burnVec, hl:delay).
+    if canEscapeWith {
+        return.
     }
-
-    local hi to hohmannIntercept(body:obt, hl:dest:obt).
-    local bv to velocityAt(body, hi:start):orbit.
-    local normVsPro to vang(shipNorm(), bv).
-    print " Considering a hohmann escape, normVsPro " + round(normVsPro) + ", want 90".
-    if abs(normVsPro - 90) < kNodeAllow {
-        print " Doing hohmann".
-        escapeWith(hi:vd * bv:normalized, hi:when).
-    } else {
-        print " Just getting out".
-        local escapeSpd to 40 * sgn(hi:vd).
-        escapePrograde(escapeSpd).
-    }
+    print " escape failed, leaving parent orbit".
+    local dir to sgn(hl:dest:obt:semimajoraxis - body:obt:semimajoraxis).
+    local escapeSpd to 40 * dir.
+    escapePrograde(escapeSpd).
 }
 
 function refinePe {

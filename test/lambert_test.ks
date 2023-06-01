@@ -2,12 +2,16 @@
 
 runOncePath("0:common/info.ks").
 runOncePath("0:common/math.ks").
+runOncePath("0:common/optimize.ks").
+runOncePath("0:maneuvers/intercept.ks").
 runOncePath("0:maneuvers/lambert.ks").
 runOncePath("0:test/test_utils.ks").
 
 local tests to lexicon(
-    "testPlanets", testPlanets@,
-    "testHypers", testHypers@
+    // "testPlanets", testPlanets@,
+    "testHypers", testHypers@,
+    "testLGrid", testLGrid@,
+    "testLOptimize", testLOptimize@
 ).
 
 testRun(tests).
@@ -68,4 +72,35 @@ function testHypers {
     local duration to detimestamp(endTime - startTime).
     print "Each lambert takes " + (50 * 2000 * duration / iterCount).
     return t.
+}
+
+function testLGrid {
+    local begin to time.
+    local grid to hlIntercept(kerbin, dres).
+    if grid:haskey("burnvec") {
+        print "-- Double " + round(grid:burnVec:mag)
+            + " in " + round(detimestamp(time - begin)) + " --".
+        print "  ++ " + timeRoundStr(grid:start - time:seconds).
+        print "  ++ " + timeRoundStr(grid:duration).
+    }
+    return list().
+}
+
+function testLOptimize {
+    local begin to time.
+    local hi to hohmannIntercept(kerbin:obt, dres:obt).
+    local function f{
+        parameter x.
+        local lamb to lambertIntercept(kerbin, dres, hi:start, x).
+        return lamb:burnVec:mag.
+    }
+    local function fDAndS{
+        parameter x.
+        return funcFirstSecondDeriv(f@, x, 1).
+    }
+    local bestDuration to optimizeNewtonSolve(fDAndS@, hi:duration).
+    local bestLamb to lambertIntercept(kerbin, dres, hi:start, bestDuration).
+    print "-- Double " + round(bestLamb:burnVec:mag)
+        + " in " + round(detimestamp(time - begin)) + " --".
+    return list().
 }

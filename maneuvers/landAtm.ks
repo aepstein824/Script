@@ -78,8 +78,9 @@ function wingedDescent {
 // Burn to descend toward KSC.
 // Compensates for spin, but not eccentricity or inclination.
 function planLandingBurn {
+    parameter landWpt to kAirline:Wpts:Ksc09.
+
     local sNorm to shipNorm().
-    local ksc to waypoint("ksc").
 
     if ship:orbit:eccentricity > 0.05 {
         print " Imperfect parking job, deorbit from ap".
@@ -88,7 +89,7 @@ function planLandingBurn {
     }
 
     print " Lining up deorbit from " + kLandAtm:ReturnTanly.
-    local orbW to removeComp(ksc:position - body:position, sNorm).
+    local orbW to removeComp(landWpt:geo:position - body:position, sNorm).
     local offsetW to rotateVecAround(orbW, sNorm, -kLandAtm:ReturnTanly).
     local shipPos to -body:position.
     local angleToBurn to vectorAngleAround(shipPos, sNorm, offsetW).

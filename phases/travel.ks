@@ -112,7 +112,7 @@ function travelIntercept {
 
     local hl to travelDoubleHl(tgt).
 
-    if (target:typename = "BODY") {
+    if (tgt:typename = "BODY") {
         travelIntoSatOrbit(ctx, tgt, hl:arrivalTime).
         travelCaptureToInc(ctx).
     } else {
@@ -128,7 +128,7 @@ function travelIntercept {
 }
 
 function travelEscape {
-    escapeWith(body:obt:velocity:orbit:normalized * 50, 0).
+    escapePrograde(50).
     nodeExecute().
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
 }
@@ -175,20 +175,21 @@ function travelIntoSatOrbit {
         if orbit:hasnextpatch() and orbit:nextpatch:body = tgtBody {
             break.
         }
-        local arrivalEta to arrivalTime - time.
+        local arrivalEta to detimestamp(arrivalTime - time).
         local shipPos to positionAt(ship, arrivalTime).
         local tgtPos to positionAt(tgtBody, arrivalTime).
         local relDistance to (shipPos - tgtPos):mag / tgtBody:soiradius.
         if relDistance < 0.8 {
-            print " Distance / soi " + round(relDistance, 2).
+            print " Distance / soi " + round(relDistance, 2) + " at "
+                + timeRoundStr(arrivalTime).
             print " Intercept will happen, but it isn't recorded as a patch".
             waitWarp(detimestamp(time + (arrivalEta / 2))).
-            break.
+        } else {
+            print " Refining Intercept " + i.
+            local cc to courseCorrect(tgtBody, arrivalEta).
+            set arrivalTime to cc:arrivalTime.
+            nodeExecute().
         }
-        print " Refining Intercept " + i.
-        local cc to courseCorrect(tgtBody, arrivalEta).
-        set arrivalTime to cc:arrivalTime.
-        nodeExecute().
     }
 
     print " Waiting in travelIntoSatOrbit".
@@ -201,7 +202,7 @@ function travelCaptureToInc {
 
     if not ctx:haskey("altitude") {
         print " Using default altitude".
-        set ctx:altitude to kWarpHeights[body].
+        set ctx:altitude to opsScienceHeight(body).
     }
     if not ctx:haskey("inclination") {
         print " Using default inclination".
@@ -221,7 +222,13 @@ function travelCaptureToPlaneOf {
     parameter ctx, tgt.
 
     // TODO efficient plane change.
-    local pe to tgt:obt:periapsis * 1.5.
+    local extraPe to 0.
+    if (tgt:typename = "BODY") {
+        set extraPe to 2 * tgt:soiradius.
+    } else {
+        set extraPe to 0.1 * tgt:obt:semimajoraxis.
+    }
+    local pe to tgt:obt:semimajoraxis + extraPe.
     local norm to normOf(tgt:obt).
     entryPe(pe, norm).
     nodeExecute().

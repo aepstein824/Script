@@ -38,7 +38,6 @@ if shouldPhase(0) {
 if shouldPhase(1) {
     local travelContext to lexicon(
         "dest", dest,
-        "altitude", kWarpHeights[dest],
         "inclination", 0
     ). 
     travelTo(travelContext).

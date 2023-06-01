@@ -101,7 +101,7 @@ function doWaypoint {
     lock steering to nextNode:deltav.
     waitWarpPhsx(time:seconds + nextNode:eta - 10).
     wait until vDot(w:position - ship:position, ship:prograde:vector) < 0.
-    doAG13To45Science().
+    doUseOnceScience().
     nodeExecute().
 
     circleNextExec(kWarpHeights[body]).

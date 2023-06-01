@@ -15,7 +15,7 @@ runOncePath("0:phases/waypoints.ks").
 
 // Mission parameters
 local dest to minmus.
-local kMoonPeLow to kWarpHeights[dest] + 2000.
+local kMoonPeLow to opsScienceHeight(dest) + 2000.
 local kInterStg to 2.
 local kLanderStg to 2.
 local kReturnStg to 1.

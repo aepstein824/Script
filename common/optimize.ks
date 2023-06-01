@@ -26,3 +26,24 @@ function optimizeFixedWalk {
     }
     return point.
 }
+
+function optimizeNewtonSolve {
+    parameter fAndD, x0, eps to 1e-10.
+
+    local tries to 10.
+    local x to x0.
+    for k in range(tries) {
+        local yAndD to fAndD(x).
+        local y to yAndD[0].
+        local dy_dx to yAndD[1].
+        if abs(y) < eps {
+            break.
+        }
+        if abs(dy_dx) < 1e-12 {
+            print "Aborting since dy_dx = " + dy_dx.
+            break.
+        }
+        set x to x - y / dy_dx.
+    }
+    return x.
+}

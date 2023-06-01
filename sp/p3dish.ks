@@ -1,7 +1,7 @@
 @LAZYGLOBAL OFF.
 
 // before loading files
-local dest to pol.
+local dest to bop.
 local amDish to core:tag = "dish".
 if amDish and body <> dest {
     core:deactivate().
@@ -47,8 +47,8 @@ if shouldPhase(0) {
     print "Launch to Orbit!".
     launchQuicksave("p3_dish").
     set kClimb:Turn to 10.
-    set kClimb:ClimbAp to 120000.
-    set kClimb:ClimbPe to 110000.
+    set kClimb:ClimbAp to 200000.
+    set kClimb:ClimbPe to 195000.
     launchToOrbit().
     wait 3.
     set ship:name to dispenserName.
@@ -81,16 +81,20 @@ if shouldPhase(2) and amDispenser {
         orbitTunePeriod(dispensePeriod, fixingDur).
     }
 
-    waitWarp(time:seconds + obt:eta:periapsis - 100).
+    waitWarp(time:seconds + obt:eta:periapsis - 600).
     wait 5.
 
     local cores to list().
     list processors in cores.
     local dishProc to cores[0].
+    local maxDist to 0.
     for c in cores {
         if c:part:tag = "dish" {
-            set dishProc to c.
-            break.
+            local dist to c:part:position:mag.
+            if dist > maxDist {
+                set dishProc to c.
+                set maxDist to dist.
+            }
         }
     }
     dishProc:activate.
@@ -113,12 +117,12 @@ if shouldPhase(3) and amDish and obt:eccentricity > 0.05 {
     changeApAtPe(ringAlt). 
     nodeExecute().
     orbitTunePeriod(ringPeriod, fixingDur).
-    waitWarp(time + 300).
+    waitWarp(time + dispensePeriod / 2).
     set kuniverse:activevessel to vessel(dispenserName).
 }
 if shouldPhase(4) {
     kuniverse:quicksaveto("p3_dish_3").
-    changePeAtAp(20500 + atmHeightOr0(body)).
+    changePeAtAp(opsScienceHeight(body)).
     nodeExecute().
     waitWarp(time:seconds + obt:eta:periapsis).
     print "Doing science at " + altitude.

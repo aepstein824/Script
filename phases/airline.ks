@@ -294,13 +294,13 @@ function airlineLoop {
             local outGeo to geoNorth2dToGeo(endGeo, frame, path2d).
             local outHdgOut to geoHeadingTo(outGeo, outHdgBeacon).
 
-            local outArrow to vecdraw(zeroV, {
-                return outGeo:altitudeposition(altitude).},
-                rgb(0,1,1), "Out", 0.1, true, 1.0).
+            // local outArrow to vecdraw(zeroV, {
+            //     return outGeo:altitudeposition(altitude).},
+            //     rgb(0,1,1), "Out", 1.0, true, 0.1).
 
             airlineLoopStraight(outGeo, outHdgOut, endWpt:alti, flightP).
 
-            set outArrow:show to false.
+            // set outArrow:show to false.
 
             flightPath:remove(0).
         } else if flightPath[0][0] = "turn" {
@@ -310,18 +310,18 @@ function airlineLoop {
             local turnFinishHdg to geoHeadingTo(turnGeo, outGeo).
             local turnSign to choose -1 if turnCCW(turn) else 1.
 
-            local centerArrow to vecdraw(zeroV, {
-                return turnGeo:altitudeposition(altitude).},
-                rgb(1,0,0), "Turn", 0.1, true, 1.0).
-            local outArrow to vecdraw(zeroV, {
-                return outGeo:altitudeposition(altitude).},
-                rgb(0,1,1), "Out", 0.1, true, 1.0).
+            // local centerArrow to vecdraw(zeroV, {
+            //     return turnGeo:altitudeposition(altitude).},
+            //     rgb(1,0,0), "Turn", 1.0, true, 0.1).
+            // local outArrow to vecdraw(zeroV, {
+            //     return outGeo:altitudeposition(altitude).},
+            //     rgb(0,1,1), "Out", 1.0, true, 0.1).
 
             airlineLoopTurn(turnGeo, turn:rad, turnSign, turnFinishHdg,
                 endWpt:Alti, flightP).
 
-            set centerArrow:show to false.
-            set outArrow:show to false.
+            // set centerArrow:show to false.
+            // set outArrow:show to false.
 
             flightPath:remove(0).
         }

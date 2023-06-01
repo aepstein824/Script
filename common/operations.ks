@@ -485,6 +485,11 @@ function atmHeightOr0 {
     return choose 0 if not bod:atm:exists else bod:atm:height.
 }
 
+function opsScienceHeight {
+    parameter bod.
+    return 20500 + atmHeightOr0(bod).
+}
+
 function terrainHAt {
     parameter p.
     return terrainHGeo(body:geopositionof(p)).

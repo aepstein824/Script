@@ -89,7 +89,7 @@ function doSomething {
     } else if it = "node" {
         nodeExecute().
     } else if it = "circle" {
-        local alti to a0:tonumber(kWarpHeights[body]).
+        local alti to a0:tonumber(opsScienceHeight(body)).
         circleNextExec(alti).
         // local inc to a1:tonumber(obt:inclination).
         // matchPlanes(inclinationToNorm(inc)).

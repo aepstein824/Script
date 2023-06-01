@@ -26,6 +26,7 @@ set kSsto:SpaceAlti to 16000.
 set kSsto:StateLow to "LOW".
 set kSsto:StateHigh to "HIGH".
 set kSsto:StateSpace to "SPACE".
+set kSsto:Runway to kAirline:Wpts:Ksc09.
 
 set kLandKsc:ReturnTanly to 118.
 set kAirline:Vtol to (vang(facing:forevector, up:forevector) < 30).
@@ -61,7 +62,7 @@ if shouldPhase(1) {
     wait 1.
 }
 if shouldPhase(2) {
-    landPlaneDeorbit().
+    landPlaneDeorbit(kSsto:Runway).
 }
 if shouldPhase(3) {
     disableRcs().
@@ -69,7 +70,7 @@ if shouldPhase(3) {
 }
 if shouldPhase(4) {
     sstoEnginesFor(kSsto:StateLow).
-    landPlaneRunway().
+    landPlaneRunway(kSsto:Runway).
 }
 
 function sstoLowLevel {
