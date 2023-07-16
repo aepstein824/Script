@@ -1,0 +1,69 @@
+{
+    "entries": [
+        {
+            "value": "lowalti",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 2000,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        },
+        {
+            "value": "lowspd",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 300,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        },
+        {
+            "value": "highalti",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 8000,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        },
+        {
+            "value": "highspd",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 1200,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        },
+        {
+            "value": "highleveltan",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 0.087488663525924007,
+            "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+        },
+        {
+            "value": "highclimbtan",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 0.99999999999999989,
+            "$type": "kOS.Safe.Encapsulation.ScalarDoubleValue"
+        },
+        {
+            "value": "highvplus",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 15,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        },
+        {
+            "value": "spacealti",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 18000,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        }
+    ],
+    "$type": "kOS.Safe.Encapsulation.Lexicon"
+}

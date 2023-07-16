@@ -23,12 +23,14 @@ set kSsto:HighLevelTan to tan(5).
 set kSsto:HighClimbTan to tan(45).
 set kSsto:HighVPlus to 15.
 set kSsto:SpaceAlti to 16000.
+// writeJson(kSsto, opsDataPath("kSsto")). print 1/0.
+opsDataLoad(kSsto, "kSsto"). 
 set kSsto:StateLow to "LOW".
 set kSsto:StateHigh to "HIGH".
+set kSsto:StateHighClimb to "HIGHCLIMB".
 set kSsto:StateSpace to "SPACE".
 set kSsto:Runway to kAirline:Wpts:Ksc09.
 
-set kLandKsc:ReturnTanly to 118.
 set kAirline:Vtol to (vang(facing:forevector, up:forevector) < 30).
 
 clearAll().
@@ -60,6 +62,7 @@ if shouldPhase(1) {
     print "Correcting circularization".
     circleNextExec(75000).
     wait 1.
+    pressAnyKey().
 }
 if shouldPhase(2) {
     landPlaneDeorbit(kSsto:Runway).
@@ -92,7 +95,7 @@ function sstoLowLevel {
 
         airlineIterWait().
 
-        if groundspeed > kSsto:LowSpd - 1 {
+        if groundspeed > kSsto:LowSpd - 5 {
             return.
         }
     }
@@ -113,7 +116,7 @@ function sstoLowClimb {
 
         airlineIterWait().
 
-        if altitude > kSsto:HighAlti - 10 {
+        if altitude > kSsto:HighAlti - 50 {
             return.
         }
     }
@@ -147,7 +150,7 @@ function sstoHighClimb {
 
     local turnXacc to airlineTurnXacc(gat(0)).
 
-    sstoEnginesFor(kSsto:StateSpace).
+    sstoEnginesFor(kSsto:StateHighClimb).
 
     until false {
         set flightP:xacc to airlineBearingXacc(90 - shipVHeading(), turnXacc).
@@ -160,6 +163,7 @@ function sstoHighClimb {
         airlineIterWait().
 
         if altitude > kSsto:SpaceAlti - 10 {
+            sstoEnginesFor(kSsto:StateSpace).
             return.
         }
     }
@@ -171,7 +175,7 @@ function sstoEnginesFor {
     local engs to ship:engines.
     for e in engs {
         if e:tag = "space" {
-            if state = kSsto:StateSpace {
+            if state = kSsto:StateHighClimb or state = kSsto:StateSpace {
                 e:activate().
             } else {
                 e:shutdown().
@@ -182,12 +186,22 @@ function sstoEnginesFor {
                 if not e:primarymode {
                     e:togglemode().
                 }
-            } else if state = kSsto:StateHigh or state = kSsto:StateSpace {
+            } else if state = kSsto:StateHigh or state = kSsto:StateHighClimb {
                 e:activate().
                 if e:primarymode {
                     e:togglemode().
                 }
+            } else if state = kSsto:StateSpace {
+                print "shutting down space engines?!".
+                e:shutdown().
+            }
+        } else if e:tag = "jet" {
+            if state = kSsto:StateLow {
+                e:activate().
+            } else if state = kSsto:StateSpace {
+                e:shutdown().
             }
         }
     }
+    wait 0.
 }

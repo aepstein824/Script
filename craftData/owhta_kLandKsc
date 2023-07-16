@@ -1,19 +1,27 @@
 {
     "entries": [
         {
-            "value": "landV",
+            "value": "pe",
             "$type": "kOS.Safe.Encapsulation.StringValue"
         },
         {
-            "value": 28,
+            "value": 0,
             "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
         },
         {
-            "value": "cruiseV",
+            "value": "qtoaoa",
             "$type": "kOS.Safe.Encapsulation.StringValue"
         },
         {
-            "value": 43,
+            "value": 450,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        },
+        {
+            "value": "returntanly",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 180,
             "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
         }
     ],

@@ -651,3 +651,22 @@ function vesselIsAsteroid {
 
     return astSizes:find(vess:sizeclass) <> -1.
 }
+
+function opsDataPath {
+    parameter lexiName.
+    return "craftData/" + core:tag + "_" + lexiName.
+
+}
+
+function opsDataLoad {
+    parameter lexiOut, lexiName.
+    local dataPath to opsDataPath(lexiName).
+    if not exists(dataPath) {
+        return.
+    }
+    local craftData to readJson(dataPath).
+    for k in craftData:keys{
+        print k.
+        set lexiOut[k] to craftData[k].
+    }
+}

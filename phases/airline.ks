@@ -92,11 +92,13 @@ function airlineBearingXacc {
 }
 
 function airlineStraightErrorToXacc {
-    parameter app, apv.
-    local closeFactor to lerp(app:z/1000, 0.1, 3).
+    parameter app, apv, curRoll.
+    local closeFactor to lerp(app:z/10000, 0.2, 1).
     local tgtX to closeFactor * apv:z * app:x / app:z.
     local xdiff to tgtX - apv:x.
-    return clamp(xdiff, -2, 2).
+    local rollAdj to clamp(curRoll / 10, -1, 1).
+    // print round(xdiff, 1) + " - " + round(rollAdj, 1).
+    return clamp(0.5 * xdiff - rollAdj, -1, 1).
 }
 
 function airlineSwitchToFlight {
@@ -473,7 +475,8 @@ function airlineLanding {
         set flightP:vspd to glideSpd.
 
         local apv to approach:inverse * velocity:surface.
-        set flightP:xacc to airlineStraightErrorToXacc(app, apv).
+        set flightP:xacc to airlineStraightErrorToXacc(app, apv,
+            flightP:reality:Bank).
 
         if app:z < vtolS * landV {
             // close to or past runway

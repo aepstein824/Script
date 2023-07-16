@@ -12,6 +12,9 @@ set kLandKsc:Pe to 0.
 set kLandKsc:QToAoa to 900.
 set kLandKsc:ReturnTanly to 120.
 
+// writeJson(kLandKsc, opsDataPath("kLandKsc")). print 1/0.
+opsDataLoad(kLandKsc, "kLandKsc"). 
+
 function preventEscape {
     controlLock().
     if obt:transition = "ESCAPE" {
