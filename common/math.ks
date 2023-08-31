@@ -216,6 +216,15 @@ function vecInvertComps {
     ).
 }
 
+function vecSqrComps {
+    parameter a.
+    return v(
+        a:x ^ 2,
+        a:y ^ 2,
+        a:z ^ 2
+    ).
+}
+
 function vecMultiplyComps {
     parameter a, b.
 

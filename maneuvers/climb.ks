@@ -7,7 +7,7 @@ runOncePath("0:common/ship").
 
 declare global kClimb to lexicon().
 
-set kClimb:Turn to 3.
+set kClimb:Turn to 5.
 set kClimb:VertV to 60.
 set kClimb:SteerV to 200.
 set kClimb:ClimbAp to 80000.
@@ -143,7 +143,7 @@ function climbOrbitSpeed {
 
 function climbCircularizeThrottle {
     local low to 0.
-    if vang(facing:forevector, controlSteer:forevector) > 5 {
+    if vang(facing:forevector, controlSteer:forevector) > 2 {
         set low to 0.05.
         enableRcs().
     } else {

@@ -1,5 +1,7 @@
 @LAZYGLOBAL OFF.
 
+runOncePath("0:common/math.ks").
+
 function differCreate {
     parameter initValues, t.
 

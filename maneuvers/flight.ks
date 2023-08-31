@@ -12,7 +12,7 @@ runOncePath("0:deps/kLA-ks/src/kla").
 global kFlight to lexicon().
 set kFlight:AeroCount to 100.
 set kFlight:FlareHeight to 8.
-set kFlight:hAccKp to 1.
+set kFlight:hAccKp to 0.2.
 set kFlight:hAccMax to 20.
 set kFlight:vAccKp to 1.
 set kFlight:vAccMax to 20.
@@ -356,7 +356,7 @@ function flightLevel {
     }
 
     // noise to feed data to the flight model
-    local pitchNoise to kPitchNoiseAmp * sin(360 * mod(seconds, 1) / 4).
+    local pitchNoise to kPitchNoiseAmp * sin(360 * mod(seconds / 4, 1)).
 
     // pitch
     local aoaRots to flightPitch(aoa + pitchNoise).

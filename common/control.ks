@@ -79,10 +79,12 @@ function thrustUpdate {
     }
     local alpha to alphaEstimator:y.
 
-    local dThrot to alpha * (edgeThrot - goalThrot).
-    local dThrotTime to dThrot * 1.
-    local throtError to goalThrot - nowThrot.
-    if alpha < 0.01 or abs(dThrotTime) > abs(throtError) {
+    local dThrot to thrustState:differ:D[0].
+    local dThrotTime to dThrot * 0.05.
+    local lagThrot to nowThrot + dThrotTime.
+    local throtError to nowThrot - goalThrot.
+    local opp to (lagThrot - goalThrot) * throtError < 0.
+    if alpha < 0.01 or opp or abs(throtError) < 0.1 {
         set thrustState:throt to goalThrot.
     } else {
         set thrustState:throt to edgeThrot.

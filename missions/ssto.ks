@@ -176,7 +176,7 @@ function sstoEnginesFor {
             } else {
                 e:shutdown().
             }
-        } else if e:tag = "wetdry" {
+        } else if e:tag = "wetdry" or true {
             if state = kSsto:StateLow {
                 e:activate().
                 if not e:primarymode {

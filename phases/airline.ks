@@ -657,7 +657,7 @@ set kAirline:Wpts to lex(
         kerbin:geopositionlatlng(-1.515664, -71.85139), 270),
     "NP27", airlineWptCreate(
         kerbin:geopositionlatlng(80, -100), 270),
-    "NP", airlineWptCreate(kerbin:geopositionlatlng(90, 0), 0)
+    "NP", airlineWptCreate(kerbin:geopositionlatlng(89.99, 0), 0)
 ).
 
 global kCruise to lex(
