@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 
 runOncePath("0:common/math.ks").
+runOncePath("0:common/optimize.ks").
 
 function tanlyToEanly {
     parameter ecc.
@@ -133,7 +134,7 @@ function obtRnpFromPV {
     return lookDirUp(vel, pos) * r(0, 0, 90).
 }
 
-function orbitalRelativeV {
+function obtRelativeV {
     parameter obtable1, obtable2, t.
     local p1 to positionAt(obtable1, t).
     local p2 to positionAt(obtable2, t).
@@ -141,42 +142,20 @@ function orbitalRelativeV {
     local v1 to velocityAt(obtable1, t):orbit.
     local v2 to velocityAt(obtable2, t):orbit.
     local vDiff to v1 - v2.
-    local relV to vdot(vDiff, oneToTwo:normalized).
+    local relV to removeComp(vDiff, oneToTwo:normalized):mag.
     return relV.
 }
 
 function closestApproachNear {
     parameter obtable1, obtable2, t.
 
-    local lr to .1.
-    set t to time + obt:eta:periapsis.
-    local eps to 3.
-    local signLast to 0.
-    // use gradient descent, lowering learning rate when crossing the min
-    until false {
-        local relV to orbitalRelativeV(obtable1, obtable2, t).
-        local u to lr * relV.
-        set t to t + u.
-
-        // print "Iter:".
-        // print " d = " + relV.
-        // print " x = " + distanceAt(obtable1, obtable2, t).
-        // print " u = " + u.
-
-        local signNow to sgn(relV).
-        if signNow * signLast = -1 {
-            set lr to lr / 2.
-        }
-        set signLast to signNow.
-
-        if abs(u) < 0.01 {
-            break.
-        }
-        if abs(relV) < eps {
-            break.
-        }
-    }
-    return t.
+    return optimizeNewtonSolve({
+        parameter x0.
+        return funcAndDeriv({
+            parameter x1.
+            return obtRelativeV(obtable1, obtable2, x1).
+        }, x0).
+    }, t).
 }
 
 function closestApproach {
@@ -184,19 +163,25 @@ function closestApproach {
 
     local bestDistance to 10^20.
     local bestTime to time:seconds.
-    local bigPeriod to max(obtable1:obt:period, obtable2:obt:period).
+    local relPeriod to orbitalRelativePeriod(obtable1:obt:period,
+        obtable2:obt:period).
     local count to 36.
 
     for i in range(count) {
-        local t to (i / count) * bigPeriod + time:seconds.
-        local nearDist to distanceAt(obtable1, obtable2, t).
+        local t to (i / count) * relPeriod + time:seconds.
+        local nearTime to closestApproachNear(obtable1, obtable2, bestTime).
+        local nearDist to distanceAt(obtable1, obtable2, nearTime).
         if nearDist < bestDistance {
             set bestDistance to nearDist.
             set bestTime to t.
         }
     }
-
-    return closestApproachNear(obtable1, obtable2, bestTime).
+    local durTill to bestTime - time:seconds.
+    set durTill to posMod(durTill, relPeriod).
+    set bestTime to time:seconds + durTill.
+    print " Closest approach distance " + round(bestDistance)
+        + " at " + timeRoundStr(bestTime - time:seconds).
+    return bestTime.
 }
 
 
@@ -211,6 +196,13 @@ function centrip {
     parameter spd, h.
 
     return spd ^ 2 / (body:radius + h).
+}
+
+function orbitalRelativePeriod {
+    parameter period1, period2.
+
+    local maxPeriod to 10 * max(period1, period2).
+    return 1 / max(1 / maxPeriod, abs(1 / period1 - 1 / period2)).
 }
 
 function orbitalSpeed {

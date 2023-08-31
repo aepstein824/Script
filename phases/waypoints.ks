@@ -161,11 +161,12 @@ function vacDescendToward {
     local manly to eanlyToManly(ecc, eanly).
     local landDur to (manly - 180) / mm.
     // print "landDur " + landDur.
+    // want to plane change 90 degrees before landing, not 90 before ap
     // 90 - (tanly - 180) is the angle traveled before the plane change
     local planeDur to (90 - (tanly - 180)) * obt:period / 360.
     // print "planeDur " + planeDur.
     local postDur to planeDur + landDur.
-    // print "post burn time " + postDur.
+    // print "post plane burn time " + postDur.
 
     local norm to shipNorm().
     local bodyMm to -body:angularvel:y * constant:radtodeg.
@@ -182,18 +183,24 @@ function vacDescendToward {
         local nowTillLand to landTimeMid - time:seconds.
         set wPosLand to rotateVecAround(wPosNow, cosmicNorth,
             bodyMm * nowTillLand).
+        // burnPos is where we would want to do the burn
         set burnPos to vCrs(norm, wPosLand).
-        local burnTanly to posToTanly(burnPos + body:position, obt).
-        local burnTime to timeBetweenTanlies(obt:trueanomaly, burnTanly, obt).
-        // print "Off by " + (burnTime + time - mid):seconds.
-        if burnTime + time < mid {
+        // actualPos is where we will actually be at the proposed time
+        local actualPos to shipPAt(mid).
+        local error to smallAng(vectorAngleAround(burnPos, norm, actualPos)).
+        // Since all orbits are faster than all planet rotations, the planet
+        // will drag burnPos around slower than actualPos. Therefore, positive
+        // error means we should wait a bit.
+        // print "Off by " + error.
+        if error > 0 {
             set late to mid.
         } else {
             set early to mid.
         }
         // clearVecDraws().
-        // vecdraw(body:position, wPosMid * 2, red, "body", 1, true).
+        // vecdraw(body:position, wPosLand * 2, red, "land", 1, true).
         // vecdraw(body:position, burnPos * 2, blue, "an", 1, true).
+        // wait 1.
     }
 
     local dt to 90 - vectorAngleAround(wPosLand, burnPos, norm).
@@ -218,10 +225,10 @@ function vacLand {
 }
 
 function vacLandGeo {
-    parameter wGeo.
+    parameter wGeo, tgt to list().
 
     local overheadAlt to 500.
-    local correctionLen to 60.
+    local correctionLen to 90.
 
     legs on.
 
@@ -231,20 +238,27 @@ function vacLandGeo {
     local impactTime to time:seconds + impactDur.
     // local correctionDur to impactDur - correctionLen.
     local correctionTime to impactTime - correctionLen.
+    print " warping to correction point".
     waitWarp(correctionTime - 10).
     local wOverheadPos to groundPosition(wGeo, overheadAlt).
     local wPosImpact to spinPos(wOverheadPos, correctionLen).
     print " distance from impact " + (wPosImpact + body:position):mag.
 
-    local res to lambertPosOnly(ship, wPosImpact,
-        correctionTime, correctionLen).
-    add res:burnnode.
-    nodeExecute().
+    if correctionTime > time:seconds {
+        local res to lambertPosOnly(ship, wPosImpact,
+            correctionTime, correctionLen).
+        add res:burnnode.
+        print " executing correction node".
+        nodeExecute().
+    }
 
-    print "Suicide Burn".
+    print " Suicide Burn".
     suicideBurn(20, geoAlt + overheadAlt / 4, 5).
 
-    print "Controlled Descent to target".
+    print " Controlled Descent to target".
+    set kuniverse:timewarp:mode to "PHYSICS".
+    set kuniverse:timewarp:rate to 3.
+    
     lights on.
     local params to hoverDefaultParams().
     set params:tgt to wGeo.
@@ -262,6 +276,11 @@ function vacLandGeo {
     }
 
     print " Descending.".
+    kuniverse:timewarp:cancelwarp().
+    if not tgt:empty {
+        local ports to opsPortFindPair(tgt[0]).
+        set params:tgt to ports[1].
+    }
     hoverSwitchMode(params, kHover:Descend).
     until ship:status = "LANDED"  or ship:status = "SPLASHED" {
         hoverIter(params).

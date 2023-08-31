@@ -24,7 +24,7 @@ set kAirline:VlSpd to -2.
 set kAirline:FlightP to flightDefaultParams().
 set kAirline:HoverP to hoverDefaultParams().
 set kAirline:CruiseAlti to 7000.
-set kAirline:CruiseDist to 45000.
+set kAirline:CruiseDist to 42000.
 set kAirline:FlatDist to 8500. // gives enough for any turn at 100 m/s
 set kAirline:CruiseAggro to 1.2.
 set kAirline:LandAggro to 2.
@@ -92,11 +92,13 @@ function airlineBearingXacc {
 }
 
 function airlineStraightErrorToXacc {
-    parameter app, apv.
-    local closeFactor to lerp(app:z/1000, 0.1, 3).
+    parameter app, apv, curRoll.
+    local closeFactor to lerp(app:z/10000, 0.2, 1).
     local tgtX to closeFactor * apv:z * app:x / app:z.
     local xdiff to tgtX - apv:x.
-    return clamp(xdiff, -2, 2).
+    local rollAdj to clamp(curRoll / 10, -1, 1).
+    // print round(xdiff, 1) + " - " + round(rollAdj, 1).
+    return clamp(0.5 * xdiff - rollAdj, -1, 1).
 }
 
 function airlineSwitchToFlight {
@@ -473,7 +475,8 @@ function airlineLanding {
         set flightP:vspd to glideSpd.
 
         local apv to approach:inverse * velocity:surface.
-        set flightP:xacc to airlineStraightErrorToXacc(app, apv).
+        set flightP:xacc to airlineStraightErrorToXacc(app, apv,
+            flightP:reality:Bank).
 
         if app:z < vtolS * landV {
             // close to or past runway
@@ -485,7 +488,8 @@ function airlineLanding {
             kuniverse:timewarp:cancelwarp(). 
             if runwayWpt:haskey("vesselName") {
                 local baseVessel to vessel(runwayWpt:vesselName).
-                set kAirline:hoverP:tgt to getPort(baseVessel).
+                local ports to opsPortFindPair(baseVessel).
+                set kAirline:hoverP:tgt to ports[1].
             } else {
                 set kAirline:hoverP:tgt to runwayGeo.
             }
@@ -694,7 +698,15 @@ function cruiseShipMpt {
     if thrust <= 0 {
         return 1.
     }
-    return groundspeed / (thrust / (ship:engines[0]:isp * constant:g0)).
+    local isp to 0.
+    for e in ship:engines {
+        if e:ignition {
+            set isp to e:isp.
+
+        }
+    }
+
+    return groundspeed / (thrust / (isp * constant:g0)).
 }
 
 function cruiseCheckSteady {

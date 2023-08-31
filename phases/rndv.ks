@@ -53,8 +53,9 @@ function ballistic {
         local shortestHalftime to sqrt((distance() - floatDist) / shipAccel()).
         local infFuelSpd to shipAccel() * shortestHalftime * maxAccel.
         print " Infinite Fuel Speed " + round(infFuelSpd).
-        set maxSpeed to min(infFuelSpd, max(kRndvParams:maxSpeed,
-            currentSpeed)). 
+        set maxSpeed to min(ship:deltav:current / 3, 
+            min(infFuelSpd, max(kRndvParams:maxSpeed,
+            currentSpeed))). 
         print " Max Speed " + round(maxSpeed).
         local burnTime to 1.3 * shipTimeToDV(maxSpeed) + 5.
         set burnDist to 0.5 * maxSpeed * burnTime.
@@ -159,12 +160,13 @@ function rcsApproach {
     print "RCS Approach".
 
     legs off.
-    local ourPort to getPort(ship).
+    local ports to opsPortFindPair(target).
+    local ourPort to ports[0].
+    local tgtPort to ports[1].
     opsControlFromPort(ourPort).
-    local tgtPort to getPort(target).
 
     enableRcs().
-    lock steering to tgtPort:position - ship:position.
+    lock steering to tgtPort:position - ourPort:position.
     lock throttle to 0.
     wait 3. 
 
@@ -172,21 +174,24 @@ function rcsApproach {
     local rcsInvThrust to vecInvertComps(rcsThrust).
 
     local slowDist to kRndvParams:rcsSlowDist.
-    local rcsMaxSpd to sqrt(rcsThrust:z / ship:mass * slowDist).
+    local maxDist to min(slowDist,
+        (tgtPort:position - ourPort:position):mag).
+    local rcsAcc to rcsThrust:z / ship:mass / 2.
+    local rcsMaxSpd to sqrt(maxDist * rcsAcc).
     local rcsSpdFunc to {
         parameter dist.
         return rndvSpd(dist, slowDist, rcsMaxSpd, 0.2).
     }.
     local kp to kRndvParams:rcsKp.
 
+    local startProcCount to procCount().
     until false {
         local towards to tgtPort:position - ourPort:position.
         local dist to towards:mag.
 
-        if dist < 1.1 {
+        if dist < 1.1 or procCount() <> startProcCount {
             break.
         }
-
 
         local spdAndAcc to funcAndDeriv(rcsSpdFunc, dist).
         local desiredSpd to spdAndAcc[0].
@@ -196,13 +201,15 @@ function rcsApproach {
         local accV to desiredAcc * towards:normalized.
         local relV to ship:velocity:orbit - target:velocity:orbit.
         local delta to kp * (desiredV - relV).
-        // print "desired " + vecround(facing:inverse * desiredV, 2)
+        // print "dist " + round(dist, 1)
+        //     + "  |  desired " + vecround(facing:inverse * desiredV, 2)
         //     + "  |  delta " + vecround(facing:inverse * delta, 2).
 
         shipRcsDoThrust(delta + accV, rcsInvThrust).
 
         wait 0.
     }
+    print " Drifting toward target".
 
     disableRcs().
     controlUnlock().

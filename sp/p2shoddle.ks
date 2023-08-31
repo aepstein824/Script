@@ -7,6 +7,7 @@ runOncePath("0:maneuvers/climb.ks").
 runOncePath("0:maneuvers/orbit.ks").
 runOncePath("0:phases/landKsc.ks").
 runOncePath("0:phases/launchToOrbit.ks").
+clearAll().
 
 // Testing
 set kPhases:startInc to 0.
@@ -17,8 +18,6 @@ set kPhases:stopInc to 4.
 set kClimb:VertV to 40.
 set kClimb:SteerV to 150.
 set kClimb:Turn to 9.
-
-clearAll().
 
 if shouldPhase(0) {
     print "Launch to Orbit!".

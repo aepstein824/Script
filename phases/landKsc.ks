@@ -12,6 +12,9 @@ set kLandKsc:Pe to 0.
 set kLandKsc:QToAoa to 900.
 set kLandKsc:ReturnTanly to 120.
 
+// writeJson(kLandKsc, opsDataPath("kLandKsc")). print 1/0.
+opsDataLoad(kLandKsc, "kLandKsc"). 
+
 function preventEscape {
     controlLock().
     if obt:transition = "ESCAPE" {
@@ -112,7 +115,7 @@ function landPlaneRunway {
 
     print " Begin flight at " + geoRound(geoPosition).
     set kAirline:Vtol to false.
-    set kAirline:FinalS to 200.
+    set kAirline:FinalS to 150.
     set kAirline:VspdAng to 20.
 
     local approachWpt to airlineWptApproach(landWpt).
