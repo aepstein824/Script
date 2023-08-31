@@ -115,7 +115,7 @@ function landPlaneRunway {
 
     print " Begin flight at " + geoRound(geoPosition).
     set kAirline:Vtol to false.
-    set kAirline:FinalS to 200.
+    set kAirline:FinalS to 150.
     set kAirline:VspdAng to 20.
 
     local approachWpt to airlineWptApproach(landWpt).

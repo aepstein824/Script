@@ -10,7 +10,8 @@ runOncePath("0:phases/waypoints.ks").
 
 local buttonNames to list(
     "exit", "travel", "dock", "launch", 
-    "land", "node", "circle", "ground", "refresh"
+    "land", "node", "circle", "refresh",
+    "science", "mine", "undock"
     ).
 clearGuis().
 local menu to gui(300).
@@ -33,6 +34,7 @@ until false {
     set todo to "".
     menu:show().
 }
+menu:hide().
 
 function createButtons {
     for b in buttonNames {
@@ -84,8 +86,9 @@ function doSomething {
         local l0 to a0:tonumber(0).
         local l1 to a1:tonumber(0).
         local lz to latlng(l0, l1).
-        vacDescendToward(lz).
-        vacLandGeo(lz). 
+        local flatLz to geoNearestFlat(lz).
+        vacDescendToward(flatLz).
+        vacLandGeo(flatLz). 
     } else if it = "node" {
         nodeExecute().
     } else if it = "circle" {
@@ -94,12 +97,18 @@ function doSomething {
         // local inc to a1:tonumber(obt:inclination).
         // matchPlanes(inclinationToNorm(inc)).
         // nodeExecute().
-    } else if it = "ground" {
-        vacLand(). 
     } else if it = "refresh" {
         opsCollectRestoreScience().
         opsRefuel().
+    } else if it = "science" {
+        doUseOnceScience().
+        opsCollectRestoreScience().
+    } else if it = "mine" {
+        opsISRUMineAll().
+    } else if it = "undock" {
+        opsUndockPart(core:part).
+        wait 0.5.
+        set kuniverse:activevessel to core:vessel.
     }
-}
 
-menu:hide().
+}

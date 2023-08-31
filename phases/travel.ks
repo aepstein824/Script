@@ -9,6 +9,8 @@ global stratIntercept to "INTERCEPT".
 global stratSatellite to "SATELLITE_PLANEOF".
 global stratEscapeTo to "ESCAPE_TOWARDS".
 global stratEscape to "ESCAPE".
+global stratLand to "LAND".
+global stratLaunch to "LAUNCH".
 global stratOrbiting to "ORBITING".
 
 function travelTo {
@@ -40,11 +42,22 @@ function travelTo {
         if strat[0] = stratSatellite {
             travelSatellite(ctx, strat[1], strat[2]).
         }
+        if strat[0] = stratLand {
+            travelLandOn(ctx).
+            break.
+        }
+        if strat[0] = stratLaunch {
+            travelLaunch(ctx).
+        }
     }
 }
 
 function travelStratTo {
     parameter targetable.
+
+    if shipIsLandOrSplash() {
+        return list(stratLaunch).
+    }
 
     local ourBodies to list().
     local bodyIter to body.
@@ -64,8 +77,10 @@ function travelStratTo {
     local tgtBodies to list().
     local tgtBodyIter to targetable.
     local ourIdx to ourBodies:length - 1.
+    local tgtIsBody to true.
     if targetable:typename <> "BODY" {
         set tgtBodyIter to targetable:obt:body.
+        set tgtIsBody to false.
         tgtBodies:add(targetable).
     }
     print "Traveling from " + body:name + " to " + tgtBodyIter:name.
@@ -81,10 +96,13 @@ function travelStratTo {
 
     // TgtBodies always ends in the common body.
     local tgtLen to tgtBodies:length.
-    // print tgtBodies.
+    print tgtBodies.
     if ourIdx = 0 {
         if tgtBodies:length = 2 {
-            return list(stratIntercept, tgtBodies[0]).
+            if not tgtIsBody and targetable:status = "LANDED" {
+                return list(stratLand).
+            }
+            return list(stratIntercept).
         } else  {
             return list(stratSatellite, tgtBodies[tgtLen - 2],
                 tgtBodies[tgtLen - 3]).
@@ -110,24 +128,35 @@ function travelIntercept {
     wait 0.
     local tgt to target.
 
-    local hl to travelDoubleHl(tgt).
+    local safeHeight to atmHeightOr0(body) + 50000.
+    if periapsis < safeHeight and tgt:obt:periapsis > safeHeight {
+        circleNextExec(safeHeight).
+    }
+
+    // local hl to travelDoubleHl(tgt).
 
     if (tgt:typename = "BODY") {
         travelIntoSatOrbit(ctx, tgt, hl:arrivalTime).
         travelCaptureToInc(ctx).
     } else {
-        local expectedTime to hl:start + hl:duration.
-        local closestTime to closestApproachNear(ship, tgt, expectedTime).
+        local closestTime to closestApproach(ship, tgt).
         local tgtV to velocityAt(tgt, closestTime):orbit.
         local shipV to velocityAt(ship, closestTime):orbit.
         local diff to (tgtV - shipV):mag.
+        local timeToDV to shipTimeToDV(diff).
+        local timeBefore to timeToDV * 2 + 10.
         waitWarp(closestTime - 300).
-        waitWarp(closestTime - shipTimeToDV(diff) - 30).
+        print " Warping to " + (closestTime - timeBefore).
+        waitWarp(closestTime - timeBefore).
         doubleBallistic().
     }
 }
 
 function travelEscape {
+    if orbitPatchesInclude(obt, body:body) {
+        waitWarp(time:seconds + orbit:nextpatcheta + 60).
+        return.
+    }
     escapePrograde(50).
     nodeExecute().
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
@@ -135,6 +164,11 @@ function travelEscape {
 
 function travelEscapeTo {
     parameter ctx, tgtBody, planeOf.
+
+    if orbitPatchesInclude(obt, body:body) {
+        waitWarp(time:seconds + orbit:nextpatcheta + 60).
+        return.
+    }
 
     circleNextExec(apoapsis).
 
@@ -252,4 +286,35 @@ function travelDoubleHl {
     }
 
     return hl.
+}
+
+function travelLandOn {
+    parameter ctx.
+    local dest to ctx:dest.
+    print "Landing".
+    local geo to dest:geoposition.
+    vacDescendToward(geo).
+    lights on.
+    vacLandGeo(geo, list(dest)).
+    print " Landed at " + ship:geoposition.
+}
+
+function travelLaunch {
+    parameter ctx.
+
+    lights off.
+    print " Lifting off " + body:name.
+
+    local dest to ctx:dest.
+    if dest:obt:body = body {
+        local alti to 1.1 * dest:altitude.
+        waitForTargetPlane(dest).
+        wait 1.
+        vacClimb(alti, launchHeading()).
+        circleNextExec(alti).
+    } else {
+        local alti to opsScienceHeight(body).
+        vacClimb(alti).
+        circleNextExec(alti).
+    }
 }

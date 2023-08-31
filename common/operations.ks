@@ -71,7 +71,9 @@ global inertialScienceParts to list(
     "sensorGravimeter"
 ).
 global spaceScienceParts to list(
-    "magnetometer",
+    "magnetometer"
+).
+global highSpaceScienceParts to list(
     "InfraredTelescope"
 ).
 global groundOnlyScienceParts to list(
@@ -109,6 +111,9 @@ function sciencePartNames {
     }
     if status = "ORBITING" or status = "ESCAPING" or status = "DOCKED" {
         set names to mergeList(names, spaceScienceParts).
+        if periapsis > 250001 {
+            set names to mergeList(names, highSpaceScienceParts).
+        }
     }
     if status = "FLYING" {
         set names to mergeList(names, atmoOnlyScienceParts).
@@ -449,25 +454,58 @@ function launchQuicksave {
     }
 }
 
-function getPort {
+function opsListSorted {
+    parameter l, compare to { parameter x, y. return x < y. }.
+
+    local out to list().
+    for item in l {
+        local i to 0.
+        until i = out:length or compare(item, out[i]) {
+            set i to i + 1.
+        }
+        out:insert(i, item).
+    }
+    return out.
+}
+
+function opsPortFindPair {
     parameter s.
-    if s:dockingPorts:empty() {
-        return s.
+
+    local compare to {
+        parameter x, y.
+        return x:uid < y:uid.
+    }.
+    local ourPorts to opsListSorted(ship:dockingports, compare).
+    local theirPorts to opsListSorted(s:dockingports, compare).
+    if ourPorts:empty() or theirPorts:empty() {
+        return list().
     }
-    local lowestPort to s:dockingPorts[0].
-    local lowestUid to lowestPort:uid.
-    for port in s:dockingPorts {
-        if port:uid < lowestUid and port:haspartner() {
-            set lowestPort to port.
-            set lowestUid to port:uid.
-        }
-        local hasTag to port:tag:length > 0.
-        if hasTag and activeShip:partstagged(port:tag):length > 0 {
-            print " Found port on " + s:name + " with tag " + port:tag.
-            return port.
+
+    // try first to match tags
+    for ours in ourPorts { 
+        for theirs in theirPorts { 
+            if ours:state = "Ready" and theirs:state = "Ready"
+                and ours:tag:length <> 0
+                and ours:tag = theirs:tag
+                and ours:nodetype = theirs:nodetype {
+                print " Found port on " + s:name + " with tag " + ours:tag.
+                return list(ours, theirs).
+            }
         }
     }
-    return lowestPort.
+
+    // try without matching tags
+    for ours in ourPorts { 
+        for theirs in theirPorts { 
+            if ours:state = "Ready" and theirs:state = "Ready"
+                and ours:nodetype = theirs:nodetype {
+                print " Found port on " + s:name.
+                return list(ours, theirs).
+            }
+        }
+    }
+
+    return list().
 }
 
 function opsControlFromPort {
@@ -505,7 +543,6 @@ function terrainHGeo {
 }
 
 function clearAll {
-    clearscreen.
     sas off.
     clearVecDraws().
     clearGuis().
@@ -662,11 +699,118 @@ function opsDataLoad {
     parameter lexiOut, lexiName.
     local dataPath to opsDataPath(lexiName).
     if not exists(dataPath) {
+        print "Load did not find file for " + lexiName.
         return.
     }
+    print "Load found file for " + lexiName.
     local craftData to readJson(dataPath).
     for k in craftData:keys{
-        print k.
         set lexiOut[k] to craftData[k].
     }
+}
+
+function opsISRU {
+    parameter count to 2.
+
+    local opsISRUActions to lex(
+        "Oxidizer", "ox",
+        "LiquidFuel", "lqdfuel",
+        "MonoPropellant", "monoprop"
+    ).
+
+    local resList to ship:resources.
+    local mayConvert to list().
+    local nowConvert to lex().
+    local stopActions to lex().
+    local oreRes to list().
+
+    // look for mineable fuels
+    for res in resList {
+        if opsISRUActions:haskey(res:name) {
+            mayConvert:add(res).
+        }
+        if res:name = "Ore" {
+            oreRes:add(res).
+        }
+    }
+
+
+    // choose and cache isru
+    local isruParts to ship:partsnamed("isru").
+    if isruParts:length < 1 {
+        return.
+    }
+    local isruPart to isruParts[0].
+    local modCount to isruPart:allmodules:length.
+
+    // wait for full fuel
+    until false {
+        for res in nowConvert:values {
+            local proportion to res:amount / res:capacity.
+            if proportion > 0.99 {
+                print " Finished ISRU for " + res:name.
+                stopActions[res:name]().
+                stopActions:remove(res:name).
+                nowConvert:remove(res:name).
+            }
+        }
+        for res in mayConvert {
+            if nowConvert:length >= count {
+                break.
+            }
+            local proportion to res:amount / res:capacity.
+            if proportion < 0.95 {
+                nowConvert:add(res:name, res).
+                local actionSymbol to opsISRUActions[res:name].
+                local actionName to "start isru [" + actionSymbol + "]".
+                local stopName to "stop isru [" + actionSymbol + "]".
+                for i in range(modCount) {
+                    local isruMod to isruPart:getmodulebyindex(i).
+                    if isruMod:hasaction(actionName) {
+                        print " Enabling ISRU for " + res:name.
+                        isruMod:doaction(actionName, true).
+                        set stopActions[res:name] to {
+                            isruMod:doAction(stopName, true).
+                        }.
+                        break.
+                    }
+                }
+            }
+        }
+        if nowConvert:length = 0 {
+            break.
+        }
+        waitWarp(time:seconds + 6 * 3600).
+        drills off.
+        wait 5.
+        drills on.
+    }
+    // wait for full ore
+    until false {
+        local proportion to oreRes[0]:amount / oreRes[0]:capacity.
+        if proportion > 0.99 {
+            print " Full Ore".
+            break.
+        }
+        waitWarp(time:seconds + 6 * 3600).
+        drills off.
+        wait 5.
+        drills on.
+    }
+
+    kuniverse:timewarp:cancelwarp().
+    isru off.
+}
+
+function opsISRUMineAll {
+    lights off.
+    radiators on.
+    deployDrills on.
+    wait 1.
+    drills on.
+
+    opsISRU(2).
+
+    radiators off.
+    drills off.
 }

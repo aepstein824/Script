@@ -131,9 +131,9 @@ function suicideBurn {
 
         local srfRetro to -1 * ship:velocity:surface.
         set controlSteer to srfRetro.
-        if finalH > 2000 {
+        if finalH > 60 * abs(verticalSpeed) {
             set kuniverse:timewarp:warp to 2.
-        } else if finalH > 1000 {
+        } else if finalH > 20 * abs(verticalSpeed) {
             set kuniverse:timewarp:warp to 1.
         } else { 
             kuniverse:timewarp:cancelwarp().
@@ -183,7 +183,7 @@ function coast {
 
     lock steering to -(0.1 * ship:velocity:surface:normalized 
         + body:position:normalized).
-    until ship:status = "LANDED" or ship:status = "SPLASHED" {
+    until shipIsLandOrSplash() {
         local vDown to vDot(body:position:normalized, ship:velocity:surface).
         set throt to pid:update(time:seconds, vDown).
         set throt to clamp(throt, 0, 1).

@@ -5,7 +5,6 @@ runOncePath("0:common/phasing.ks").
 runOncePath("0:maneuvers/climb.ks").
 runOncePath("0:maneuvers/intercept.ks").
 runOncePath("0:maneuvers/lambert.ks").
-runOncePath("0:maneuvers/mining.ks").
 runOncePath("0:maneuvers/node.ks").
 runOncePath("0:maneuvers/orbit.ks").
 runOncePath("0:phases/landKsc.ks").

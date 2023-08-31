@@ -1,14 +1,13 @@
 @LAZYGLOBAL OFF.
 
 clearscreen.
-
 runOncePath("0:common/geo").
 runOncePath("0:common/ship").
 runOncePath("0:phases/airline").
+clearAll().
 
 set kAirline:Vtol to (vang(facing:forevector, up:forevector) < 30).
 
-clearAll().
 airlineInit().
 
 // airlineTo(kAirline:Wpts:NP27).

@@ -22,9 +22,10 @@ function dockRecv {
     }
     lights on.
 
-    local ourPort to getPort(ship).
+    local ports to opsPortFindPair(activeShip).
+    local ourPort to ports[0].
+    local theirPort to ports[1].
     opsControlFromPort(ourPort).
-    local theirPort to getPort(activeShip).
 
     print "Waiting till unpacked".
     wait until ship:unpacked.

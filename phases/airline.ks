@@ -24,7 +24,7 @@ set kAirline:VlSpd to -2.
 set kAirline:FlightP to flightDefaultParams().
 set kAirline:HoverP to hoverDefaultParams().
 set kAirline:CruiseAlti to 7000.
-set kAirline:CruiseDist to 45000.
+set kAirline:CruiseDist to 42000.
 set kAirline:FlatDist to 8500. // gives enough for any turn at 100 m/s
 set kAirline:CruiseAggro to 1.2.
 set kAirline:LandAggro to 2.
@@ -488,7 +488,8 @@ function airlineLanding {
             kuniverse:timewarp:cancelwarp(). 
             if runwayWpt:haskey("vesselName") {
                 local baseVessel to vessel(runwayWpt:vesselName).
-                set kAirline:hoverP:tgt to getPort(baseVessel).
+                local ports to opsPortFindPair(baseVessel).
+                set kAirline:hoverP:tgt to ports[1].
             } else {
                 set kAirline:hoverP:tgt to runwayGeo.
             }
@@ -697,7 +698,15 @@ function cruiseShipMpt {
     if thrust <= 0 {
         return 1.
     }
-    return groundspeed / (thrust / (ship:engines[0]:isp * constant:g0)).
+    local isp to 0.
+    for e in ship:engines {
+        if e:ignition {
+            set isp to e:isp.
+
+        }
+    }
+
+    return groundspeed / (thrust / (isp * constant:g0)).
 }
 
 function cruiseCheckSteady {

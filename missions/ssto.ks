@@ -1,16 +1,17 @@
 @LAZYGLOBAL OFF.
 
-clearscreen.
 
+clearScreen.
 runOncePath("0:common/geo").
 runOncePath("0:common/phasing.ks").
 runOncePath("0:common/ship").
 runOncePath("0:phases/airline").
 runOncePath("0:phases/landKsc.ks").
 runOncePath("0:phases/launchToOrbit").
+clearAll().
 
 // Testing
-set kPhases:startInc to 0.
+set kPhases:startInc to choose 2 if status = "ORBITING" else 0.
 set kPhases:stopInc to 4.
 // set kPhases:phase to 0.
 
@@ -33,7 +34,6 @@ set kSsto:Runway to kAirline:Wpts:Ksc09.
 
 set kAirline:Vtol to (vang(facing:forevector, up:forevector) < 30).
 
-clearAll().
 airlineInit().
 
 if shouldPhase(0) {
@@ -53,6 +53,7 @@ if shouldPhase(0) {
     set kuniverse:timewarp:rate to 2.
     print "Ssto high climb".
     sstoHighClimb(sstoFlightP).
+    print "Ssto space".
 
     steeringManager:resettodefault().
     launchToOrbit().
