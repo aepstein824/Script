@@ -8,7 +8,7 @@ runOncePath("0:maneuvers/orbit.ks").
 function launchToOrbit {
     ensureHibernate().
 
-    if hasTarget {
+    if hasTarget and shipIsLandOrSplash() {
         waitForTargetPlane(target).
         set kClimb:Heading to launchHeading().
         print " Launching with heading " + round(kClimb:Heading, 2).

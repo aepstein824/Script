@@ -19,11 +19,13 @@ global kSsto to lex().
 set kSsto:LowAlti to 2000.
 set kSsto:LowSpd to 100.
 set kSsto:HighAlti to 4500.
-set kSsto:HighSpd to 500.
+set kSsto:HighSpd to 550.
 set kSsto:HighLevelTan to tan(5).
 set kSsto:HighClimbTan to tan(45).
 set kSsto:HighVPlus to 15.
-set kSsto:SpaceAlti to 16000.
+set kSsto:SpaceAlti to 20000.
+set kSsto:AirResource to "LiquidFuel".
+set kSsto:SpaceResource to "Oxidizer".
 // writeJson(kSsto, opsDataPath("kSsto")). print 1/0.
 opsDataLoad(kSsto, "kSsto"). 
 set kSsto:StateLow to "LOW".
@@ -34,12 +36,27 @@ set kSsto:Runway to kAirline:Wpts:Ksc09.
 
 set kAirline:Vtol to (vang(facing:forevector, up:forevector) < 30).
 
+local airResource to ship:resources[0].
+local spaceResource to ship:resources[0].
+for i in range(ship:resources:length) {
+    local res to ship:resources[i].
+    if res:name = kSsto:AirResource {
+        set airResource to ship:resources[i].
+    }
+    if res:name = kSsto:SpaceResource {
+        set spaceResource to ship:resources[i].
+    }
+}
+local airDensity to airResource:density.
+local spaceDensity to spaceResource:density.
+
 airlineInit().
 
 if shouldPhase(0) {
     set kAirline:TakeoffHeading to 90.
     // Should be a eastern beacon?
     airlineTakeoff(kAirline:Wpts:Ksc27).
+    local airStart to airResource:amount.
     local sstoFlightP to kAirline:FlightP.
     set kuniverse:timewarp:mode to "PHYSICS".
     print "Ssto low level".
@@ -48,15 +65,28 @@ if shouldPhase(0) {
     print "Ssto low climb".
     set kuniverse:timewarp:rate to 4.
     sstoLowClimb(sstoFlightP).
+    local airPostLow to airResource:amount.
+    print " Burned " + round(airDensity * (airStart - airPostLow), 2)
+        + " " + airResource:name.
     print "Ssto high level".
     sstoHighLevel(sstoFlightP).
+    local airPostHigh to airResource:amount.
     set kuniverse:timewarp:rate to 2.
-    print "Ssto high climb".
+    print " Burned " + round(airDensity * (airPostLow - airPostHigh), 2)
+        + " " + airResource:name.
+    print "Ssto high turn".
+    local spacePreTurn to spaceResource:amount.
     sstoHighClimb(sstoFlightP).
+    local spacePostTurn to spaceResource:amount.
+    print " Burned " + round(spaceDensity * (spacePreTurn - spacePostTurn), 2)
+        + " " + spaceResource:name.
     print "Ssto space".
 
     steeringManager:resettodefault().
     launchToOrbit().
+    local spacePostOrbit to spaceResource:amount.
+    print " Burned " + round(spaceDensity * (spacePostTurn - spacePostOrbit), 2)
+        + " " + spaceResource:name.
 }
 if shouldPhase(1) {
     rcs on.
@@ -136,7 +166,7 @@ function sstoHighLevel {
         set flightP:vspd to min(groundspeed * kSsto:HighLevelTan,
             verticalspeed + kSsto:HighVPlus / 2).
 
-        set flightP:hspd to groundspeed + 50.
+        set flightP:hspd to groundspeed + 500.
 
         airlineIterWait().
 
@@ -159,7 +189,7 @@ function sstoHighClimb {
         set flightP:vspd to min(groundspeed * kSsto:HighClimbTan,
             verticalspeed + kSsto:HighVPlus).
 
-        set flightP:hspd to groundspeed + 50.
+        set flightP:hspd to groundspeed + 500.
 
         airlineIterWait().
 
@@ -181,7 +211,7 @@ function sstoEnginesFor {
             } else {
                 e:shutdown().
             }
-        } else if e:tag = "wetdry" or true {
+        } else if e:tag = "wetdry" {
             if state = kSsto:StateLow {
                 e:activate().
                 if not e:primarymode {
@@ -192,10 +222,7 @@ function sstoEnginesFor {
                 if e:primarymode {
                     e:togglemode().
                 }
-            } else if state = kSsto:StateSpace {
-                print "shutting down space engines?!".
-                e:shutdown().
-            }
+            } 
         } else if e:tag = "jet" {
             if state = kSsto:StateLow {
                 e:activate().

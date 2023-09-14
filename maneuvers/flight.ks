@@ -356,7 +356,8 @@ function flightLevel {
     }
 
     // noise to feed data to the flight model
-    local pitchNoise to kPitchNoiseAmp * sin(360 * mod(seconds / 4, 1)).
+    local noiseAmp to kPitchNoiseAmp * (choose 1 if reality:Gs < 300 else 0.3).
+    local pitchNoise to noiseAmp * sin(360 * mod(seconds / 4, 1)).
 
     // pitch
     local aoaRots to flightPitch(aoa + pitchNoise).
