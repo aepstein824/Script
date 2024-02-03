@@ -136,6 +136,12 @@ function lambert {
     if vdot(ih, p1Rnp:upvector) < 0 {
         set ih to -ih.
     }
+    // We rotate right hand around the normal, but all of the vectorAngleAround
+    // calls are left handed. Something is wrong, but until I can test further,
+    // I'm hacking this to make my interstellar trip work.
+    if obtable1:obt:eccentricity > 1 {
+        set ih to -1 * vCrs(p1, p2):normalized.
+    }
 
     local dTheta to vectorAngleAroundR(p1, ih, p2).
     local isShort to dTheta <= kPi.
@@ -323,6 +329,7 @@ function dimlessHyper {
     }
 
     // dimless mean motion 
+    // this formula relies on radius being 1 for p1
     local semiMajor to (1 + ecc * cosR(p1Tanly)) / (1 - ecc2).
     if semiMajor >= 0 {
         print " fixing semimajor in lambert " + semiMajor + " ecc " + ecc.
@@ -347,6 +354,7 @@ function dimlessKepler {
     local p1Tanly to -1 * tanlyReverse.
     local p2Tanly to dTheta - tanlyReverse.
     // print " tanlyReverse = " + tanlyReverse.
+    // print " p1Tanly  = " + p1Tanly.
     // print " p2Tanly  = " + p2Tanly.
 
     local ecc2 to ef ^ 2 + et ^ 2.

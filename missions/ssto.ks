@@ -28,6 +28,7 @@ set kSsto:AirResource to "LiquidFuel".
 set kSsto:SpaceResource to "Oxidizer".
 // writeJson(kSsto, opsDataPath("kSsto")). print 1/0.
 opsDataLoad(kSsto, "kSsto"). 
+set kSsto:StateTakeoff to "TAKEOFF".
 set kSsto:StateLow to "LOW".
 set kSsto:StateHigh to "HIGH".
 set kSsto:StateHighClimb to "HIGHCLIMB".
@@ -54,6 +55,7 @@ airlineInit().
 
 if shouldPhase(0) {
     set kAirline:TakeoffHeading to 90.
+    sstoEnginesFor(kSsto:StateTakeoff).
     // Should be a eastern beacon?
     airlineTakeoff(kAirline:Wpts:Ksc27).
     local airStart to airResource:amount.
@@ -87,9 +89,9 @@ if shouldPhase(0) {
     local spacePostOrbit to spaceResource:amount.
     print " Burned " + round(spaceDensity * (spacePostTurn - spacePostOrbit), 2)
         + " " + spaceResource:name.
+    wait 1.
 }
 if shouldPhase(1) {
-    rcs on.
     print "Correcting circularization".
     circleNextExec(75000).
     wait 1.
@@ -205,14 +207,20 @@ function sstoEnginesFor {
 
     local engs to ship:engines.
     for e in engs {
-        if e:tag = "space" {
+        if e:tag = "takeoff" {
+            if state = kSsto:StateTakeoff {
+                e:activate().
+            } else {
+                e:shutdown().
+            }
+        } else if e:tag = "space" {
             if state = kSsto:StateHighClimb or state = kSsto:StateSpace {
                 e:activate().
             } else {
                 e:shutdown().
             }
         } else if e:tag = "wetdry" {
-            if state = kSsto:StateLow {
+            if state = kSsto:StateLow or state = kSsto:StateTakeoff {
                 e:activate().
                 if not e:primarymode {
                     e:togglemode().
@@ -224,10 +232,22 @@ function sstoEnginesFor {
                 }
             } 
         } else if e:tag = "jet" {
-            if state = kSsto:StateLow {
-                e:activate().
-            } else if state = kSsto:StateSpace {
+            if state = kSsto:StateSpace {
                 e:shutdown().
+            } else if state = kSsto:StateSpace {
+                e:activate().
+            }
+        } else if e:tag = "openclose" {
+            e:activate().
+            if state = kSsto:StateSpace {
+                if e:primarymode {
+                    e:togglemode().
+                }
+            } else {
+                if not e:primarymode {
+                    e:togglemode().
+                }
+
             }
         }
     }

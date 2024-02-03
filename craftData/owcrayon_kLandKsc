@@ -1,0 +1,29 @@
+{
+    "entries": [
+        {
+            "value": "pe",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 0,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        },
+        {
+            "value": "qtoaoa",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 450,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        },
+        {
+            "value": "returntanly",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 170,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        }
+    ],
+    "$type": "kOS.Safe.Encapsulation.Lexicon"
+}

@@ -156,11 +156,13 @@ function escapeWith {
     // v_x is the excess velocity in the parent orbit
     parameter v_x, delay.
 
-    if body = sun { return false. }
+    local soirad to 1e15.
+    if body <> sun {    
+        set soirad to body:soiradius.
+    }
 
     local startTime to time + delay.
     local r0 to altitude + body:radius.
-    local soirad to body:soiradius.
     local escapeRIntegral to 1 / r0 - 1 / soirad.
     // print "escape integral " + (escapeRIntegral * r0).
 
@@ -175,7 +177,7 @@ function escapeWith {
     if (e > 1) {
         set deflectAngle to escapeHyperDeflect(e).
     } else {
-        local aMin to (body:soiradius + r0) / 2.
+        local aMin to (soirad + r0) / 2.
         // print "a minimum " + aMin.
         local minExit to 1.05 * sqrt(body:mu * (2 / soirad - 1 / aMin)).
         // print "min speed " + minExit.
@@ -185,7 +187,7 @@ function escapeWith {
         set e to 1 - r0 / a.
         // print "e " + e.
         set spd0 to sqrt(body:mu * (2 / r0 - 1 / a)).
-        set deflectAngle to escapeEllipseDeflect(a, body:soiradius, e).
+        set deflectAngle to escapeEllipseDeflect(a, soirad, e).
     }
     // print "deflectAngle " + deflectAngle.
 
