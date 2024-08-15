@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 
 runOncePath("0:common/control.ks").
+runOncePath("0:common/integrate.ks").
 runOncePath("0:common/math.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
@@ -114,6 +115,16 @@ function circleNextExec {
     }
 }
 
+function orbitCircleAtAp {
+    changePeAtAp(ship:obt:apoapsis).
+    nodeExecute().
+}
+
+function orbitCircleAtPe {
+    changeApAtPe(ship:obt:periapsis).
+    nodeExecute().
+}
+
 function dontEscape {
     print obt:nextpatch():transition + " " + obt:nextpatch:apoapsis.
     if obt:nextpatch():transition <> "FINAL" {
@@ -156,6 +167,7 @@ function escapeWith {
     // v_x is the excess velocity in the parent orbit
     parameter v_x, delay.
 
+    print " Escape with " + vecRound(v_x).
     local soirad to 1e15.
     if body <> sun {    
         set soirad to body:soiradius.
@@ -238,7 +250,8 @@ function escapeOmni {
     }
     print " escape failed, leaving parent orbit".
     local dir to sgn(hl:dest:obt:semimajoraxis - body:obt:semimajoraxis).
-    local escapeSpd to 40 * dir.
+    // sqrt(mu / r) is the minimal escape speed
+    local escapeSpd to dir * 1.2 * obtMinEscape(body, apoapsis).
     escapePrograde(escapeSpd).
 }
 
@@ -450,4 +463,95 @@ function orbitPatchesInclude {
         }
     }
     return false.
+}
+
+function isEscapeVExceeded {
+    parameter targetEscapeV, mu, vel, rad, soiradius.
+
+    local semi to obtVisVivaAFromMuVR(mu, vel, rad).
+    if semi < 0 {
+        local escapeV to obtVisVivaVFromMuRA(mu, soiradius, semi).
+        if escapeV > targetEscapeV {
+            print "Breaking at predicted escape v of " + escapeV.
+            return true.
+        }
+    }
+    return false.
+}
+
+function simulateBurnTillExitV {
+    parameter targetEscapeV.
+    local pvm to lexicon(
+        "p", v(body:position:mag, 0, 0),
+        "v", v(0, 0, velocity:orbit:mag),
+        "m", mass
+    ).
+    local burnTime to 0.
+    local thrust to ship:maxthrust.
+    local flowIsp to shipFlowIsp().
+    local drain to flowIsp[0].
+    local bodyMu to body:mu.
+    local bodySoiRadius to body:soiradius.
+
+    until false {
+        set burnTime to burnTime + 1.
+        set pvm to proBurnRk4(bodyMu, pvm:p, pvm:v, pvm:m, thrust, drain, 1).
+        if isEscapeVExceeded(targetEscapeV, bodyMu, pvm:v:mag, pvm:p:mag,
+            bodySoiRadius) {
+            break.
+        }
+    }
+    set pvm:t to burnTime.
+    return pvm.
+}
+
+function orbitSlowEscape {
+    parameter escapeV, leaveTime.
+
+    local startPvm to lexicon(
+        "p", v(body:position:mag, 0, 0),
+        "v", v(0, 0, velocity:orbit:mag),
+        "m", mass
+    ).
+    // local endPvm to proBurnRk4(body:mu, startPvm:p, startPvm:v, startPvm:m,
+    //     ship:maxthrust, drain, timeToSpendBudget, 0.5).
+    local endPvm to simulateBurnTillExitV(escapeV:mag).
+
+    local bodyBurnAngle to vectorAngleAround(startPvm:p, unitY, endPvm:p).
+    // get angle, exit velocity, offset of exit point, time from burn to exit
+    local bodyOrbit to createOrbit(endPvm:p, endPvm:v, body, time:seconds).
+    local bodyE to bodyOrbit:eccentricity.
+    local bodyDeflectAngle to 2 * arcsin(1 / bodyE).
+    local bodyPeToApAngle to (90 + bodyDeflectAngle / 2).
+    local bodyPostBurnTanly to obtRadiusToTanly(endPvm:p:mag, bodyOrbit).
+    local bodyBurnEndToApAngle to bodyPeToApAngle - bodyPostBurnTanly.
+    local bodyStartToFinishAngle to bodyBurnAngle + bodyBurnEndToApAngle.
+
+    local bodyBurnStartPos to rotateVecAround(escapeV, unitY,
+        -bodyStartToFinishAngle).
+    local burnFromPos to (body:position + bodyBurnStartPos).
+    local burnFromTanley to posToTanly(burnFromPos, orbit).
+    local burnTill to timeBetweenTanlies(orbit:trueanomaly, burnFromTanley,
+        orbit).
+    
+    local period to orbit:period.
+    local orbitsTillLeaveDur to
+        floor((leaveTime - time:seconds) / period) * period.
+
+    waitWarp(time + orbitsTillLeaveDur + burnTill - 10).
+    lock steering to prograde.
+    wait 10.
+    // set controlThrot to 1.
+    lock throttle to 1.
+
+    set kuniverse:timewarp:mode to "PHYSICS".
+    set kuniverse:timewarp:warp to 4.
+    until isEscapeVExceeded(escapeV:mag, body:mu, velocity:orbit:mag,
+        body:position:mag, body:soiradius) {
+        wait 0.
+    }
+    kuniverse:timewarp:cancelwarp.
+    // set controlThrot to 0.
+    lock throttle to 0.
+    wait 1.
 }

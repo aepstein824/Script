@@ -106,6 +106,24 @@ function obtRadiusToDuration {
     return min(timeSmall, timeLarge).
 }
 
+function obtVisVivaVFromMuRA {
+    parameter mu, radius, semi.
+    
+    return sqrt(mu * (2 / radius - 1 / semi)).
+}
+
+function obtVisVivaRFromMuVA {
+    parameter mu, vel, semi.
+
+    return 2 / safeDen((1 / semi) + (vel ^ 2 / mu)).
+}
+
+function obtVisVivaAFromMuVR {
+    parameter mu, vel, radius.
+
+    return 1 / safeDen((2 / radius) - (vel ^ 2 / mu)).
+}
+
 function circleToSemiV {
     parameter r1, r2, mu.
     local circleV to sqrt(mu / r1).
@@ -124,6 +142,7 @@ function distanceAt {
 }
 
 function normOf {
+    // obt1 is an orbit, not an orbitable
     parameter obt1.
     return vCrs(obt1:velocity:orbit, 
         obt1:position - obt1:body:position):normalized.
@@ -144,6 +163,19 @@ function obtRelativeV {
     local vDiff to v1 - v2.
     local relV to removeComp(vDiff, oneToTwo:normalized):mag.
     return relV.
+}
+
+function obtMeanMotion {
+    parameter obt1.
+    if obt1:semimajoraxis < 0 {
+        return 360 * obt1:velocity:orbit:mag / (constant:pi * obt1:periapsis).
+    }
+    return 360 / obt1:period.
+}
+
+function obtMeanMotionRelative {
+    parameter obt1, obt2.
+    return obtMeanMotion(obt2) - obtMeanMotion(obt1).
 }
 
 function closestApproachNear {
@@ -273,4 +305,34 @@ function waitForTargetPlane {
     }
     local waitDur to waitRad / abs(bodyRadSpd).
     waitWarp(waitDur + time).
+}
+
+function obtSafeLead {
+    parameter targetable.
+    parameter margin to 2.
+
+
+    local soiRadius to 200.
+    if targetable:typename = "BODY" {
+        set soiRadius to targetable:soiradius.
+    }
+
+    local tgtObt to targetable:obt.
+
+    local speedAtAp to obtVisVivaVFromMuRA(tgtObt:body:mu, tgtObt:apoapsis,
+        tgtObt:semimajoraxis).
+    
+    local timeToSoiRadius to soiRadius / speedAtAp.
+
+    return margin * timeToSoiRadius / tgtObt:period.
+}
+
+function obtMinEscape {
+    parameter bod, currentAp.
+
+    local soiRadius to bod:soiradius.
+    local mu to bod:mu.
+    local minSemi to (soiRadius + currentAp) / 2.
+    local vel to obtVisVivaVFromMuRA(mu, soiRadius, minSemi).
+    return vel.
 }

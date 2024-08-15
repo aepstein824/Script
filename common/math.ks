@@ -9,6 +9,14 @@ global unitZ to v(0, 0, 1).
 global zeroR to r(0, 0, 0).
 global leftR to r(0, 0, 180).
 
+function safeDen {
+    parameter denominator.
+    if denominator = 0 {
+        return 3.4e38.
+    }
+    return denominator.
+}
+
 function sgn {
     parameter x.
     if x >= 0 {

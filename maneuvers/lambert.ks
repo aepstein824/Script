@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 
 runOncePath("0:common/info.ks").
+runOncePath("0:common/operations.ks").
 runOncePath("0:common/orbital.ks").
 runOncePath("0:common/math.ks").
 runOncePath("0:test/test_utils.ks").
@@ -10,7 +11,7 @@ function lambertIntercept {
     parameter obtable2.
     parameter startTime.
     parameter flightDuration.
-    parameter ignorePlane to false.
+    parameter options to lexicon().
 
     local obt1 to obtable1:obt.
     if obt1:body <> obtable2:obt:body {
@@ -23,9 +24,11 @@ function lambertIntercept {
         return testError("Negative duration " + flightDuration).
     }
 
-    local endTime to startTime + flightDuration.
-    local p2 to positionAt(obtable2, endTime) - obt1:body:position.
-    if ignorePlane {
+    local obt2Offset to keyOrDefault(options, "obtLead", 0)
+        * obtable2:obt:period.
+    local obt2EndTime to startTime + flightDuration + obt2Offset.
+    local p2 to positionAt(obtable2, obt2EndTime) - obt1:body:position.
+    if keyOrDefault(options, "ignorePlane", false) {
         local norm1 to normOf(obtable1:obt).
         local norm2 to normOf(obtable2:obt).
         local planeNode to vCrs(norm1, norm2).
@@ -37,7 +40,7 @@ function lambertIntercept {
 
     local res to lambert(obtable1, p2, startTime, true, factory).
     if res:ok {
-        set res:matchVec to velocityAt(obtable2, endTime):orbit - res:vAtP2.
+        set res:matchVec to velocityAt(obtable2, obt2EndTime):orbit - res:vAtP2.
     }
 
     return res.
@@ -278,6 +281,7 @@ function lambert {
     set results["burnNode"] to node(startTime, burnRnp:x, burnRnp:y, burnRnp:z).
     set results["norm"] to ih.
     set results:vAtP2 to transVAtPos(p2).
+    set results:p2 to p2.
     return results.
 }
 

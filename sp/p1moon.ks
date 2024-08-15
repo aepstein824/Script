@@ -64,7 +64,7 @@ if shouldPhase(4) {
     circleNextExec(kMoonPeLow).
 }
 if shouldPhase(5) {
-    escapePrograde(-100, 20).
+    escapePrograde(1.3 * obtMinEscape(body, apoapsis), 20).
     nodeExecute().
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
     circleAtKerbin().

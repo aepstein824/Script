@@ -127,7 +127,7 @@ if shouldPhase(6) {
 }
 if shouldPhase(7) {
     circleNextExec(apoapsis).
-    escapePrograde(-100).
+    escapePrograde(1.3 * obtMinEscape(body, apoapsis)).
     nodeExecute().
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
     circleAtKerbin().

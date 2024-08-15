@@ -5,6 +5,8 @@ runOncePath("0:maneuvers/orbit.ks").
 runOncePath("0:maneuvers/node.ks").
 runOncePath("0:phases/rndv.ks").
 
+global kTravelMatchThreshold to 0.01.
+
 global stratIntercept to "INTERCEPT".
 global stratSatellite to "SATELLITE_PLANEOF".
 global stratEscapeTo to "ESCAPE_TOWARDS".
@@ -12,10 +14,12 @@ global stratEscape to "ESCAPE".
 global stratLand to "LAND".
 global stratLaunch to "LAUNCH".
 global stratOrbiting to "ORBITING".
+global stratMatch to "MATCH".
 
 function travelTo {
     parameter ctx.
 
+    sas off.
     local dest to ctx:dest.
 
     until false {
@@ -23,7 +27,13 @@ function travelTo {
         print strat.
 
         if strat[0] = stratOrbiting {
-            break.
+            if not ctx:haskey("match") {
+                break.
+            }
+            if travelObtsMatch(ship:obt, ctx:match:it:obt) {
+                break.
+            }
+            travelMatch(ctx).
         }
         if strat[0] = stratIntercept {
             travelIntercept(ctx).
@@ -33,7 +43,7 @@ function travelTo {
             travelEscape().
         }
         if strat[0] = stratEscapeTo {
-            if strat:length = 2{
+            if strat:length = 2 {
                 travelEscapeTo(ctx, strat[1], strat[1]).
             } else {
                 travelEscapeTo(ctx, strat[1], strat[2]).
@@ -130,12 +140,13 @@ function travelIntercept {
 
     local safeHeight to atmHeightOr0(body) + 50000.
     if periapsis < safeHeight and tgt:obt:periapsis > safeHeight {
+        print " Raise periapsis to " + safeHeight.
         circleNextExec(safeHeight).
     }
 
-    // local hl to travelDoubleHl(tgt).
+    local hl to travelDoubleHl(tgt).
 
-    if (tgt:typename = "BODY") {
+    if tgt:typename = "BODY" {
         travelIntoSatOrbit(ctx, tgt, hl:arrivalTime).
         travelCaptureToInc(ctx).
     } else {
@@ -157,7 +168,11 @@ function travelEscape {
         waitWarp(time:seconds + orbit:nextpatcheta + 60).
         return.
     }
-    escapePrograde(50).
+    // 100 is an arbitrary threshold to split moons from planets
+    if obt:inclination > 5 and obt:period > 100 {
+        // wait for it to line up 
+    }
+    escapePrograde(1.3 * obtMinEscape(body, apoapsis)).
     nodeExecute().
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
 }
@@ -170,14 +185,19 @@ function travelEscapeTo {
         return.
     }
 
-    circleNextExec(apoapsis).
+    orbitCircleAtAp().
 
-    local hl to hlIntercept(body, tgtBody).
+    local hl to hlIntercept(body, tgtBody, lexicon("ignorePlane", true)).
     set hl:dest to tgtBody.
-    // it's fine if this is a plane change
-    escapeOmni(hl).
+    if ship:obt:inclination < 2 and apoapsis < body:radius {
+        print " Escaping using a slow burn".
+        orbitSlowEscape(hl:burnVec, hl:start).
+    } else {
+        print " Escaping using an impulse burn".
+        escapeOmni(hl).
+        nodeExecute().
+    }
 
-    nodeExecute().
     print " Waiting in travelEscapeTo to escape " + body:name.
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
 
@@ -206,10 +226,10 @@ function travelIntoSatOrbit {
     // print out the grid again for validation
 
     for i in range(3) {
-        if orbit:hasnextpatch() and orbit:nextpatch:body = tgtBody {
+        if orbit:hasnextpatch() and orbit:nextpatch:body = tgtBody and i > 0 {
             break.
         }
-        local arrivalEta to detimestamp(arrivalTime - time).
+        local arrivalDuration to detimestamp(arrivalTime - time).
         local shipPos to positionAt(ship, arrivalTime).
         local tgtPos to positionAt(tgtBody, arrivalTime).
         local relDistance to (shipPos - tgtPos):mag / tgtBody:soiradius.
@@ -217,10 +237,10 @@ function travelIntoSatOrbit {
             print " Distance / soi " + round(relDistance, 2) + " at "
                 + timeRoundStr(arrivalTime).
             print " Intercept will happen, but it isn't recorded as a patch".
-            waitWarp(detimestamp(time + (arrivalEta / 2))).
+            waitWarp(detimestamp(time + (arrivalDuration / 2))).
         } else {
-            print " Refining Intercept " + i.
-            local cc to courseCorrect(tgtBody, arrivalEta).
+            print " Refining Intercept (i = " + i + ")".
+            local cc to courseCorrect(tgtBody, arrivalDuration).
             set arrivalTime to cc:arrivalTime.
             nodeExecute().
         }
@@ -255,32 +275,31 @@ function travelCaptureToInc {
 function travelCaptureToPlaneOf {
     parameter ctx, tgt.
 
-    // TODO efficient plane change.
-    local extraPe to 0.
-    if (tgt:typename = "BODY") {
-        set extraPe to 2 * tgt:soiradius.
-    } else {
-        set extraPe to 0.1 * tgt:obt:semimajoraxis.
-    }
-    local pe to tgt:obt:semimajoraxis + extraPe.
     local norm to normOf(tgt:obt).
+    local margin to 0.
+    if (tgt:typename = "BODY") {
+        set margin to 1.3 * tgt:soiradius.
+    } else {
+        set margin to 0.1 * tgt:obt:semimajoraxis.
+    }
+    local pe to tgt:obt:semimajoraxis + margin.
     entryPe(pe, norm).
     nodeExecute().
-    circleNextExec(pe).
-
+    circleNextExec(periapsis).
 }
 
 function travelDoubleHl {
-    // The function may return a plane change instead.
-    parameter targetable.
+    parameter targetable, options to lexicon().
 
-    local hl to hlIntercept(ship, targetable).
+    // The function may return a plane change instead.
+    local hl to hlIntercept(ship, targetable, options).
     add hl:burnNode.
     nodeExecute().
 
     if hl:haskey("planes") and hl:planes {
         print " Retrying HL intercept after plane change".
-        set hl to hlIntercept(ship, targetable).
+        set options to mergeLex(options, lex("ignorePlane", true)).
+        set hl to hlIntercept(ship, targetable, options).
         add hl:burnNode.
         nodeExecute().
     }
@@ -316,5 +335,37 @@ function travelLaunch {
         local alti to opsScienceHeight(body).
         vacClimb(alti).
         circleNextExec(alti).
+    }
+}
+
+function travelMatch {
+    parameter ctx.
+
+    local dest to ctx:match:it.
+    print " Hl to match " + dest.
+    local hlOptions to lexicon("obtLead", ctx:match:offset).
+    local hl to travelDoubleHl(dest, hlOptions).
+
+    print " Course correct to " + dest.
+    set hl to courseCorrect(hl:dest, detimestamp(hl:arrivalTime - time),
+        hlOptions).
+    nodeExecute().
+
+    print " Match orbit".
+    local matchTransform to obtRnpFromPV(hl:p2, hl:vatp2).
+    local matchBurn to matchTransform:inverse * hl:matchvec.
+    add node(hl:arrivalTime, matchBurn:x, matchBurn:y, matchBurn:z).
+    nodeExecute().
+    
+    print " Tune orbit".
+    orbitTunePeriod(dest:obt:period, 10).
+}
+
+function travelObtsMatch {
+    parameter obt1, obt2.
+    local ratio to obt1:period / obt2:period.
+    if ratio > (1 - kTravelMatchThreshold)
+        and ratio < (1 + kTravelMatchThreshold) {
+        return true.
     }
 }

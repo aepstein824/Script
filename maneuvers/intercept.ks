@@ -77,53 +77,65 @@ function hohmannIntercept {
 }
 
 function hlIntercept {
-    parameter obtable1, obtable2.
+    parameter obtable1, obtable2, options to lexicon().
+
+    set options to options:copy().
+    local obtLead to keyOrDefault(options, "obtLead", 0).
+    local obtLeadDelay to -obtLead * 360 / obtMeanMotionRelative(obtable1:obt,
+        obtable2:obt).
 
     local hi to hohmannIntercept(obtable1:orbit, obtable2:orbit).
-    local isBody1 to obtable1:typename = "Body".
-    local isBody2 to obtable2:typename = "Body".
+    local q1isBody to obtable1:typename = "Body".
+    local q2isBody to obtable2:typename = "Body".
+    set hi:start to hi:start + obtLeadDelay.
 
     set hi:dest to obtable2.
     local roughT to hi:start.
     local roughDur to hi:duration.
     local di to hi:relPeriod * 0.1.
-    local dj to hi:duration * 0.1.    
+    local dj to hi:duration * 0.1.
 
-    if obtable1:obt:eccentricity < 0.2 and obtable1:obt:eccentricity < 0.2 { 
-        local norm1 to normOf(obtable1:obt).
-        local norm2 to normOf(obtable2:obt).
+    local qBothCircles to true.
 
-        local incNodeP to vcrs(norm1, norm2):normalized.
-        local bodyP to positionAt(obtable1, hi:start)
-            - obtable1:obt:body:position.
+    local kPlaneAllow to 2.
+    local obt1 to obtable1:obt.
+    local obt2 to obtable2:obt.
+    local norm1 to normOf(obt1).
+    local norm2 to normOf(obt2).
+    local inclination to vang(norm1, norm2).
+    local qInclination to inclination > kPlaneAllow.
 
-        local kNodeAllow to 3.
-        local nodeAng to vang(bodyP, incNodeP).
-        if vang(norm1, norm2) > 2 {
-            print " AN is " + round(nodeAng) + " away, want 0 or 180".
-            local nodeBad to nodeAng > kNodeAllow
-                and nodeAng < (180 - kNodeAllow).
-            if nodeBad and isBody1 {
-                print " Ignoring planes, will require midcourse correction".
-                local lamb to doubleLambert(obtable1, obtable2,
-                    roughT, roughDur, di, dj, true).
-                local merged to mergeLex(hi, lamb).
-                return merged.
-                 
-            } else if nodeBad and isBody2 {
-                print " Changing planes first".
-                local nd to matchPlanesNode(norm2).
-                set hi:burnNode to nd.
-                set hi:planes to true.
-                return hi.
-            }
-            if not nodeBad {
-                print " Node is good for single burn".
-            }
+    local bodyP to positionAt(obtable1, hi:start) - obt1:body:position.
+    local hiOnPlane2 to abs(vang(norm2, bodyP) - 90).
+    local qHiOnPlane2 to hiOnPlane2 < kPlaneAllow.
+
+    print " Criteria:".
+    print "  Inclination   : " + qInclination + " " + round(inclination, 2).
+    if qInclination {
+        print "  Both circles  : " + qBothCircles.
+        if qBothCircles {
+            print "  Hi on plane 2 : " + qHiOnPlane2
+                + " " + round(hiOnPlane2, 2).
         }
     }
 
-    local lamb to doubleLambert(obtable1, obtable2, roughT, roughDur, di, dj).
+    if qInclination and qBothCircles and not qHiOnPlane2 {
+        print "  1 is body     : " + q1isBody.
+        if q1isBody {
+            print " Will ignore planes".
+            set options:ignorePlane to true.
+        } else if q2isBody {
+            print "  2 is body     : " + q2isBody.
+            print " Changing planes first".
+            local nd to matchPlanesNode(norm2).
+            set hi:burnNode to nd.
+            set hi:planes to true.
+            return hi.
+        }
+    }
+
+    local lamb to doubleLambert(obtable1, obtable2, roughT, roughDur, di, dj,
+        options).
 
     local merged to mergeLex(hi, lamb).
 
@@ -139,13 +151,13 @@ function hlIntercept {
 
 function doubleLambert {
     parameter obtable1, obtable2, guessT, guessDur, di, dj.
-    parameter ignorePlane to false.
+    parameter options to lexicon().
 
     local roughT to guessT.
     local roughDur to guessDur.
 
     local rough to lambertGrid(obtable1, obtable2, roughT, roughDur, di, dj,
-        ignorePlane).
+        options).
 
     local fineT to rough:start.
     local fineDur to rough:duration.
@@ -153,13 +165,13 @@ function doubleLambert {
     set dj to dj / (kIntercept:DurSpan + 1) / 2.
 
     local fine to lambertGrid(obtable1, obtable2, fineT, fineDur, di, dj,
-        ignorePlane).
+        options).
     return fine.
 }
 
 function lambertGrid {
     parameter obtable1, obtable2, guessT, guessDur, di, dj.
-    parameter ignorePlane to false.
+    parameter options to lexicon().
 
     print (" LGrid to " + obtable2:name + " in "
         + timeRoundStr(detimestamp(guessT - time)) + ", " 
@@ -187,7 +199,7 @@ function lambertGrid {
             local flightDuration to guessDur + j * dj.
             // print "Duration " + round(flightDuration * sToHours, 2).
             local results to lambertIntercept(obtable1, obtable2, startTime,
-                flightDuration, ignorePlane).
+                flightDuration, options).
             if results:ok {
                 set results:totalV to results:burnVec:mag
                     + 0.8 * results:matchVec:mag.
@@ -209,11 +221,12 @@ function lambertGrid {
 }
 
 function courseCorrect {
-    parameter dest, duration.
+    parameter dest, duration, options to lexicon().
 
     local dt to duration * .1.
     local startTime to time + dt * kIntercept:StartSpan + 5 * 60.
-    local correction to doubleLambert(ship, dest, startTime, duration, dt, dt).
+    local correction to doubleLambert(ship, dest, startTime, duration, dt, dt,
+        options).
     add correction:burnNode.
     return correction.
 }

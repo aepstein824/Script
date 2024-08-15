@@ -34,7 +34,7 @@ function landFromDeorbit {
         stageTo(0).
     }
 
-    set kuniverse:timewarp:rate to 3.
+    set kuniverse:timewarp:warp to 2.
 
     wait until altitude < kLandAtm:SurrenderH.
     print "Surrender and Slow".
@@ -62,7 +62,7 @@ function landFromDeorbit {
 function getToAtm {
     if ship:altitude > 70000 {
         set kuniverse:timewarp:mode to "RAILS".
-        set kuniverse:timewarp:rate to 50.
+        set kuniverse:timewarp:warp to 3.
     }
     wait until ship:altitude < 70000.
     kuniverse:timewarp:cancelwarp().

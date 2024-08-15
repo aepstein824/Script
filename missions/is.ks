@@ -6,6 +6,8 @@ runOncePath("0:maneuvers/intercept.ks").
 runOncePath("0:maneuvers/orbit.ks").
 runOncePath("0:maneuvers/node.ks").
 runOncePath("0:phases/rndv.ks").
+runOncePath("0:phases/travel.ks").
+
 
 local kAimSpd to 7000.
 set kPhases:phase to 5.

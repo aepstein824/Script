@@ -35,7 +35,7 @@ function nodeExecute {
     lock steering to lookDirUp(nodeDv0, facing:upvector).
     until vang(nodeDv0, ship:facing:vector) < 3 { wait 0. }
     if nd:eta > halfBurn + 2 * kWarpCancelDur {
-        set kuniverse:timewarp:rate to 5.
+        set kuniverse:timewarp:warp to 1.
     }
     disableRcs().
     wait until nd:eta <= halfBurn + kWarpCancelDur.
@@ -51,11 +51,11 @@ function nodeExecute {
         local burnTime to remaining / maxAcceleration.
 
         if burnTime > 10 and not warped {
-            set kuniverse:timewarp:rate to 4.
+            set kuniverse:timewarp:warp to 3.
             set warped to true.
         }
         if burnTime <= 10 and not unWarped {
-            set kuniverse:timewarp:rate to 1.
+            set kuniverse:timewarp:warp to 0.
             set unWarped to true.
         }
 

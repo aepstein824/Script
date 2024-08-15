@@ -18,8 +18,9 @@ set kWarpHeights[vall] to 20000.
 set kWarpHeights[laythe] to 55000.
 set kWarpHeights[eeloo] to 5000.
 
-global sToDays to 1 / 6 / 60 / 60.
 global sToHours to 1 / 60 / 60.
+global sToDays to sToHours / 6.
+global sToYears to sToDays / kerbin:obt:period.
 global cosmicNorth to v(0, 1, 0).
 
 function polarScannerAltitude {

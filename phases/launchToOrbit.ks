@@ -19,4 +19,6 @@ function launchToOrbit {
         climbLoop().
     }
     climbCleanup().
+
+    opsPanelsAndAntennas(true).
 }

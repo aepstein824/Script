@@ -106,11 +106,11 @@ function gravityTurn {
 function warpUp {
     set controlThrot to 0.
     set controlSteer to srfPrograde.
-    set kuniverse:timewarp:rate to 2.
+    set kuniverse:timewarp:warp to 1.
 }
 
 function circularize {
-    set kuniverse:timewarp:rate to 1.
+    set kuniverse:timewarp:warp to 0.
     local pitch to 0.
     if obt:eta:apoapsis > obt:eta:periapsis and ship:maxthrust > 0 {
         local acc to ship:maxthrust / ship:mass.

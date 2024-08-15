@@ -3,7 +3,7 @@
 runOncePath("0:common/math.ks").
 runOncePath("0:common/orbital.ks").
 
-global kWarpCancelDur to 5.
+global kWarpCancelDur to 6.
 
 function opsRefuel {
     local transfers to list().
@@ -323,9 +323,15 @@ function opsDecouplePart {
 function keyOrDefault {
     parameter lexi, k, def.
     if not lexi:hasKey(k) {
-        set lexi:k to def.
+        return def.
     }
-    return lexi:k.
+    return lexi[k].
+}
+
+function lexAddReturn {
+    parameter lexi, k, val.
+    set lexi[k] to val.
+    return lexi.
 }
 
 function mergeLex {
@@ -813,4 +819,36 @@ function opsISRUMineAll {
 
     radiators off.
     drills off.
+}
+
+function opsPanelsAndAntennas {
+    parameter newState.
+
+    if newState {
+        panels on.
+    } else {
+        panels off.
+    }
+
+    for p in ship:parts {
+        local deployAntennaModName to "ModuleDeployableAntenna".
+        if p:hasModule(deployAntennaModName) {
+            local deployAntennaMod to p:getModule(deployAntennaModName).
+            if newState {
+                deployAntennaMod:doAction("extend antenna", true).
+            } else {
+                deployAntennaMod:doAction("retract antenna", true).
+            }
+        }
+        local deployReflectorModName to "ModuleDeployableReflector".
+        if p:hasModule(deployReflectorModName) {
+            local deployReflectorMod to p:getModule(deployReflectorModName).
+            if newState {
+                deployReflectorMod:doAction("extend reflector", true).
+            } else {
+                deployReflectorMod:doAction("retract reflector", true).
+            }
+        }
+
+    }
 }

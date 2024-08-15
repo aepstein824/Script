@@ -137,7 +137,7 @@ if shouldPhase(3) {
 }
 if shouldPhase(4) and amShoddle {
     until false {
-        escapePrograde(-100, 20).
+        escapePrograde(1.3 * obtMinEscape(body, apoapsis), 20).
         wait 0.
         if orbitPatchesInclude(nextNode:orbit, mun) {
             remove nextNode.

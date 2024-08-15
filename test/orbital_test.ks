@@ -5,7 +5,8 @@ runOncePath("0:common/orbital.ks").
 runOncePath("0:test/test_utils.ks").
 
 local tests to lexicon(
-    "testPlanets", testPlanets@
+    "testPlanets", testPlanets@,
+    "testVisViva", testVisViva@
 ).
 
 testRun(tests).
@@ -32,5 +33,15 @@ function testPlanets {
             t:add(testEq(timeBetween, rat)).
         }
     }
+    return t.
+}
+
+function testVisViva {
+    local t to list().
+
+    t:add(testEq(obtVisVivaVFromMuRA(100, 1/50, 1/9), 40)).
+    t:add(testEq(obtVisVivaRFromMuVA(100, 40, 1/9), 1/50)).
+    t:add(testEq(obtVisVivaAFromMuVR(100, 40, 1/50), 1/9)).
+
     return t.
 }
