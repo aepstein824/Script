@@ -345,7 +345,9 @@ function mergeLex {
 
 function mergeList {
     parameter a, b.
-    local merged to a:copy().
+    // Using sublist instead of copy cleared the fact that some lists seemed to
+    // be typesafe.
+    local merged to a:sublist(0, a:length).
     for bItem in b {
         merged:add(bItem).
     }
@@ -460,8 +462,30 @@ function launchQuicksave {
     }
 }
 
+function opsDefaultCompare {
+    parameter x, y.
+    return x < y.
+}
+
+function opsCompareFromValue {
+    parameter scorer.
+    return {
+        parameter x, y.
+        return scorer(x) < scorer(y).
+    }.
+}
+
+function opsListGenerate {
+    parameter val, n.
+    local generate to list().
+    for i in range(n) {
+        generate:add(val).
+    }
+    return generate.
+}
+
 function opsListSorted {
-    parameter l, compare to { parameter x, y. return x < y. }.
+    parameter l, compare to opsDefaultCompare@.
 
     local out to list().
     for item in l {
@@ -472,6 +496,25 @@ function opsListSorted {
         out:insert(i, item).
     }
     return out.
+}
+
+function opsListMax {
+    parameter l, compare to opsDefaultCompare@.
+
+    if l:empty  {
+        return l.
+    }
+
+    local bestItem to l[0].
+
+    for item in l {
+        // compare is less than
+        if compare(bestItem, item) {
+            set bestItem to item.
+        }
+    }
+
+    return bestItem.
 }
 
 function opsPortFindPair {

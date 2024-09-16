@@ -6,7 +6,7 @@ runOncePath("0:common/orbital.ks").
 runOncePath("0:common/ship.ks").
 
 function nodeExecute {
-    shipControlFromCommand().
+    shipControlFromThrustController().
     wait 0.
     local nd to nextnode.
     local ndRnp to v(nd:radialout, nd:normal, nd:prograde).

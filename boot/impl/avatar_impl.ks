@@ -3,6 +3,7 @@
 runOncePath("0:phases/dockrecv.ks").
 runOncePath("0:common/ship.ks").
 ensureHibernate().
+brakes on.
 
 // only one core should control the steering, choose lowest uid
 local amSmallest to true.

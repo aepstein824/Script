@@ -17,15 +17,16 @@ set kPhases:stopInc to 4.
 
 global kSsto to lex().
 set kSsto:LowAlti to 2000.
-set kSsto:LowSpd to 100.
-set kSsto:HighAlti to 4500.
-set kSsto:HighSpd to 550.
+set kSsto:LowSpd to 500.
+set kSsto:HighAlti to 7000.
+set kSsto:HighSpd to 1200.
 set kSsto:HighLevelTan to tan(5).
 set kSsto:HighClimbTan to tan(45).
 set kSsto:HighVPlus to 15.
 set kSsto:SpaceAlti to 20000.
 set kSsto:AirResource to "LiquidFuel".
 set kSsto:SpaceResource to "Oxidizer".
+set kSsto:PhysxWarpLimit to 3.
 // writeJson(kSsto, opsDataPath("kSsto")). print 1/0.
 opsDataLoad(kSsto, "kSsto"). 
 set kSsto:StateTakeoff to "TAKEOFF".
@@ -62,10 +63,10 @@ if shouldPhase(0) {
     local sstoFlightP to kAirline:FlightP.
     set kuniverse:timewarp:mode to "PHYSICS".
     print "Ssto low level".
-    set kuniverse:timewarp:rate to 2.
+    set kuniverse:timewarp:rate to min(2, kSsto:PhysxWarpLimit).
     sstoLowLevel(sstoFlightP).
     print "Ssto low climb".
-    set kuniverse:timewarp:rate to 4.
+    set kuniverse:timewarp:rate to min(4, kSsto:PhysxWarpLimit).
     sstoLowClimb(sstoFlightP).
     local airPostLow to airResource:amount.
     print " Burned " + round(airDensity * (airStart - airPostLow), 2)
@@ -73,7 +74,7 @@ if shouldPhase(0) {
     print "Ssto high level".
     sstoHighLevel(sstoFlightP).
     local airPostHigh to airResource:amount.
-    set kuniverse:timewarp:rate to 2.
+    set kuniverse:timewarp:rate to min(2, kSsto:PhysxWarpLimit).
     print " Burned " + round(airDensity * (airPostLow - airPostHigh), 2)
         + " " + airResource:name.
     print "Ssto high turn".
@@ -234,7 +235,7 @@ function sstoEnginesFor {
         } else if e:tag = "jet" {
             if state = kSsto:StateSpace {
                 e:shutdown().
-            } else if state = kSsto:StateSpace {
+            } else {
                 e:activate().
             }
         } else if e:tag = "openclose" {

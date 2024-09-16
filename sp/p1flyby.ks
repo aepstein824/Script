@@ -51,7 +51,7 @@ if shouldPhase(3) and suborb {
     nodeExecute().
 }
 if shouldPhase(4) {
-    escapePrograde(1.3 * obtMinEscape(body, apoapsis), 0).
+    escapePrograde(-1.3 * obtMinEscape(body, apoapsis), 0).
     nodeExecute().
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
     circleAtKerbin().

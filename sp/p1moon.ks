@@ -28,6 +28,7 @@ set kPhases:stopInc to 6.
 
 // Launch
 set kClimb:Turn to 3.5.
+set kClimb:OrbitStage to kInterStg.
 
 if shouldPhase(0) {
     print "Launch to Orbit!".
@@ -64,7 +65,7 @@ if shouldPhase(4) {
     circleNextExec(kMoonPeLow).
 }
 if shouldPhase(5) {
-    escapePrograde(1.3 * obtMinEscape(body, apoapsis), 20).
+    escapePrograde(-1.3 * obtMinEscape(body, apoapsis), 20).
     nodeExecute().
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
     circleAtKerbin().

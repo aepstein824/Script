@@ -10,7 +10,7 @@ local kLandingBudget to 200.
 global kLandKsc to lex().
 set kLandKsc:Pe to 0.
 set kLandKsc:QToAoa to 900.
-set kLandKsc:ReturnTanly to 120.
+set kLandKsc:ReturnTanly to 135.
 
 // writeJson(kLandKsc, opsDataPath("kLandKsc")). print 1/0.
 opsDataLoad(kLandKsc, "kLandKsc"). 
