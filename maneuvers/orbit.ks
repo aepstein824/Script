@@ -472,7 +472,6 @@ function isEscapeVExceeded {
     if semi < 0 {
         local escapeV to obtVisVivaVFromMuRA(mu, soiradius, semi).
         if escapeV > targetEscapeV {
-            print "Breaking at predicted escape v of " + escapeV.
             return true.
         }
     }
@@ -539,6 +538,7 @@ function orbitSlowEscape {
         floor((leaveTime - time:seconds) / period) * period.
 
     waitWarp(time + orbitsTillLeaveDur + burnTill - 10).
+    print " Slow Burn in 10".
     lock steering to prograde.
     wait 10.
     // set controlThrot to 1.

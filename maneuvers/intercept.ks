@@ -175,7 +175,8 @@ function lambertGrid {
 
     print (" LGrid to " + obtable2:name + " in "
         + timeRoundStr(detimestamp(guessT - time)) + ", " 
-        + timeRoundStr(detimestamp(guessDur)) + " long").
+        + timeRoundStr(detimestamp(guessDur)) + " long "
+        + options:keys:join(" ")).
 
     local best to lexicon().
     set best:totalV to 10 ^ 20.

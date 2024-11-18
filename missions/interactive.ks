@@ -19,16 +19,15 @@ createButtons().
 menu:show().
 
 local todo to "".
-local arg0 to "".
-local arg1 to "".
+local argStringBacking to "".
 
 until false {
     wait until todo <> "".
-    print todo + ", " + arg0 + ", " + arg1.
+    print todo + ", " + argStringBacking.
     if todo = "exit" {
         break.
     }
-    doSomething(todo, arg0, arg1).
+    doSomething(todo, argStringBacking).
     unlock steering.
     unlock throttle.
     set todo to "".
@@ -42,23 +41,24 @@ function createButtons {
         function clickChecker {
             parameter bname.
             set todo to bname.
-            set arg0 to arg0f:text.
-            set arg1 to arg1f:text.
+            set argStringBacking to arg0f:text.
             menu:hide().
         }
         set button:onclick to clickChecker@:bind(b).
     }
     local fields to menu:addhlayout().
     local arg0f to fields:addtextfield("").
-    local arg1f to fields:addtextfield("").
 }
 
 function doSomething {
-    parameter it, a0, a1.
+    parameter it, argString.
+    local args to argString:split(",").
+    local a0 to args[0].
 
     sas off.
     if it = "travel" {
         // unsetTarget().
+
         if not hasTarget {
             setTargetTo(a0).
         }
@@ -66,9 +66,22 @@ function doSomething {
         local travelCtx to lexicon(
             "dest", dest 
         ).
-        if a1 = "polar" {
-            set travelCtx:inclination to 90.
-        } 
+        if args.length > 1 {
+            local a1 to args[1].
+            if a1 = "lead" or a1 = "lag" {
+                local matchDest to dest.
+                set travelCtx:dest to dest:obt:body.
+                local match to lex("it", matchDest).
+                local safeLead to obtSafeLead(matchDest).
+                local lead to choose safeLead if a1 = "lead" else -3 * safeLead.
+                set match:offset to lead.
+                set travelCtx:match to match.
+
+            }
+            if a1 = "polar" {
+                set travelCtx:inclination to 90.
+            } 
+        }
         travelTo(travelCtx).
     } else if it = "dock" {
         if not hasTarget {
@@ -84,7 +97,7 @@ function doSomething {
         launchToOrbit().
     } else if it = "land" {
         local l0 to a0:tonumber(0).
-        local l1 to a1:tonumber(0).
+        local l1 to args[1]:tonumber(0).
         local lz to latlng(l0, l1).
         local flatLz to geoNearestFlat(lz).
         vacDescendToward(flatLz).

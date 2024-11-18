@@ -23,16 +23,13 @@ function travelTo {
     local dest to ctx:dest.
 
     until false {
-        local strat to travelStratTo(dest).
+        local strat to travelStratTo(ctx).
         print strat.
 
         if strat[0] = stratOrbiting {
-            if not ctx:haskey("match") {
-                break.
-            }
-            if travelObtsMatch(ship:obt, ctx:match:it:obt) {
-                break.
-            }
+            break.
+        }
+        if strat[0] = stratMatch {
             travelMatch(ctx).
         }
         if strat[0] = stratIntercept {
@@ -63,7 +60,7 @@ function travelTo {
 }
 
 function travelStratTo {
-    parameter targetable.
+    parameter ctx.
 
     if shipIsLandOrSplash() {
         return list(stratLaunch).
@@ -76,6 +73,19 @@ function travelStratTo {
         set bodyIter to bodyIter:obt:body.
     }
     ourBodies:add(sun).
+
+    local targetable to ctx:dest.
+    if ctx:haskey("match") {
+        if targetable = body {
+            if travelObtsMatch(ship:obt, ctx:match:it:obt) {
+                return list(stratOrbiting).
+            } 
+            return list(stratMatch).
+        }
+        set targetable to ctx:match:it.
+        // escapeTo and satellite will work better with targeting the match
+        // escapeTo has special logic for match
+    }
 
     if ourBodies:find(targetable) <> -1 {
         if targetable = body {
@@ -187,7 +197,12 @@ function travelEscapeTo {
 
     orbitCircleAtAp().
 
-    local hl to hlIntercept(body, tgtBody, lexicon("ignorePlane", true)).
+    local hlOptions to lexicon("ignorePlane", true).
+    local matching to ctx:hasKey("match") and ctx:match:it = tgtBody.
+    if (matching) {
+        hlOptions:add("obtLead", ctx:match:offset).
+    }
+    local hl to hlIntercept(body, tgtBody, hlOptions).
     set hl:dest to tgtBody.
     if ship:obt:inclination < 2 and apoapsis < body:radius {
         print " Escaping using a slow burn".
@@ -198,8 +213,14 @@ function travelEscapeTo {
         nodeExecute().
     }
 
+
     print " Waiting in travelEscapeTo to escape " + body:name.
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
+
+    if (matching) {
+        travelMatchContinue(ctx, hl).
+        return.
+    }
 
     travelIntoSatOrbit(ctx, tgtBody, hl:arrivalTime).
     if planeOf = tgtBody {
@@ -248,6 +269,10 @@ function travelIntoSatOrbit {
 
     print " Waiting in travelIntoSatOrbit".
     waitWarp(time:seconds + orbit:nextpatcheta + 60).
+    if (body <> tgtBody) {
+        print " Waiting in travelIntoSatOrbit again".
+        waitWarp(time:seconds + orbit:nextpatcheta + 60).
+    }
 }
 
 function travelCaptureToInc {
@@ -346,7 +371,14 @@ function travelMatch {
     local hlOptions to lexicon("obtLead", ctx:match:offset).
     local hl to travelDoubleHl(dest, hlOptions).
 
-    print " Course correct to " + dest.
+    travelMatchContinue(ctx, hl).
+}
+
+function travelMatchContinue {
+    parameter ctx, hl.
+
+    local hlOptions to lexicon("obtLead", ctx:match:offset).
+    print " Course correct to match " + ctx:match:it.
     set hl to courseCorrect(hl:dest, detimestamp(hl:arrivalTime - time),
         hlOptions).
     nodeExecute().
@@ -358,7 +390,7 @@ function travelMatch {
     nodeExecute().
     
     print " Tune orbit".
-    orbitTunePeriod(dest:obt:period, 10).
+    orbitTunePeriod(ctx:match:it:obt:period, 10).
 }
 
 function travelObtsMatch {
